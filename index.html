@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABF Leader Resources | LEFC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-brown:  #342D25;
+      --gold:        #BCA944;
+      --olive:       #524B30;
+      --terra:       #AA3B24;
+      --steel-blue:  #3F5765;
+      --light-gray:  #E5E5E4;
+      --white:       #FFFFFF;
+      --text:        #2a2318;
+      --text-muted:  #6b6050;
+      --radius:      10px;
+      --shadow:      0 2px 12px rgba(52,45,37,.10);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light-gray);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── Password Screen ───────────────────────────────────────── */
+    #pw-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--dark-brown);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #pw-screen.hidden { display: none; }
+    .pw-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 2.5rem 2.5rem 2rem;
+      width: 100%; max-width: 380px;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,.35);
+    }
+    .pw-badge {
+      display: inline-block;
+      background: var(--terra);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: .3em .8em;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    .pw-card h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      letter-spacing: -.01em;
+      line-height: 1.2;
+      margin-bottom: .35rem;
+    }
+    .pw-card p {
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.6rem;
+    }
+    .pw-input {
+      width: 100%;
+      padding: .7rem 1rem;
+      border: 1.5px solid var(--light-gray);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text);
+      transition: border-color .2s;
+      outline: none;
+      text-align: center;
+      letter-spacing: .1em;
+    }
+    .pw-input:focus { border-color: var(--gold); }
+    .pw-input.error { border-color: var(--terra); }
+    .pw-btn {
+      width: 100%;
+      margin-top: .85rem;
+      padding: .75rem 1rem;
+      background: var(--terra);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    .pw-btn:hover { background: #8f3220; }
+    .pw-btn:active { transform: scale(.98); }
+    .pw-error {
+      color: var(--terra);
+      font-size: .78rem;
+      margin-top: .6rem;
+      min-height: 1.1em;
+    }
+    .pw-divider {
+      width: 40px; height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+      margin: 1.2rem auto .5rem;
+    }
+
+    /* ─── Site Wrapper ──────────────────────────────────────────── */
+    #site { display: none; min-height: 100vh; flex-direction: column; }
+    #site.visible { display: flex; }
+
+    /* ─── Header ─────────────────────────────────────────────────  */
+    header {
+      background: var(--dark-brown);
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: .85rem;
+    }
+    /* Logo mark — simplified house/chevron in circle */
+    .logo-mark {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 24px; height: 22px; }
+    .header-text {}
+    .header-text .site-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: var(--white);
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+    .header-text .site-name span { color: var(--gold); }
+    .header-text .site-sub {
+      font-size: .68rem;
+      color: rgba(255,255,255,.55);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-top: .15rem;
+    }
+    .adults-badge {
+      background: var(--terra);
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .25em .7em;
+      border-radius: 4px;
+    }
+    .header-right {
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .logout-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.6);
+      font-family: inherit;
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      padding: .35em .8em;
+      border-radius: 5px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all .2s;
+    }
+    .logout-btn:hover { border-color: rgba(255,255,255,.6); color: #fff; }
+
+    /* ─── Navigation ────────────────────────────────────────────── */
+    nav {
+      background: var(--white);
+      border-bottom: 1px solid rgba(52,45,37,.12);
+      box-shadow: var(--shadow);
+      position: sticky; top: 0; z-index: 100;
+      overflow-x: auto;
+    }
+    .nav-inner {
+      display: flex;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    .tab-btn {
+      background: none; border: none;
+      font-family: inherit;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 1rem .9rem .85rem;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tab-btn:hover { color: var(--dark-brown); }
+    .tab-btn.active {
+      color: var(--terra);
+      border-bottom-color: var(--terra);
+    }
+
+    /* ─── Main content ──────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.25rem;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ─── Page Titles ───────────────────────────────────────────── */
+    .page-header { margin-bottom: 1.75rem; }
+    .page-header h2 {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      letter-spacing: -.02em;
+    }
+    .page-header .page-sub {
+      font-size: .85rem;
+      color: var(--text-muted);
+      margin-top: .3rem;
+    }
+    .gold-rule {
+      width: 48px; height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+      margin: .6rem 0 0;
+    }
+
+    /* ─── Cards & Grids ─────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.4rem 1.5rem;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; }
+
+    /* ─── HOME ──────────────────────────────────────────────────── */
+    .welcome-banner {
+      background: var(--dark-brown);
+      border-radius: var(--radius);
+      padding: 2rem 2rem 1.8rem;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .welcome-banner::after {
+      content: '';
+      position: absolute;
+      right: -30px; top: -30px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      border: 2px solid rgba(188,169,68,.18);
+    }
+    .welcome-banner::before {
+      content: '';
+      position: absolute;
+      right: 20px; top: 20px;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: 2px solid rgba(188,169,68,.12);
+    }
+    .welcome-banner h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: .5rem;
+    }
+    .welcome-banner h2 span { color: var(--gold); }
+    .welcome-banner p {
+      font-size: .875rem;
+      color: rgba(255,255,255,.75);
+      max-width: 580px;
+      line-height: 1.65;
+    }
+    .home-nav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .home-nav-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.3rem;
+      cursor: pointer;
+      border-top: 3px solid var(--gold);
+      transition: box-shadow .2s, transform .15s;
+    }
+    .home-nav-card:hover { box-shadow: 0 6px 24px rgba(52,45,37,.14); transform: translateY(-2px); }
+    .home-nav-card .icon {
+      font-size: 1.4rem;
+      margin-bottom: .5rem;
+    }
+    .home-nav-card h3 {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      margin-bottom: .3rem;
+    }
+    .home-nav-card p {
+      font-size: .75rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .home-nav-card.terra { border-top-color: var(--terra); }
+    .home-nav-card.steel { border-top-color: var(--steel-blue); }
+    .home-nav-card.olive { border-top-color: var(--olive); }
+    .section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--terra);
+      margin-bottom: .75rem;
+    }
+
+    /* ─── ABF CLASSES ───────────────────────────────────────────── */
+    .service-section { margin-bottom: 2rem; }
+    .service-header {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .service-badge {
+      background: var(--dark-brown);
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .3em .8em;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .service-header hr {
+      flex: 1; border: none; border-top: 1px solid rgba(52,45,37,.1);
+    }
+    .abf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .abf-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .abf-card:hover { box-shadow: 0 6px 24px rgba(52,45,37,.14); }
+    .abf-photo {
+      background: var(--light-gray);
+      height: 90px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--gold);
+    }
+    .abf-photo.terra-border { border-bottom-color: var(--terra); }
+    .abf-body { padding: 1rem 1.1rem; }
+    .abf-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      font-style: italic;
+      margin-bottom: .25rem;
+    }
+    .abf-leaders {
+      font-size: .8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .abf-leaders strong { color: var(--text); font-weight: 600; }
+    .abf-meta {
+      margin-top: .75rem;
+      padding-top: .7rem;
+      border-top: 1px solid var(--light-gray);
+      display: flex; gap: .5rem; flex-wrap: wrap;
+    }
+    .abf-tag {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: .22em .65em;
+      border-radius: 4px;
+      background: var(--light-gray);
+      color: var(--text-muted);
+    }
+
+    /* ─── KEY DATES ─────────────────────────────────────────────── */
+    .dates-list { display: flex; flex-direction: column; gap: .75rem; }
+    .date-item {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .date-badge {
+      background: var(--dark-brown);
+      color: #fff;
+      min-width: 64px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: .7rem .5rem;
+      text-align: center;
+    }
+    .date-badge .month {
+      font-size: .6rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .date-badge .day {
+      font-size: 1.5rem; font-weight: 800;
+      line-height: 1;
+    }
+    .date-content { padding: .85rem 1.1rem; }
+    .date-content h3 {
+      font-size: .9rem; font-weight: 700;
+      color: var(--dark-brown); margin-bottom: .2rem;
+    }
+    .date-content p {
+      font-size: .78rem; color: var(--text-muted); line-height: 1.5;
+    }
+    .date-type-badge {
+      display: inline-block;
+      font-size: .62rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: .18em .6em; border-radius: 3px;
+      margin-bottom: .35rem;
+    }
+    .date-type-badge.leader   { background: rgba(170,59,36,.12); color: var(--terra); }
+    .date-type-badge.training { background: rgba(63,87,101,.12); color: var(--steel-blue); }
+    .date-type-badge.church   { background: rgba(188,169,68,.18); color: var(--olive); }
+
+    /* ─── TRAINING ──────────────────────────────────────────────── */
+    .training-section { margin-bottom: 2.25rem; }
+    .training-section-header {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .training-section-header h3 {
+      font-size: 1rem; font-weight: 700;
+      color: var(--dark-brown);
+    }
+    .audience-badge {
+      font-size: .62rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: .25em .75em; border-radius: 4px;
+    }
+    .audience-badge.new     { background: rgba(170,59,36,.12); color: var(--terra); }
+    .audience-badge.exist   { background: rgba(63,87,101,.12); color: var(--steel-blue); }
+    .audience-badge.prospe  { background: rgba(188,169,68,.2); color: var(--olive); }
+    .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .video-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .video-embed {
+      background: var(--dark-brown);
+      aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .video-embed iframe {
+      width: 100%; height: 100%;
+      border: none;
+    }
+    .video-placeholder {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: rgba(255,255,255,.5);
+      font-size: .7rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      gap: .5rem;
+    }
+    .video-placeholder svg { opacity: .4; }
+    .video-body { padding: .9rem 1rem; }
+    .video-body h4 {
+      font-size: .85rem; font-weight: 700;
+      color: var(--dark-brown); margin-bottom: .25rem;
+      line-height: 1.3;
+    }
+    .video-body p {
+      font-size: .75rem; color: var(--text-muted); line-height: 1.5;
+    }
+
+    /* ─── ARTICLES ──────────────────────────────────────────────── */
+    .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    .article-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.3rem;
+      display: flex; flex-direction: column;
+      gap: .5rem;
+      transition: box-shadow .2s;
+    }
+    .article-card:hover { box-shadow: 0 6px 24px rgba(52,45,37,.14); }
+    .article-cat {
+      font-size: .62rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: .22em .65em; border-radius: 4px;
+      display: inline-block; align-self: flex-start;
+    }
+    .article-cat.values   { background: rgba(188,169,68,.2); color: var(--olive); }
+    .article-cat.leader   { background: rgba(170,59,36,.12); color: var(--terra); }
+    .article-cat.teaching { background: rgba(63,87,101,.12); color: var(--steel-blue); }
+    .article-card h3 {
+      font-size: .9rem; font-weight: 700;
+      color: var(--dark-brown); line-height: 1.35;
+    }
+    .article-card p {
+      font-size: .77rem; color: var(--text-muted);
+      line-height: 1.55; flex: 1;
+    }
+    .article-link {
+      font-size: .75rem; font-weight: 700;
+      color: var(--terra); text-decoration: none;
+      letter-spacing: .03em;
+    }
+    .article-link:hover { text-decoration: underline; }
+
+    /* ─── TEACHERS ──────────────────────────────────────────────── */
+    .teachers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+    .teacher-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      text-align: center;
+    }
+    .teacher-photo {
+      background: var(--light-gray);
+      height: 110px;
+      display: flex; align-items: center; justify-content: center;
+      border-bottom: 3px solid var(--gold);
+    }
+    .teacher-avatar {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--dark-brown);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold);
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+    .teacher-body { padding: 1rem 1.1rem; }
+    .teacher-body h3 {
+      font-size: .92rem; font-weight: 700;
+      color: var(--dark-brown); margin-bottom: .2rem;
+    }
+    .teacher-body .teacher-role {
+      font-size: .72rem; color: var(--text-muted);
+      font-weight: 500; margin-bottom: .65rem;
+    }
+    .teacher-topics { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+    .teacher-topic {
+      font-size: .65rem; font-weight: 700;
+      letter-spacing: .05em; text-transform: uppercase;
+      padding: .22em .65em; border-radius: 4px;
+      background: var(--light-gray); color: var(--text-muted);
+    }
+
+    /* ─── Footer ─────────────────────────────────────────────────  */
+    footer {
+      background: var(--dark-brown);
+      color: rgba(255,255,255,.45);
+      text-align: center;
+      font-size: .72rem;
+      padding: 1.2rem 1rem;
+      letter-spacing: .04em;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ─── Responsive ────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
+      .home-nav-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .abf-grid, .video-grid, .articles-grid, .teachers-grid,
+      .home-nav-grid { grid-template-columns: 1fr; }
+      header { flex-wrap: wrap; }
+      .adults-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     PASSWORD SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="pw-screen">
+  <div class="pw-card">
+    <div class="pw-badge">LEFC Adults</div>
+    <h1>ABF Leader<br>Resources</h1>
+    <div class="pw-divider"></div>
+    <p>Enter the leader password to access this resource hub.</p>
+    <input
+      type="password"
+      id="pw-input"
+      class="pw-input"
+      placeholder="Password"
+      autocomplete="current-password"
+    />
+    <p class="pw-error" id="pw-error"></p>
+    <button class="pw-btn" id="pw-btn">Sign In</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN SITE
+════════════════════════════════════════════════════════════ -->
+<div id="site">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-brand">
+      <div class="logo-mark">
+        <!-- Simplified LEFC-style house/chevron icon -->
+        <svg viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 10v10h7v-6h6v6h7V10L12 2z" fill="#BCA944" stroke="#BCA944" stroke-width="1" stroke-linejoin="round"/>
+          <path d="M9 22v-7h6v7" stroke="#342D25" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="site-name">LEFC <span>ABF Resources</span></div>
+        <div class="site-sub">Adult Bible Fellowship · Leader Hub</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="adults-badge">LEFC Adults</div>
+      <button class="logout-btn" id="logout-btn">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav>
+    <div class="nav-inner">
+      <button class="tab-btn active" data-tab="home">Home</button>
+      <button class="tab-btn" data-tab="classes">ABF Classes</button>
+      <button class="tab-btn" data-tab="dates">Key Dates</button>
+      <button class="tab-btn" data-tab="training">Training</button>
+      <button class="tab-btn" data-tab="articles">Articles</button>
+      <button class="tab-btn" data-tab="teachers">Teachers</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main>
+
+    <!-- ── HOME ─────────────────────────────────────────── -->
+    <div class="tab-pane active" id="tab-home">
+      <div class="welcome-banner">
+        <h2>Welcome, <span>ABF Leaders.</span></h2>
+        <p>This is your central hub for resources, training, and information to help you lead well. ABFs are a primarily lay-led ministry — this site is here to equip and support you as you serve autonomously and faithfully.</p>
+      </div>
+
+      <div class="section-title">Quick Access</div>
+      <div class="home-nav-grid">
+        <div class="home-nav-card" onclick="showTab('classes')">
+          <div class="icon">👥</div>
+          <h3>ABF Classes</h3>
+          <p>View all current classes, leaders, and service times across both services.</p>
+        </div>
+        <div class="home-nav-card terra" onclick="showTab('dates')">
+          <div class="icon">📅</div>
+          <h3>Key Dates</h3>
+          <p>Important dates on the church calendar that affect ABF leaders and meetings.</p>
+        </div>
+        <div class="home-nav-card steel" onclick="showTab('training')">
+          <div class="icon">🎬</div>
+          <h3>Training Videos</h3>
+          <p>Video resources for new leaders, prospective leaders, and continuing development.</p>
+        </div>
+        <div class="home-nav-card olive" onclick="showTab('articles')">
+          <div class="icon">📖</div>
+          <h3>Articles</h3>
+          <p>Written resources reinforcing the core values and vision of the ABF ministry.</p>
+        </div>
+        <div class="home-nav-card" onclick="showTab('teachers')">
+          <div class="icon">🎙️</div>
+          <h3>Teachers</h3>
+          <p>Learn about the LEFC teachers — who they are and what topics they teach.</p>
+        </div>
+        <div class="home-nav-card terra">
+          <div class="icon">✉️</div>
+          <h3>Contact</h3>
+          <p>Questions or needs? Reach Tom Daly at <a href="mailto:daly@lefc.net" style="color:var(--terra);">daly@lefc.net</a>.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:2rem;">
+        <div class="section-title">About ABF Ministry</div>
+        <div class="card">
+          <p style="font-size:.875rem;line-height:1.75;color:var(--text);">
+            Adult Bible Fellowships at LEFC are Sunday morning small groups that gather around God's Word — studying Scripture, building community, and caring for one another. ABFs are a cornerstone of how LEFC makes and matures disciples. As a lay-led ministry, ABF leaders are trusted to shepherd their groups with consistency and heart, supported by pastoral staff and this resource hub.
+          </p>
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--light-gray);display:flex;gap:2rem;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--dark-brown);">10</div>
+              <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Active ABFs</div>
+            </div>
+            <div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--dark-brown);">2</div>
+              <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Services</div>
+            </div>
+            <div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--dark-brown);">2×</div>
+              <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Leader Meetings / Year</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ABF CLASSES ──────────────────────────────────── -->
+    <div class="tab-pane" id="tab-classes">
+      <div class="page-header">
+        <h2>ABF Classes</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Current classes and leaders across both services. Add leader photos and room details as needed.</p>
+      </div>
+
+      <!-- 1st Service -->
+      <div class="service-section">
+        <div class="service-header">
+          <div class="service-badge">1st Service</div>
+          <hr />
+        </div>
+        <div class="abf-grid">
+
+          <div class="abf-card">
+            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Philippians</div>
+              <div class="abf-leaders"><strong>Jim &amp; Jean Dillner</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">1st Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Faith Builders</div>
+              <div class="abf-leaders"><strong>Jeff &amp; Dawn Clinton</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">1st Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Koinonia</div>
+              <div class="abf-leaders"><strong>Scott Galen</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">1st Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Branches</div>
+              <div class="abf-leaders"><strong>Dan &amp; Molly Longo</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">1st Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Roots</div>
+              <div class="abf-leaders"><strong>Atlee &amp; Adrienne Eshleman</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">1st Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2nd Service -->
+      <div class="service-section">
+        <div class="service-header">
+          <div class="service-badge">2nd Service</div>
+          <hr />
+        </div>
+        <div class="abf-grid">
+
+          <div class="abf-card">
+            <div class="abf-photo terra-border">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Agape</div>
+              <div class="abf-leaders"><strong>Bryan &amp; Coleen Gehman</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">2nd Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo terra-border">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Mosaic</div>
+              <div class="abf-leaders"><strong>Kurt Zimmerman &amp; Josh Bailey</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">2nd Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo terra-border">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Synago</div>
+              <div class="abf-leaders"><strong>Colton &amp; Hannah Keller</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">2nd Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo terra-border">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">The Bridge</div>
+              <div class="abf-leaders"><strong>Blaine &amp; Laura Tramel</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">2nd Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="abf-card">
+            <div class="abf-photo terra-border">[ Leader Photo ]</div>
+            <div class="abf-body">
+              <div class="abf-name">Imago Dei</div>
+              <div class="abf-leaders"><strong>Sandy Morris</strong></div>
+              <div class="abf-meta">
+                <span class="abf-tag">2nd Service</span>
+                <span class="abf-tag">Room TBD</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KEY DATES ────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-dates">
+      <div class="page-header">
+        <h2>Key Dates</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Important dates on the LEFC calendar for ABF leaders. Updated regularly.</p>
+      </div>
+      <div class="dates-list">
+
+        <div class="date-item">
+          <div class="date-badge" style="background:var(--terra);">
+            <span class="month">Aug</span>
+            <span class="day">TBD</span>
+          </div>
+          <div class="date-content">
+            <div class="date-type-badge leader">Leader Meeting</div>
+            <h3>ABF Leader Meeting — Summer</h3>
+            <p>Annual summer leader gathering held during a service (typically when electives are running). All leaders encouraged to attend. Exact date TBD.</p>
+          </div>
+        </div>
+
+        <div class="date-item">
+          <div class="date-badge">
+            <span class="month">Jan–Feb</span>
+            <span class="day">TBD</span>
+          </div>
+          <div class="date-content">
+            <div class="date-type-badge leader">Leader Meeting</div>
+            <h3>ABF Leader Meeting — New Year</h3>
+            <p>Annual new year leader meeting held at 8am before the service. All leaders encouraged to attend. Exact date TBD.</p>
+          </div>
+        </div>
+
+        <div class="date-item">
+          <div class="date-badge" style="background:var(--steel-blue);">
+            <span class="month">2026</span>
+            <span class="day">Sum</span>
+          </div>
+          <div class="date-content">
+            <div class="date-type-badge training">Summer Electives</div>
+            <h3>ABF Summer Electives 2026</h3>
+            <p>Planning underway for 2026 ABF Summer Electives. Details and scheduling to be announced. ABF leaders released from regular Sunday format during this period.</p>
+          </div>
+        </div>
+
+        <div class="date-item">
+          <div class="date-badge" style="background:var(--olive);">
+            <span class="month">TBD</span>
+            <span class="day">—</span>
+          </div>
+          <div class="date-content">
+            <div class="date-type-badge church">Church Calendar</div>
+            <h3>Discipleship Training Lab Launch</h3>
+            <p>Upcoming launch of the Discipleship Training Lab. ABF leaders may want to encourage group members to participate. Dates TBD.</p>
+          </div>
+        </div>
+
+        <div class="date-item">
+          <div class="date-badge" style="background:var(--olive);">
+            <span class="month">TBD</span>
+            <span class="day">—</span>
+          </div>
+          <div class="date-content">
+            <div class="date-type-badge church">Church Calendar</div>
+            <h3>Got Questions Launch</h3>
+            <p>Upcoming "Got Questions" initiative launch. Details to follow. ABF leaders will be updated.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── TRAINING ──────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-training">
+      <div class="page-header">
+        <h2>Training</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Video resources for every stage of ABF leadership. Add Vimeo embed links to populate each card.</p>
+      </div>
+
+      <!-- New Leaders -->
+      <div class="training-section">
+        <div class="training-section-header">
+          <h3>For New Leaders</h3>
+          <span class="audience-badge new">New Leaders</span>
+        </div>
+        <div class="video-grid">
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Welcome to ABF Leadership</h4>
+              <p>An overview of what it means to lead an ABF, the vision, and what support looks like.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Core Values of ABF Ministry</h4>
+              <p>Understanding the foundational values that shape how ABFs operate at LEFC.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Practical Guide to Leading a Group</h4>
+              <p>Logistics, rhythms, and tools for running an effective ABF week to week.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Considering Leadership -->
+      <div class="training-section">
+        <div class="training-section-header">
+          <h3>For Those Considering Leadership</h3>
+          <span class="audience-badge prospe">Prospective</span>
+        </div>
+        <div class="video-grid">
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Is ABF Leadership for Me?</h4>
+              <p>A candid look at the commitment, rewards, and character of an ABF leader.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Hearing From Current Leaders</h4>
+              <p>ABF leaders share their stories and what they've learned along the way.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Next Steps</h4>
+              <p>How to move forward if you feel called — who to talk to and what to expect.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Existing Leaders -->
+      <div class="training-section">
+        <div class="training-section-header">
+          <h3>For Existing Leaders</h3>
+          <span class="audience-badge exist">Continuing Development</span>
+        </div>
+        <div class="video-grid">
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Reinforcing the Core Values</h4>
+              <p>A refresher on the values that keep an ABF healthy and on mission over time.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Leading Through Transitions</h4>
+              <p>Navigating leadership changes, group multiplication, and seasons of growth.</p>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="video-embed">
+              <div class="video-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video</span>
+              </div>
+            </div>
+            <div class="video-body">
+              <h4>Using Tech in Your Room</h4>
+              <p>Practical help with the tools and technology available to ABF leaders at LEFC.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ARTICLES ──────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-articles">
+      <div class="page-header">
+        <h2>Articles &amp; Resources</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Written resources to equip and encourage ABF leaders. Add articles, links, or PDFs as needed.</p>
+      </div>
+      <div class="articles-grid">
+
+        <div class="article-card">
+          <span class="article-cat values">Core Values</span>
+          <h3>The Vision Behind ABF Ministry at LEFC</h3>
+          <p>A foundational overview of why ABFs exist, how they fit within LEFC's discipleship strategy, and what makes them distinct.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+        <div class="article-card">
+          <span class="article-cat leader">Leadership</span>
+          <h3>What Makes a Healthy ABF?</h3>
+          <p>Markers of a thriving adult fellowship group — from community depth to biblical engagement to genuine care for members.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+        <div class="article-card">
+          <span class="article-cat teaching">Teaching</span>
+          <h3>How to Lead a Bible Discussion</h3>
+          <p>Practical guidance for facilitating meaningful discussion from Scripture in a group setting — questions, pacing, and presence.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+        <div class="article-card">
+          <span class="article-cat leader">Leadership</span>
+          <h3>Caring for People in Your Group</h3>
+          <p>The pastoral side of ABF leadership — how to notice needs, follow up well, and connect people to deeper care when needed.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+        <div class="article-card">
+          <span class="article-cat values">Core Values</span>
+          <h3>ABF and the Multiplying Church</h3>
+          <p>How healthy ABFs contribute to the broader vision of LEFC as a church that multiplies — groups, leaders, and impact.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+        <div class="article-card">
+          <span class="article-cat teaching">Teaching</span>
+          <h3>Choosing and Using Curriculum</h3>
+          <p>A guide to selecting study material that fits your group, reinforces biblical depth, and keeps people engaged week to week.</p>
+          <a href="#" class="article-link">Read Article →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── TEACHERS ──────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-teachers">
+      <div class="page-header">
+        <h2>LEFC Teachers</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">The teaching staff and lay teachers at LEFC — who they are and what they teach. Add photos and bio details as available.</p>
+      </div>
+      <div class="teachers-grid">
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+              <span class="teacher-topic">Topic 3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+              <span class="teacher-topic">Topic 3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+              <span class="teacher-topic">Topic 3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teacher-card">
+          <div class="teacher-photo">
+            <div class="teacher-avatar">T</div>
+          </div>
+          <div class="teacher-body">
+            <h3>Teacher Name</h3>
+            <div class="teacher-role">Role / Title</div>
+            <div class="teacher-topics">
+              <span class="teacher-topic">Topic 1</span>
+              <span class="teacher-topic">Topic 2</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Lancaster Evangelical Free Church &nbsp;·&nbsp; ABF Leader Resources &nbsp;·&nbsp; <a href="https://www.lefc.net" target="_blank">lefc.net</a></p>
+    <p style="margin-top:.35rem;">For questions, contact <a href="mailto:daly@lefc.net">Tom Daly</a></p>
+  </footer>
+
+</div><!-- /#site -->
+
+<script>
+  // ─── Password Logic ─────────────────────────────────────
+  const CORRECT = 'oikos';
+  const SESSION_KEY = 'abf_auth';
+
+  const pwScreen = document.getElementById('pw-screen');
+  const site     = document.getElementById('site');
+  const pwInput  = document.getElementById('pw-input');
+  const pwBtn    = document.getElementById('pw-btn');
+  const pwError  = document.getElementById('pw-error');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  function unlock() {
+    pwScreen.classList.add('hidden');
+    site.classList.add('visible');
+    sessionStorage.setItem(SESSION_KEY, '1');
+  }
+
+  function tryPassword() {
+    if (pwInput.value === CORRECT) {
+      pwError.textContent = '';
+      pwInput.classList.remove('error');
+      unlock();
+    } else {
+      pwInput.classList.add('error');
+      pwError.textContent = 'Incorrect password. Please try again.';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+  }
+
+  // Check if already authenticated this session
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    unlock();
+  }
+
+  pwBtn.addEventListener('click', tryPassword);
+  pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
+
+  logoutBtn.addEventListener('click', () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    site.classList.remove('visible');
+    pwScreen.classList.remove('hidden');
+    pwInput.value = '';
+  });
+
+  // ─── Tab Navigation ──────────────────────────────────────
+  function showTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+    const pane = document.getElementById(`tab-${id}`);
+    if (btn)  btn.classList.add('active');
+    if (pane) pane.classList.add('active');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => showTab(btn.dataset.tab));
+  });
+</script>
+
+</body>
+</html>
