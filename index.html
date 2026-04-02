@@ -372,14 +372,15 @@
     .abf-card:hover { box-shadow: 0 6px 24px rgba(52,45,37,.14); }
     .abf-photo {
       background: var(--light-gray);
-      height: 90px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .7rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: .05em;
-      text-transform: uppercase;
+      height: 160px;
+      overflow: hidden;
       border-bottom: 2px solid var(--gold);
+    }
+    .abf-photo img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
     }
     .abf-photo.terra-border { border-bottom-color: var(--terra); }
     .abf-body { padding: 1rem 1.1rem; }
@@ -772,10 +773,10 @@
         <div class="abf-grid">
 
           <div class="abf-card">
-            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-photo"><img src="photos/dillner.jpg" alt="Jim & Jean Dillner" /></div>
             <div class="abf-body">
               <div class="abf-name">Philippians</div>
-              <div class="abf-leaders"><strong>Jim &amp; Jean Dillner</strong></div>
+              <div class="abf-leaders"><strong>Jim Dillner, Jean Dillner</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">1st Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -784,10 +785,10 @@
           </div>
 
           <div class="abf-card">
-            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-photo"><img src="photos/clinton.jpg" alt="Jeff & Dawn Clinton" /></div>
             <div class="abf-body">
               <div class="abf-name">Faith Builders</div>
-              <div class="abf-leaders"><strong>Jeff &amp; Dawn Clinton</strong></div>
+              <div class="abf-leaders"><strong>Dawn Clinton, Jeff Clinton, Debbie Spangler, Ileana Brown, Brooke Fullen</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">1st Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -796,10 +797,10 @@
           </div>
 
           <div class="abf-card">
-            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-photo"><img src="photos/galen.jpg" alt="Scott Galen" /></div>
             <div class="abf-body">
               <div class="abf-name">Koinonia</div>
-              <div class="abf-leaders"><strong>Scott Galen</strong></div>
+              <div class="abf-leaders"><strong>Scott Galen, Nick Desiato</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">1st Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -808,10 +809,10 @@
           </div>
 
           <div class="abf-card">
-            <div class="abf-photo">[ Leader Photo ]</div>
+            <div class="abf-photo"><img src="photos/longo.jpg" alt="Dan & Molly Longo" /></div>
             <div class="abf-body">
               <div class="abf-name">Branches</div>
-              <div class="abf-leaders"><strong>Dan &amp; Molly Longo</strong></div>
+              <div class="abf-leaders"><strong>Dan Longo, Molly Longo, Jason Leed, Ben Spead</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">1st Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -823,7 +824,7 @@
             <div class="abf-photo">[ Leader Photo ]</div>
             <div class="abf-body">
               <div class="abf-name">Roots</div>
-              <div class="abf-leaders"><strong>Atlee &amp; Adrienne Eshleman</strong></div>
+              <div class="abf-leaders"><strong>Atlee Eshleman, Adrienne Eshleman, Dave Cox, Chris Cox</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">1st Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -846,7 +847,7 @@
             <div class="abf-photo terra-border">[ Leader Photo ]</div>
             <div class="abf-body">
               <div class="abf-name">Agape</div>
-              <div class="abf-leaders"><strong>Bryan &amp; Coleen Gehman</strong></div>
+              <div class="abf-leaders"><strong>Coleen Gehman, Mary Ann Powers, Thelma Lord, MB Support</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">2nd Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -858,7 +859,7 @@
             <div class="abf-photo terra-border">[ Leader Photo ]</div>
             <div class="abf-body">
               <div class="abf-name">Mosaic</div>
-              <div class="abf-leaders"><strong>Kurt Zimmerman &amp; Josh Bailey</strong></div>
+              <div class="abf-leaders"><strong>Kurt Zimmerman, Josh Bailey, Lauren Timmins</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">2nd Service</span>
                 <span class="abf-tag">Room TBD</span>
@@ -870,7 +871,7 @@
             <div class="abf-photo terra-border">[ Leader Photo ]</div>
             <div class="abf-body">
               <div class="abf-name">Synago</div>
-              <div class="abf-leaders"><strong>Colton &amp; Hannah Keller</strong></div>
+              <div class="abf-leaders"><strong>Colton Keller, Hannah Keller, Paige Huber, Kevin Zook, Julie Zook, Abi Mitchell</strong></div>
               <div class="abf-meta">
                 <span class="abf-tag">2nd Service</span>
                 <span class="abf-tag">Room TBD</span>
