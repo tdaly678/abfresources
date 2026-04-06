@@ -603,6 +603,108 @@
       background: rgba(188,169,68,.2); color: var(--olive); font-weight: 800;
     }
 
+    /* ─── COURSES ──────────────────────────────────────────── */
+    .course-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+    .course-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow .2s, transform .15s;
+    }
+    .course-card:hover { box-shadow: 0 6px 24px rgba(52,45,37,.14); transform: translateY(-2px); }
+    .course-thumb {
+      height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .course-thumb-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -.01em;
+      text-shadow: 0 2px 10px rgba(0,0,0,.35);
+      z-index: 1;
+    }
+    .course-play-icon {
+      position: absolute;
+      right: 14px; bottom: 12px;
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .course-body { padding: 1rem 1.1rem; }
+    .course-body h3 {
+      font-size: .95rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      margin-bottom: .35rem;
+    }
+    .course-meta { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; }
+    .course-tag {
+      font-size: .65rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: .22em .65em; border-radius: 4px;
+      background: var(--light-gray); color: var(--text-muted);
+    }
+    .course-tag.ministry { background: rgba(63,87,101,.12); color: var(--steel-blue); }
+    .course-tag.semester { background: rgba(188,169,68,.2); color: var(--olive); }
+
+    /* Course Detail */
+    .course-detail-top {
+      display: flex; align-items: flex-start; gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .back-btn {
+      background: var(--light-gray);
+      border: none;
+      border-radius: var(--radius);
+      padding: .5rem .95rem;
+      font-family: inherit;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; gap: .35rem;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: .3rem;
+    }
+    .back-btn:hover { background: var(--dark-brown); color: #fff; }
+    .course-video-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.2rem;
+    }
+    .course-video-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .course-video-embed {
+      background: #000;
+      aspect-ratio: 16/9;
+    }
+    .course-video-embed iframe {
+      width: 100%; height: 100%;
+      border: none; display: block;
+    }
+    .course-video-body { padding: .85rem 1rem; }
+    .course-video-body h4 {
+      font-size: .88rem; font-weight: 700;
+      color: var(--dark-brown); margin-bottom: .2rem;
+    }
+    .course-video-body .vid-duration {
+      font-size: .72rem; color: var(--text-muted);
+    }
+
     /* ─── Footer ─────────────────────────────────────────────────  */
     footer {
       background: var(--dark-brown);
@@ -619,10 +721,12 @@
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
       .home-nav-grid { grid-template-columns: repeat(2, 1fr); }
+      .course-grid { grid-template-columns: repeat(2, 1fr); }
+      .course-video-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid,
-      .home-nav-grid { grid-template-columns: 1fr; }
+      .home-nav-grid, .course-grid { grid-template-columns: 1fr; }
       header { flex-wrap: wrap; }
       .adults-badge { display: none; }
     }
@@ -684,6 +788,7 @@
       <button class="tab-btn" data-tab="classes">ABF Classes</button>
       <button class="tab-btn" data-tab="dates">Key Dates</button>
       <button class="tab-btn" data-tab="training">Training</button>
+      <button class="tab-btn" data-tab="courses">Courses</button>
       <button class="tab-btn" data-tab="articles">Articles</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
     </div>
@@ -720,6 +825,11 @@
           <div class="icon">📖</div>
           <h3>Articles</h3>
           <p>Written resources reinforcing the core values and vision of the ABF ministry.</p>
+        </div>
+        <div class="home-nav-card steel" onclick="showTab('courses')">
+          <div class="icon">🎓</div>
+          <h3>Courses</h3>
+          <p>Bible study series and curriculum with embedded video sessions for your ABF.</p>
         </div>
         <div class="home-nav-card" onclick="showTab('teachers')">
           <div class="icon">🎙️</div>
@@ -1416,6 +1526,160 @@
 
     </div>
 
+    <!-- ── COURSES ────────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-courses">
+      <div class="page-header">
+        <h2>Courses</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Bible study series and curriculum with embedded video sessions. Click a course to watch.</p>
+      </div>
+      <div class="course-grid">
+
+        <div class="course-card" onclick="showCourse('joshua')">
+          <div class="course-thumb" style="background: linear-gradient(135deg, var(--steel-blue) 0%, #243540 100%);">
+            <span class="course-thumb-title">Joshua</span>
+            <div class="course-play-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="course-body">
+            <h3>Joshua</h3>
+            <div class="course-meta">
+              <span class="course-tag ministry">WBF</span>
+              <span class="course-tag semester">Spring 2026</span>
+              <span class="course-tag">10 Sessions</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── COURSE DETAIL ──────────────────────────────────── -->
+    <div class="tab-pane" id="tab-course-detail">
+      <div class="course-detail-top">
+        <button class="back-btn" onclick="showTab('courses')">
+          ← All Courses
+        </button>
+        <div>
+          <div class="page-header" style="margin-bottom:0;">
+            <h2 id="course-detail-title">Joshua</h2>
+            <div class="gold-rule"></div>
+          </div>
+          <div class="course-meta" style="margin-top:.6rem;">
+            <span class="course-tag ministry" id="course-detail-ministry">WBF</span>
+            <span class="course-tag semester" id="course-detail-semester">Spring 2026</span>
+            <span class="course-tag" id="course-detail-sessions">10 Sessions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Joshua — WBF Spring 2026 -->
+      <div id="course-videos-joshua" class="course-video-grid">
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177643459?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 1</h4>
+            <span class="vid-duration">46 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177628962?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 2</h4>
+            <span class="vid-duration">26 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177542736?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 3</h4>
+            <span class="vid-duration">39 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177555165?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 4</h4>
+            <span class="vid-duration">27 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177516141?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 5</h4>
+            <span class="vid-duration">27 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177523207?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 6</h4>
+            <span class="vid-duration">28 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177529876?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 7</h4>
+            <span class="vid-duration">29 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177536406?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 8</h4>
+            <span class="vid-duration">26 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177494382?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 9</h4>
+            <span class="vid-duration">32 min</span>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1177504084?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="course-video-body">
+            <h4>Week 10</h4>
+            <span class="vid-duration">31 min</span>
+          </div>
+        </div>
+
+      </div><!-- /#course-videos-joshua -->
+    </div><!-- /#tab-course-detail -->
+
   </main>
 
   <footer>
@@ -1487,6 +1751,40 @@
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => showTab(btn.dataset.tab));
   });
+
+  // ─── Course Detail Navigation ────────────────────────────
+  const courses = {
+    'joshua': {
+      title: 'Joshua',
+      ministry: 'WBF',
+      semester: 'Spring 2026',
+      sessions: '10 Sessions'
+    }
+  };
+
+  function showCourse(id) {
+    const course = courses[id];
+    if (!course) return;
+
+    // Update detail header fields
+    document.getElementById('course-detail-title').textContent = course.title;
+    document.getElementById('course-detail-ministry').textContent = course.ministry;
+    document.getElementById('course-detail-semester').textContent = course.semester;
+    document.getElementById('course-detail-sessions').textContent = course.sessions;
+
+    // Hide all course video grids, show the right one
+    document.querySelectorAll('[id^="course-videos-"]').forEach(el => el.style.display = 'none');
+    const grid = document.getElementById('course-videos-' + id);
+    if (grid) grid.style.display = 'grid';
+
+    // Activate the detail pane (no nav button — skip btn highlight)
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById('tab-course-detail');
+    if (pane) pane.classList.add('active');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 </script>
 
 </body>
