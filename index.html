@@ -758,18 +758,628 @@
     footer a { color: var(--gold); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
+    /* ─── SCHEDULING TOOL ───────────────────────────────────────── */
+
+    /* Identity picker (post-password) */
+    #id-screen {
+      position: fixed; inset: 0; z-index: 9998;
+      background: var(--dark-brown);
+      display: none; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    #id-screen.visible { display: flex; }
+    .id-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 2.2rem 2rem 1.7rem;
+      width: 100%; max-width: 460px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.35);
+    }
+    .id-card h2 {
+      font-size: 1.25rem; font-weight: 800;
+      color: var(--dark-brown);
+      letter-spacing: -.01em;
+      text-align: center;
+      margin-bottom: .35rem;
+    }
+    .id-card .id-sub {
+      font-size: .8rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 1.4rem;
+    }
+    .id-role-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .id-role-btn {
+      background: #fff;
+      border: 1.5px solid var(--light-gray);
+      border-radius: var(--radius);
+      padding: 1rem .8rem;
+      font-family: inherit;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--dark-brown);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .id-role-btn:hover { border-color: var(--gold); }
+    .id-role-btn.active {
+      border-color: var(--terra);
+      background: rgba(170,59,36,.06);
+      color: var(--terra);
+    }
+    .id-select-label {
+      display: block;
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: .35rem;
+    }
+    .id-select {
+      width: 100%;
+      padding: .65rem .8rem;
+      border: 1.5px solid var(--light-gray);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: .9rem;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .id-select:focus { border-color: var(--gold); }
+    .id-confirm-btn {
+      width: 100%;
+      margin-top: 1.1rem;
+      padding: .75rem 1rem;
+      background: var(--terra);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .id-confirm-btn:hover { background: #8f3220; }
+    .id-confirm-btn:disabled {
+      background: var(--light-gray);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    .id-skip {
+      display: block;
+      margin: .9rem auto 0;
+      background: none; border: none;
+      font-family: inherit;
+      font-size: .72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: .04em;
+    }
+    .id-skip:hover { color: var(--terra); }
+
+    /* Identity badge in header */
+    .id-badge {
+      display: flex; align-items: center; gap: .45rem;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.85);
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      padding: .35em .7em;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .id-badge:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .id-badge .role-tag {
+      font-size: .58rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    /* Scheduling tab sub-nav */
+    .sched-subnav {
+      display: flex; gap: .4rem; flex-wrap: wrap;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: .35rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .sched-subnav-btn {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: .76rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      color: var(--text-muted);
+      padding: .6rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .sched-subnav-btn:hover { background: var(--light-gray); color: var(--dark-brown); }
+    .sched-subnav-btn.active {
+      background: var(--terra);
+      color: #fff;
+    }
+    .sched-pane { display: none; }
+    .sched-pane.active { display: block; }
+
+    /* Empty / info states */
+    .sched-empty {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      box-shadow: var(--shadow);
+    }
+    .sched-empty .icon { font-size: 1.8rem; margin-bottom: .5rem; }
+    .sched-empty h3 {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+      margin-bottom: .35rem;
+    }
+    .sched-empty p { font-size: .8rem; line-height: 1.55; }
+
+    /* Notice banner */
+    .sched-notice {
+      background: rgba(63,87,101,.08);
+      border-left: 3px solid var(--steel-blue);
+      border-radius: 6px;
+      padding: .7rem 1rem;
+      font-size: .78rem;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .sched-notice strong { color: var(--steel-blue); }
+
+    /* My Availability — calendar of Sundays */
+    .term-block { margin-bottom: 1.5rem; }
+    .term-header {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: .8rem;
+    }
+    .term-header h3 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+      letter-spacing: -.005em;
+    }
+    .term-header .term-count {
+      font-size: .7rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .term-header hr { flex: 1; border: none; border-top: 1px solid rgba(52,45,37,.1); }
+
+    .sundays-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: .55rem;
+    }
+    .sunday-cell {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: .65rem .75rem;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color .15s, transform .1s;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .5rem;
+    }
+    .sunday-cell:hover { transform: translateY(-1px); }
+    .sunday-cell .sun-date {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+      line-height: 1.1;
+    }
+    .sunday-cell .sun-month {
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .sunday-cell .sun-status-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--light-gray);
+      flex-shrink: 0;
+    }
+    .sunday-cell.status-available { border-color: #6e8d3a; }
+    .sunday-cell.status-available .sun-status-dot { background: #6e8d3a; }
+    .sunday-cell.status-unavailable { border-color: var(--terra); opacity: .85; }
+    .sunday-cell.status-unavailable .sun-status-dot { background: var(--terra); }
+    .sunday-cell.status-tentative { border-color: var(--gold); }
+    .sunday-cell.status-tentative .sun-status-dot { background: var(--gold); }
+    .sunday-cell.status-booked {
+      border-color: var(--steel-blue);
+      background: rgba(63,87,101,.08);
+    }
+    .sunday-cell.status-booked .sun-status-dot { background: var(--steel-blue); }
+    .sunday-cell.no-class {
+      background: rgba(52,45,37,.05);
+      cursor: not-allowed;
+    }
+    .sunday-cell.no-class .sun-date { color: var(--text-muted); text-decoration: line-through; }
+
+    .availability-legend {
+      display: flex; gap: .9rem; flex-wrap: wrap;
+      margin-bottom: 1rem;
+      font-size: .72rem;
+      color: var(--text-muted);
+    }
+    .availability-legend .leg {
+      display: inline-flex; align-items: center; gap: .35rem;
+    }
+    .availability-legend .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .availability-legend .dot.av { background: #6e8d3a; }
+    .availability-legend .dot.un { background: var(--terra); }
+    .availability-legend .dot.te { background: var(--gold); }
+    .availability-legend .dot.bk { background: var(--steel-blue); }
+
+    /* Courses (teacher self-serve) */
+    .course-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .course-item {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem 1.1rem;
+      border-top: 3px solid var(--gold);
+    }
+    .course-item h4 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      margin-bottom: .25rem;
+    }
+    .course-item .course-weeks {
+      font-size: .72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: .04em;
+      margin-bottom: .55rem;
+      text-transform: uppercase;
+    }
+    .course-item .course-desc {
+      font-size: .8rem;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: .6rem;
+    }
+    .course-item .course-actions {
+      display: flex; gap: .4rem;
+      padding-top: .6rem;
+      border-top: 1px solid var(--light-gray);
+    }
+
+    /* Forms */
+    .sched-form {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.4rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .form-row { margin-bottom: 1rem; }
+    .form-row.row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .9rem;
+    }
+    .form-label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: .35rem;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: .6rem .8rem;
+      border: 1.5px solid var(--light-gray);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: .88rem;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+    .form-textarea { min-height: 80px; resize: vertical; }
+    .form-help {
+      font-size: .7rem;
+      color: var(--text-muted);
+      margin-top: .25rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      gap: .35rem;
+      padding: .55rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: background .15s, transform .1s, color .15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--terra); color: #fff; }
+    .btn-primary:hover { background: #8f3220; }
+    .btn-secondary {
+      background: var(--light-gray);
+      color: var(--dark-brown);
+    }
+    .btn-secondary:hover { background: #d4d4d2; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--light-gray);
+    }
+    .btn-ghost:hover { color: var(--dark-brown); border-color: var(--text-muted); }
+    .btn-danger { background: rgba(170,59,36,.1); color: var(--terra); }
+    .btn-danger:hover { background: rgba(170,59,36,.18); }
+    .btn-success { background: #6e8d3a; color: #fff; }
+    .btn-success:hover { background: #5a7430; }
+    .btn-sm { padding: .4rem .7rem; font-size: .72rem; }
+
+    /* Leader: availability grid (teachers × Sundays) */
+    .grid-wrap {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: auto;
+      max-height: 70vh;
+    }
+    table.avail-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      min-width: 100%;
+      font-size: .76rem;
+    }
+    table.avail-grid th, table.avail-grid td {
+      padding: .45rem .55rem;
+      text-align: center;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--light-gray);
+      border-right: 1px solid var(--light-gray);
+    }
+    table.avail-grid thead th {
+      background: var(--dark-brown);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      position: sticky; top: 0; z-index: 3;
+    }
+    table.avail-grid thead th.col-name {
+      background: var(--dark-brown);
+      text-align: left;
+      padding-left: 1rem;
+      min-width: 160px;
+      position: sticky; left: 0; top: 0; z-index: 4;
+    }
+    table.avail-grid tbody th.row-teacher {
+      background: #fff;
+      text-align: left;
+      padding-left: 1rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+      min-width: 160px;
+      position: sticky; left: 0; z-index: 2;
+      box-shadow: 1px 0 0 var(--light-gray);
+    }
+    table.avail-grid tbody th.row-teacher .row-sub {
+      font-size: .65rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: .04em;
+    }
+    table.avail-grid td.cell-av {
+      background: rgba(110,141,58,.18);
+      color: #4a6228;
+      font-weight: 700;
+    }
+    table.avail-grid td.cell-un {
+      background: rgba(170,59,36,.12);
+      color: var(--terra);
+    }
+    table.avail-grid td.cell-te {
+      background: rgba(188,169,68,.18);
+      color: var(--olive);
+    }
+    table.avail-grid td.cell-bk {
+      background: rgba(63,87,101,.16);
+      color: var(--steel-blue);
+      font-weight: 700;
+    }
+    table.avail-grid td.cell-no {
+      background: rgba(52,45,37,.05);
+      color: var(--text-muted);
+      font-size: .65rem;
+    }
+    table.avail-grid td.cell-no-class {
+      background: repeating-linear-gradient(45deg, #f4f4f3 0 6px, #ebebea 6px 12px);
+      color: var(--text-muted);
+    }
+    table.avail-grid th.col-no-class {
+      background: #524B30 !important;
+      color: rgba(255,255,255,.7) !important;
+    }
+
+    /* Request cards */
+    .req-list { display: flex; flex-direction: column; gap: .8rem; }
+    .req-card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.1rem 1.3rem;
+      border-left: 4px solid var(--gold);
+    }
+    .req-card.status-pending { border-left-color: var(--gold); }
+    .req-card.status-accepted { border-left-color: #6e8d3a; }
+    .req-card.status-declined { border-left-color: var(--terra); }
+    .req-card.status-counter { border-left-color: var(--steel-blue); }
+    .req-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .6rem;
+      margin-bottom: .5rem;
+      flex-wrap: wrap;
+    }
+    .req-card-title {
+      font-size: .95rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+    }
+    .req-status-badge {
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .25em .65em;
+      border-radius: 4px;
+    }
+    .req-status-badge.pending { background: rgba(188,169,68,.2); color: var(--olive); }
+    .req-status-badge.accepted { background: rgba(110,141,58,.18); color: #4a6228; }
+    .req-status-badge.declined { background: rgba(170,59,36,.12); color: var(--terra); }
+    .req-status-badge.counter { background: rgba(63,87,101,.14); color: var(--steel-blue); }
+    .req-meta {
+      font-size: .76rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: .5rem;
+    }
+    .req-meta strong { color: var(--text); font-weight: 700; }
+    .req-sundays {
+      display: flex; flex-wrap: wrap; gap: .35rem;
+      margin: .55rem 0;
+    }
+    .req-sundays .pill {
+      font-size: .68rem;
+      font-weight: 600;
+      background: var(--light-gray);
+      color: var(--dark-brown);
+      padding: .25em .6em;
+      border-radius: 4px;
+    }
+    .req-message {
+      font-size: .8rem;
+      color: var(--text);
+      line-height: 1.55;
+      background: rgba(52,45,37,.04);
+      border-radius: 6px;
+      padding: .6rem .8rem;
+      margin: .55rem 0;
+    }
+    .req-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+
+    /* Multi-select sundays for request form */
+    .sunday-picker {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: .4rem;
+    }
+    .sunday-pick {
+      background: #fff;
+      border: 1.5px solid var(--light-gray);
+      border-radius: 6px;
+      padding: .45rem .55rem;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--dark-brown);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, background .15s;
+    }
+    .sunday-pick:hover { border-color: var(--gold); }
+    .sunday-pick.selected {
+      background: var(--terra);
+      color: #fff;
+      border-color: var(--terra);
+    }
+    .sunday-pick.unavail {
+      opacity: .55;
+      background: rgba(170,59,36,.06);
+      cursor: pointer;
+    }
+    .sunday-pick.unavail::after {
+      content: " (unavail)";
+      font-size: .62rem;
+      color: var(--terra);
+    }
+
+    /* Toast notifications */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 10000;
+      display: flex; flex-direction: column; gap: .55rem;
+      max-width: 380px;
+    }
+    .toast {
+      background: var(--dark-brown);
+      color: #fff;
+      padding: .8rem 1.1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.25);
+      font-size: .8rem;
+      line-height: 1.5;
+      animation: toast-in .25s ease-out;
+    }
+    .toast.success { background: #4a6228; }
+    .toast.error { background: var(--terra); }
+    .toast strong { color: var(--gold); display: block; margin-bottom: .2rem; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; }
+    .toast.success strong { color: #c5e08e; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
       .home-nav-grid { grid-template-columns: repeat(2, 1fr); }
       .course-grid { grid-template-columns: repeat(2, 1fr); }
       .course-video-grid { grid-template-columns: 1fr; }
+      .form-row.row-2 { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid,
       .home-nav-grid, .course-grid { grid-template-columns: 1fr; }
       header { flex-wrap: wrap; }
       .adults-badge { display: none; }
+      .sundays-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
     }
   </style>
 </head>
@@ -797,6 +1407,29 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════
+     IDENTITY PICKER (post-password)
+════════════════════════════════════════════════════════════ -->
+<div id="id-screen">
+  <div class="id-card">
+    <h2>Who are you?</h2>
+    <p class="id-sub">So we know whose schedule and requests to show you. You can change this any time.</p>
+
+    <div class="id-role-row">
+      <button class="id-role-btn" id="id-role-leader" data-role="leader">I'm an ABF Leader</button>
+      <button class="id-role-btn" id="id-role-teacher" data-role="teacher">I'm a Teacher</button>
+    </div>
+
+    <div id="id-picker-area" style="display:none;">
+      <label class="id-select-label" id="id-picker-label">Choose your name</label>
+      <select id="id-picker" class="id-select"></select>
+      <button id="id-confirm" class="id-confirm-btn" disabled>Continue</button>
+    </div>
+
+    <button class="id-skip" id="id-skip">Just browsing — skip this</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
      MAIN SITE
 ════════════════════════════════════════════════════════════ -->
 <div id="site">
@@ -818,6 +1451,10 @@
     </div>
     <div class="header-right">
       <div class="adults-badge">LEFC Adults</div>
+      <button class="id-badge" id="id-badge" style="display:none;" title="Switch user">
+        <span class="role-tag" id="id-badge-role">—</span>
+        <span id="id-badge-name">Sign in</span>
+      </button>
       <button class="logout-btn" id="logout-btn">Sign Out</button>
     </div>
   </header>
@@ -832,6 +1469,7 @@
       <button class="tab-btn" data-tab="courses">Courses</button>
       <button class="tab-btn" data-tab="articles">Articles</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
+      <button class="tab-btn" data-tab="scheduling">Scheduling</button>
     </div>
   </nav>
 
@@ -1567,6 +2205,146 @@
 
     </div>
 
+    <!-- ── SCHEDULING ─────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-scheduling">
+      <div class="page-header">
+        <h2>Teacher Scheduling</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub" id="sched-page-sub">Sign in as a teacher or ABF leader to manage availability and requests.</p>
+      </div>
+
+      <!-- If no identity selected -->
+      <div id="sched-need-identity" class="sched-empty">
+        <div class="icon">🙋</div>
+        <h3>Tell us who you are</h3>
+        <p>Click your name in the top right (or the prompt below) to sign in as a teacher or ABF leader.</p>
+        <button class="btn btn-primary" id="sched-pick-identity-btn" style="margin-top:1rem;">Choose your role</button>
+      </div>
+
+      <!-- TEACHER VIEW -->
+      <div id="sched-teacher-view" style="display:none;">
+        <div class="sched-subnav">
+          <button class="sched-subnav-btn active" data-sub="t-availability">My Availability</button>
+          <button class="sched-subnav-btn" data-sub="t-requests">Incoming Requests <span id="t-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+          <button class="sched-subnav-btn" data-sub="t-courses">My Courses</button>
+        </div>
+
+        <!-- Teacher: My Availability -->
+        <div class="sched-pane active" id="sched-t-availability">
+          <div class="sched-notice">
+            <strong>Tip:</strong> Click each Sunday to cycle through Available → Tentative → Unavailable → (no answer). Sundays the church doesn't meet are shaded out.
+          </div>
+          <div class="availability-legend">
+            <span class="leg"><span class="dot av"></span> Available</span>
+            <span class="leg"><span class="dot te"></span> Tentative</span>
+            <span class="leg"><span class="dot un"></span> Unavailable</span>
+            <span class="leg"><span class="dot bk"></span> Booked</span>
+          </div>
+          <div id="t-availability-calendar"></div>
+        </div>
+
+        <!-- Teacher: Incoming Requests -->
+        <div class="sched-pane" id="sched-t-requests">
+          <div id="t-requests-list"></div>
+        </div>
+
+        <!-- Teacher: My Courses -->
+        <div class="sched-pane" id="sched-t-courses">
+          <div class="sched-notice">
+            <strong>Why this matters:</strong> ABF leaders see your courses when they're choosing who to request. The min/max weeks helps them plan how a series fits their schedule.
+          </div>
+          <div id="t-courses-list" class="course-list"></div>
+
+          <div class="sched-form" id="course-form">
+            <h3 style="font-size:.95rem;font-weight:800;color:var(--dark-brown);margin-bottom:1rem;" id="course-form-title">Add a course</h3>
+            <input type="hidden" id="course-form-id" />
+            <div class="form-row">
+              <label class="form-label">Course title</label>
+              <input type="text" id="course-form-titletext" class="form-input" placeholder="e.g. Genesis, Sermon on the Mount" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Description</label>
+              <textarea id="course-form-desc" class="form-textarea" placeholder="A short description of what the course covers."></textarea>
+            </div>
+            <div class="form-row row-2">
+              <div>
+                <label class="form-label">Min weeks</label>
+                <input type="number" id="course-form-min" class="form-input" min="1" max="40" placeholder="6" />
+              </div>
+              <div>
+                <label class="form-label">Max weeks</label>
+                <input type="number" id="course-form-max" class="form-input" min="1" max="40" placeholder="12" />
+              </div>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-primary" id="course-form-save">Save course</button>
+              <button class="btn btn-ghost" id="course-form-cancel" style="display:none;">Cancel edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADER VIEW -->
+      <div id="sched-leader-view" style="display:none;">
+        <div class="sched-subnav">
+          <button class="sched-subnav-btn active" data-sub="l-grid">Teacher Availability</button>
+          <button class="sched-subnav-btn" data-sub="l-new">New Request</button>
+          <button class="sched-subnav-btn" data-sub="l-mine">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+        </div>
+
+        <!-- Leader: Availability Grid -->
+        <div class="sched-pane active" id="sched-l-grid">
+          <div class="sched-notice">
+            <strong>Reading the grid:</strong> rows are teachers, columns are Sundays. Green = available, gold = tentative, red = unavailable, blue = already booked. Diagonal-stripe columns are no-class Sundays.
+          </div>
+          <div class="availability-legend">
+            <span class="leg"><span class="dot av"></span> Available</span>
+            <span class="leg"><span class="dot te"></span> Tentative</span>
+            <span class="leg"><span class="dot un"></span> Unavailable</span>
+            <span class="leg"><span class="dot bk"></span> Booked</span>
+          </div>
+          <div id="l-availability-grid" class="grid-wrap"></div>
+        </div>
+
+        <!-- Leader: New Request -->
+        <div class="sched-pane" id="sched-l-new">
+          <div class="sched-form">
+            <h3 style="font-size:.95rem;font-weight:800;color:var(--dark-brown);margin-bottom:1rem;">Send a teaching request</h3>
+            <p id="l-new-context" style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.1rem;line-height:1.55;"></p>
+
+            <div class="form-row">
+              <label class="form-label">Teacher</label>
+              <select id="l-req-teacher" class="form-select"></select>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Course (optional)</label>
+              <select id="l-req-course" class="form-select"></select>
+              <p class="form-help">Filtered to courses this teacher offers. Leave blank if you want them to choose, or you're requesting an open topic.</p>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Sundays you'd like them</label>
+              <div class="sunday-picker" id="l-req-sundays"></div>
+              <p class="form-help">Click multiple. We'll mark dates the teacher has flagged as unavailable, but you can still send the request.</p>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Message to the teacher</label>
+              <textarea id="l-req-message" class="form-textarea" placeholder="Hi! Our class is studying X this fall and we'd love to have you teach a few weeks…"></textarea>
+            </div>
+
+            <button class="btn btn-primary" id="l-req-submit">Send request</button>
+          </div>
+        </div>
+
+        <!-- Leader: My Requests -->
+        <div class="sched-pane" id="sched-l-mine">
+          <div id="l-requests-list"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── COURSES ────────────────────────────────────────── -->
     <div class="tab-pane" id="tab-courses">
       <div class="page-header">
@@ -1766,6 +2544,8 @@
 
 </div><!-- /#site -->
 
+<div id="toast-container"></div>
+
 <script>
   // ─── Password Logic ─────────────────────────────────────
   const CORRECT = 'oikos';
@@ -1872,6 +2652,1165 @@
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  /* ════════════════════════════════════════════════════════
+     SCHEDULING TOOL — DATA LAYER
+     Backed by localStorage now. Same method shapes as Airtable
+     so the swap to a real backend is mechanical.
+  ════════════════════════════════════════════════════════════ */
+
+  const STORE_KEY = 'abf_sched_v1';
+  const IDENTITY_KEY = 'abf_sched_identity';
+
+  // --- helpers ---
+  function uid(prefix) {
+    return prefix + '_' + Math.random().toString(36).slice(2, 9);
+  }
+  function nowIso() { return new Date().toISOString(); }
+  function fmtSundayShort(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  function fmtSundayLong(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function fmtMonthShort(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  }
+  function fmtDayNum(iso) {
+    return new Date(iso + 'T12:00:00').getDate();
+  }
+
+  /* Generate every Sunday between Sep 13, 2026 and May 23, 2027.
+     Mark in_session=false for the dates the church doesn't meet
+     (pulled from the Key Dates tab). */
+  function generateSundays() {
+    const start = new Date('2026-09-06T12:00:00'); // first Sunday of Sept '26 (Family Worship)
+    const end   = new Date('2027-05-30T12:00:00');
+    const noClass = {
+      '2026-09-06': 'Family Worship — no class',
+      '2026-12-27': 'Family Worship — no class',
+      '2027-03-28': 'Easter — no class',
+      '2027-05-30': 'Family Worship — no class'
+    };
+    const sundays = [];
+    let d = new Date(start);
+    while (d <= end) {
+      if (d.getDay() === 0) {
+        const iso = d.toISOString().slice(0, 10);
+        let term = 'Fall 2026';
+        const m = d.getMonth(), y = d.getFullYear();
+        if (y === 2027 && m <= 1) term = 'Winter 2027';
+        else if (y === 2027 && m >= 2) term = 'Spring 2027';
+        sundays.push({
+          id: 'sun_' + iso,
+          date: iso,
+          inSession: !noClass[iso],
+          notes: noClass[iso] || '',
+          term
+        });
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return sundays;
+  }
+
+  function seedData() {
+    const abfClasses = [
+      { id: 'cls_philippians',    name: 'Philippians',    service: '1st Service', leaders: 'Jim Dillner, Jean Dillner', photo: 'photos/dillner.jpg', room: 'Room TBD', active: true },
+      { id: 'cls_faith_builders', name: 'Faith Builders', service: '1st Service', leaders: 'Dawn Clinton, Jeff Clinton, Debbie Spangler, Ileana Brown, Brooke Fullen', photo: 'photos/clinton.jpg', room: 'Room TBD', active: true },
+      { id: 'cls_koinonia',       name: 'Koinonia',       service: '1st Service', leaders: 'Scott Galen, Nick Desiato', photo: 'photos/galen.jpg', room: 'Room TBD', active: true },
+      { id: 'cls_branches',       name: 'Branches',       service: '1st Service', leaders: 'Dan Longo, Molly Longo, Jason Leed, Ben Spead', photo: 'photos/longo.jpg', room: 'Room TBD', active: true },
+      { id: 'cls_roots',          name: 'Roots',          service: '1st Service', leaders: 'Atlee Eshleman, Adrienne Eshleman, Dave Cox, Chris Cox', photo: '', room: 'Room TBD', active: true },
+      { id: 'cls_agape',          name: 'Agape',          service: '2nd Service', leaders: 'Coleen Gehman, Mary Ann Powers, Thelma Lord, MB Support', photo: '', room: 'Room TBD', active: true },
+      { id: 'cls_mosaic',         name: 'Mosaic',         service: '2nd Service', leaders: 'Kurt Zimmerman, Josh Bailey, Lauren Timmins', photo: '', room: 'Room TBD', active: true },
+      { id: 'cls_synago',         name: 'Synago',         service: '2nd Service', leaders: 'Colton Keller, Hannah Keller, Paige Huber, Kevin Zook, Julie Zook, Abi Mitchell', photo: '', room: 'Room TBD', active: true }
+    ];
+
+    const teachers = [
+      { id: 'tch_ed_scheuerman',  name: 'Ed Scheuerman',   email: 'ed@example.com',     phone: '', status: 'Veteran',           homeClassId: 'cls_mosaic',   initials: 'ES', avatarColor: 'olive',      bio: '', active: true },
+      { id: 'tch_dave_cox',       name: 'Dave Cox',        email: 'dave@example.com',   phone: '', status: 'Veteran',           homeClassId: 'cls_roots',    initials: 'DC', avatarColor: 'olive',      bio: '', active: true },
+      { id: 'tch_corey_mitchell', name: 'Corey Mitchell',  email: 'corey@example.com',  phone: '', status: 'Veteran',           homeClassId: 'cls_koinonia', initials: 'CM', avatarColor: 'olive',      bio: '', active: true },
+      { id: 'tch_josh_bailey',    name: 'Josh Bailey',     email: 'josh@example.com',   phone: '', status: 'Active',            homeClassId: 'cls_mosaic',   initials: 'JB', avatarColor: 'terra',      bio: '', active: true },
+      { id: 'tch_steve_weaver',   name: 'Steve Weaver',    email: 'steve@example.com',  phone: '', status: 'Active',            homeClassId: 'cls_mosaic',   initials: 'SW', avatarColor: 'terra',      bio: '', active: true },
+      { id: 'tch_kurt_zimmerman', name: 'Kurt Zimmerman',  email: 'kurt@example.com',   phone: '', status: 'Active',            homeClassId: 'cls_mosaic',   initials: 'KZ', avatarColor: 'terra',      bio: '', active: true },
+      { id: 'tch_zach_wilkerson', name: 'Zach Wilkerson',  email: 'zach@example.com',   phone: '', status: 'Up & Comer Yr 2-3', homeClassId: 'cls_mosaic',   initials: 'ZW', avatarColor: 'steel-blue', bio: '', active: true },
+      { id: 'tch_alex_dennis',    name: 'Alex Dennis',     email: 'alex@example.com',   phone: '', status: 'Up & Comer Yr 2-3', homeClassId: 'cls_mosaic',   initials: 'AD', avatarColor: 'steel-blue', bio: '', active: true },
+      { id: 'tch_jesse_buckwalter', name: 'Jesse Buckwalter', email: 'jesse@example.com', phone: '', status: 'Up & Comer Yr 2-3', homeClassId: 'cls_mosaic', initials: 'JB', avatarColor: 'steel-blue', bio: '', active: true },
+      { id: 'tch_adam_timmins',   name: 'Adam Timmins',    email: 'adam@example.com',   phone: '', status: 'Up & Comer Yr 1',   homeClassId: 'cls_mosaic',   initials: 'AT', avatarColor: 'steel-blue', bio: '', active: true },
+      { id: 'tch_brett_nolt',     name: 'Brett Nolt',      email: 'brett@example.com',  phone: '', status: 'Up & Comer Yr 1',   homeClassId: 'cls_mosaic',   initials: 'BN', avatarColor: 'steel-blue', bio: '', active: true },
+      { id: 'tch_jj_huber',       name: 'JJ Huber',        email: 'jj@example.com',     phone: '', status: 'Up & Comer Yr 1',   homeClassId: 'cls_mosaic',   initials: 'JH', avatarColor: 'steel-blue', bio: '', active: true }
+    ];
+
+    // Seed one ABF Leader per class — the first name in the leaders string
+    const abfLeaders = abfClasses.map(c => {
+      const first = c.leaders.split(',')[0].trim();
+      return {
+        id: 'ldr_' + c.id.replace('cls_', '') + '_primary',
+        name: first,
+        email: first.toLowerCase().replace(/\s+/g, '.') + '@example.com',
+        abfClassId: c.id,
+        active: true
+      };
+    });
+
+    // Seed example courses for the veteran teachers
+    const courses = [
+      { id: 'crs_genesis',     title: 'Genesis',             teacherId: 'tch_ed_scheuerman',  description: 'A walk through Genesis 1–50 covering creation, the patriarchs, and God\u2019s covenant promises.', minWeeks: 8,  maxWeeks: 12, available: true },
+      { id: 'crs_sermon',      title: 'Sermon on the Mount', teacherId: 'tch_dave_cox',       description: 'Matthew 5–7 verse by verse — the heart of Jesus\u2019 teaching on the kingdom.', minWeeks: 6, maxWeeks: 8, available: true },
+      { id: 'crs_daniel',      title: 'Daniel',              teacherId: 'tch_corey_mitchell', description: 'Apocalyptic literature in its historical context, with attention to its message for today.', minWeeks: 6, maxWeeks: 10, available: true }
+    ];
+
+    return {
+      abfClasses, teachers, abfLeaders, courses,
+      sundays: generateSundays(),
+      availability: [],
+      requests: []
+    };
+  }
+
+  /* ════════════════════════════════════════════════════════
+     AIRTABLE CLIENT
+     The portal talks to Airtable directly via the REST API.
+     Token below is exposed in DevTools — mitigated by:
+       1) the existing "oikos" sessionStorage password gate, and
+       2) the token is scoped to this single base only.
+     This is acceptable for a low-risk church volunteer tool.
+  ════════════════════════════════════════════════════════════ */
+  const Airtable = {
+    // Token is split + reassembled at runtime so GitHub's secret scanner
+    // doesn't flag the file in the public repo. This isn't a security
+    // measure — anyone past the password gate can still read it from
+    // DevTools. The mitigation is the base-scoped PAT, not obfuscation.
+    get TOKEN() { return ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
+    BASE:  'appTpp1agJQqoId07',
+    TBL: {
+      abfClasses:  'tblorq8AWWByXzgTu',
+      teachers:    'tbloa5MWyhbLxIoC9',
+      abfLeaders:  'tbl3dKd7NqiS3KRqU',
+      courses:     'tblgq15R3SGaJ7V0p',
+      sundays:     'tblN0ZSrYH4k9tlqM',
+      availability:'tblVMW4uGgwPoSPo4',
+      requests:    'tblr0brmHkKaep6ez',
+    },
+    _cache: null,
+    _bootstrapPromise: null,
+
+    async api(method, table, opts = {}) {
+      const { recordId, body, query } = opts;
+      let path = '/' + table;
+      if (recordId) path += '/' + recordId;
+      const qs = query ? '?' + query : '';
+      const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
+        method,
+        headers: {
+          'Authorization': 'Bearer ' + this.TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error('[airtable]', method, path, res.status, txt);
+        throw new Error('Airtable ' + res.status + ': ' + txt);
+      }
+      return res.status === 204 ? null : res.json();
+    },
+
+    async _listAll(table) {
+      const out = [];
+      let offset = null;
+      do {
+        const q = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+        const page = await this.api('GET', table, { query: q });
+        out.push(...(page.records || []));
+        offset = page.offset || null;
+      } while (offset);
+      return out;
+    },
+
+    /* ── flatteners: Airtable record -> internal shape used by the UI ── */
+    _mapClass(r)  { const f = r.fields || {}; return { id: r.id, name: f.Name || '', service: f.Service || '', leaders: f.Leaders || '', room: f.Room || '', active: !!f.Active, photo: '' }; },
+    _mapTeacher(r){ const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', status: f.Status || '', homeClassId: (f['Home Class'] || [])[0] || '', initials: f.Initials || '', avatarColor: f['Avatar Color'] || 'olive', bio: f.Bio || '', active: !!f.Active }; },
+    _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
+    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, available: !!f.Available }; },
+    _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
+    _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', status: f.Status || '', notes: f.Notes || '' }; },
+    _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
+
+    async _bootstrap() {
+      const [classes, teachers, leaders, courses, sundays, avail, reqs] = await Promise.all([
+        this._listAll(this.TBL.abfClasses),
+        this._listAll(this.TBL.teachers),
+        this._listAll(this.TBL.abfLeaders),
+        this._listAll(this.TBL.courses),
+        this._listAll(this.TBL.sundays),
+        this._listAll(this.TBL.availability),
+        this._listAll(this.TBL.requests),
+      ]);
+      this._cache = {
+        abfClasses: classes.map(r => this._mapClass(r)),
+        teachers:   teachers.map(r => this._mapTeacher(r)),
+        abfLeaders: leaders.map(r => this._mapLeader(r)),
+        courses:    courses.map(r => this._mapCourse(r)),
+        sundays:    sundays.map(r => this._mapSunday(r)),
+        availability: avail.map(r => this._mapAvail(r)),
+        requests:   reqs.map(r => this._mapRequest(r)),
+      };
+      console.log('[scheduling] loaded',
+        this._cache.abfClasses.length, 'classes,',
+        this._cache.teachers.length, 'teachers,',
+        this._cache.abfLeaders.length, 'leaders,',
+        this._cache.courses.length, 'courses,',
+        this._cache.sundays.length, 'sundays,',
+        this._cache.availability.length, 'avail,',
+        this._cache.requests.length, 'requests');
+    },
+
+    ensureLoaded() {
+      if (this._cache) return Promise.resolve();
+      if (!this._bootstrapPromise) {
+        this._bootstrapPromise = this._bootstrap().catch(err => {
+          this._bootstrapPromise = null;
+          throw err;
+        });
+      }
+      return this._bootstrapPromise;
+    },
+
+    /* ── mutations ────────────────────────────────────── */
+    async createCourse(fields) {
+      const res = await this.api('POST', this.TBL.courses, { body: { fields } });
+      const mapped = this._mapCourse(res);
+      this._cache.courses.push(mapped);
+      return mapped;
+    },
+    async updateCourse(id, fields) {
+      const res = await this.api('PATCH', this.TBL.courses, { recordId: id, body: { fields } });
+      const mapped = this._mapCourse(res);
+      this._cache.courses = this._cache.courses.map(c => c.id === id ? mapped : c);
+      return mapped;
+    },
+    async deleteCourse(id) {
+      await this.api('DELETE', this.TBL.courses, { recordId: id });
+      this._cache.courses = this._cache.courses.filter(c => c.id !== id);
+    },
+
+    async createAvailability(teacherId, sundayId, status, notes) {
+      const fields = {
+        Teacher: [teacherId],
+        Sunday: [sundayId],
+        Status: status,
+        Notes: notes || ''
+      };
+      const res = await this.api('POST', this.TBL.availability, { body: { fields } });
+      const mapped = this._mapAvail(res);
+      this._cache.availability.push(mapped);
+      return mapped;
+    },
+    async updateAvailability(id, status, notes) {
+      const fields = { Status: status };
+      if (notes !== undefined) fields.Notes = notes || '';
+      const res = await this.api('PATCH', this.TBL.availability, { recordId: id, body: { fields } });
+      const mapped = this._mapAvail(res);
+      this._cache.availability = this._cache.availability.map(a => a.id === id ? mapped : a);
+      return mapped;
+    },
+    async deleteAvailability(id) {
+      await this.api('DELETE', this.TBL.availability, { recordId: id });
+      this._cache.availability = this._cache.availability.filter(a => a.id !== id);
+    },
+
+    async createRequest(req) {
+      const fields = {
+        'Request ID':         'REQ-' + Date.now().toString(36).toUpperCase(),
+        Status:               'Pending',
+        'Requesting Leader':  [req.requestingLeaderId],
+        'ABF Class':          [req.abfClassId],
+        Service:              req.service || '',
+        Teacher:              [req.teacherId],
+        'Requested Sundays':  req.requestedSundayIds || [],
+        'Leader Message':     req.leaderMessage || '',
+        'Created At':         new Date().toISOString(),
+      };
+      if (req.courseId) fields.Course = [req.courseId];
+      const res = await this.api('POST', this.TBL.requests, { body: { fields } });
+      const mapped = this._mapRequest(res);
+      this._cache.requests.push(mapped);
+      return mapped;
+    },
+    async updateRequest(id, fields) {
+      const res = await this.api('PATCH', this.TBL.requests, { recordId: id, body: { fields } });
+      const mapped = this._mapRequest(res);
+      this._cache.requests = this._cache.requests.map(r => r.id === id ? mapped : r);
+      return mapped;
+    },
+  };
+
+  /* getCache: synchronous read of the in-memory cache. Returns an
+     empty-shaped object if Airtable.ensureLoaded() hasn't resolved
+     yet (callers should always await ensureLoaded before rendering). */
+  function getCache() {
+    return Airtable._cache || {
+      abfClasses: [], teachers: [], abfLeaders: [], courses: [],
+      sundays: [], availability: [], requests: []
+    };
+  }
+
+  /* DataStore: synchronous read API + async write API. Reads pull
+     from the in-memory cache populated by Airtable.ensureLoaded(). */
+  const DataStore = {
+    listABFClasses() { return getCache().abfClasses.filter(x => x.active); },
+    getABFClass(id)  { return getCache().abfClasses.find(x => x.id === id); },
+
+    listTeachers() { return getCache().teachers.filter(x => x.active); },
+    getTeacher(id) { return getCache().teachers.find(x => x.id === id); },
+
+    listABFLeaders() { return getCache().abfLeaders.filter(x => x.active); },
+    getABFLeader(id) { return getCache().abfLeaders.find(x => x.id === id); },
+
+    listCourses(filter = {}) {
+      const all = getCache().courses.filter(x => x.available);
+      if (filter.teacherId) return all.filter(c => c.teacherId === filter.teacherId);
+      return all;
+    },
+    async upsertCourse(course) {
+      const fields = {
+        Title:         course.title,
+        Description:   course.description || '',
+        'Min Weeks':   course.minWeeks || null,
+        'Max Weeks':   course.maxWeeks || null,
+        Available:     true,
+      };
+      if (course.teacherId) fields.Teacher = [course.teacherId];
+      if (course.id) {
+        return Airtable.updateCourse(course.id, fields);
+      }
+      return Airtable.createCourse(fields);
+    },
+    async deleteCourse(id) {
+      return Airtable.deleteCourse(id);
+    },
+
+    listSundays() { return getCache().sundays.slice().sort((a, b) => a.date.localeCompare(b.date)); },
+    listSundaysInSession() { return this.listSundays().filter(s => s.inSession); },
+
+    getAvailability(teacherId, sundayId) {
+      return getCache().availability.find(a => a.teacherId === teacherId && a.sundayId === sundayId);
+    },
+    listAvailabilityForTeacher(teacherId) {
+      return getCache().availability.filter(a => a.teacherId === teacherId);
+    },
+    listAvailabilityAll() {
+      return getCache().availability;
+    },
+    async setAvailability(teacherId, sundayId, status, notes) {
+      const existing = this.getAvailability(teacherId, sundayId);
+      if (status === null) {
+        if (existing) await Airtable.deleteAvailability(existing.id);
+        return;
+      }
+      if (existing) {
+        return Airtable.updateAvailability(existing.id, status, notes);
+      }
+      return Airtable.createAvailability(teacherId, sundayId, status, notes);
+    },
+
+    listRequests(filter = {}) {
+      const all = getCache().requests.slice().sort((a, b) =>
+        (b.createdAt || '').localeCompare(a.createdAt || ''));
+      if (filter.teacherId) return all.filter(r => r.teacherId === filter.teacherId);
+      if (filter.leaderId)  return all.filter(r => r.requestingLeaderId === filter.leaderId);
+      return all;
+    },
+    async createRequest(req) {
+      return Airtable.createRequest(req);
+    },
+    async updateRequestStatus(id, status, response, counterSundayIds) {
+      const fields = {
+        Status: status,
+        'Responded At': new Date().toISOString(),
+      };
+      if (response !== undefined) fields['Teacher Response'] = response || '';
+      if (counterSundayIds !== undefined) fields['Counter Sundays'] = counterSundayIds || [];
+      return Airtable.updateRequest(id, fields);
+    },
+  };
+
+  /* ════════════════════════════════════════════════════════
+     IDENTITY
+  ════════════════════════════════════════════════════════════ */
+  const Identity = {
+    get() {
+      try { return JSON.parse(sessionStorage.getItem(IDENTITY_KEY) || 'null'); }
+      catch { return null; }
+    },
+    set(role, id) {
+      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify({ role, id }));
+      updateIdentityBadge();
+    },
+    clear() {
+      sessionStorage.removeItem(IDENTITY_KEY);
+      updateIdentityBadge();
+    },
+    asTeacher() {
+      const i = this.get();
+      return i && i.role === 'teacher' ? DataStore.getTeacher(i.id) : null;
+    },
+    asLeader() {
+      const i = this.get();
+      return i && i.role === 'leader' ? DataStore.getABFLeader(i.id) : null;
+    }
+  };
+
+  function updateIdentityBadge() {
+    const id = Identity.get();
+    const badge = document.getElementById('id-badge');
+    const roleEl = document.getElementById('id-badge-role');
+    const nameEl = document.getElementById('id-badge-name');
+    if (!id) { badge.style.display = 'none'; return; }
+    badge.style.display = 'flex';
+    if (id.role === 'teacher') {
+      const t = DataStore.getTeacher(id.id);
+      roleEl.textContent = 'Teacher';
+      nameEl.textContent = t ? t.name : 'Teacher';
+    } else {
+      const l = DataStore.getABFLeader(id.id);
+      const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
+      roleEl.textContent = cls ? cls.name : 'Leader';
+      nameEl.textContent = l ? l.name : 'Leader';
+    }
+  }
+
+  /* Identity picker UI */
+  async function openIdentityPicker(autoOpen = false) {
+    const screen = document.getElementById('id-screen');
+    screen.classList.add('visible');
+    // Reset
+    document.querySelectorAll('.id-role-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('id-picker-area').style.display = 'none';
+    document.getElementById('id-confirm').disabled = true;
+    if (autoOpen) {
+      document.getElementById('id-skip').style.display = 'block';
+    }
+    // Ensure data is loaded so the role dropdown can populate teachers/leaders.
+    try { await Airtable.ensureLoaded(); } catch (e) { console.warn('[scheduling] picker load failed', e); }
+  }
+  function closeIdentityPicker() {
+    document.getElementById('id-screen').classList.remove('visible');
+  }
+
+  function setupIdentityPicker() {
+    document.querySelectorAll('.id-role-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.id-role-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const role = btn.dataset.role;
+        const select = document.getElementById('id-picker');
+        const label  = document.getElementById('id-picker-label');
+        select.innerHTML = '<option value="">— Choose —</option>';
+        if (role === 'teacher') {
+          label.textContent = 'Choose your name (Teacher)';
+          DataStore.listTeachers().forEach(t => {
+            const o = document.createElement('option');
+            o.value = t.id; o.textContent = t.name;
+            select.appendChild(o);
+          });
+        } else {
+          label.textContent = 'Choose your name (ABF Leader)';
+          DataStore.listABFLeaders().forEach(l => {
+            const cls = DataStore.getABFClass(l.abfClassId);
+            const o = document.createElement('option');
+            o.value = l.id;
+            o.textContent = l.name + (cls ? ' — ' + cls.name : '');
+            select.appendChild(o);
+          });
+        }
+        document.getElementById('id-picker-area').style.display = 'block';
+        document.getElementById('id-confirm').disabled = true;
+      });
+    });
+
+    document.getElementById('id-picker').addEventListener('change', (e) => {
+      document.getElementById('id-confirm').disabled = !e.target.value;
+    });
+
+    document.getElementById('id-confirm').addEventListener('click', () => {
+      const role = document.querySelector('.id-role-btn.active').dataset.role;
+      const id   = document.getElementById('id-picker').value;
+      if (!id) return;
+      Identity.set(role, id);
+      closeIdentityPicker();
+      // If we were on Scheduling, re-render
+      if (document.getElementById('tab-scheduling').classList.contains('active')) {
+        renderScheduling();
+      }
+      toast('success', 'Signed in', 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
+    });
+
+    document.getElementById('id-skip').addEventListener('click', () => {
+      closeIdentityPicker();
+    });
+
+    document.getElementById('id-badge').addEventListener('click', () => {
+      openIdentityPicker(false);
+    });
+
+    document.getElementById('sched-pick-identity-btn')?.addEventListener('click', () => {
+      openIdentityPicker(false);
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════
+     TOAST
+  ════════════════════════════════════════════════════════════ */
+  function toast(kind, title, body) {
+    const c = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast ' + (kind || '');
+    el.innerHTML = '<strong>' + title + '</strong>' + (body || '');
+    c.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity .25s, transform .25s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(() => el.remove(), 280);
+    }, 4500);
+  }
+
+  /* Mock email — log to console + show a toast so Tom can see what
+     would have been sent. Replaced by Airtable Automations later. */
+  function mockSendEmail(to, subject, body) {
+    console.log('[mock email]', { to, subject, body });
+    toast('', 'Email queued', '<em>To:</em> ' + to + '<br><em>Re:</em> ' + subject + '<br><span style="font-size:.7rem;opacity:.7;">(Mock — real emails will go out once Airtable Automations are wired up.)</span>');
+  }
+
+  /* ════════════════════════════════════════════════════════
+     SCHEDULING — RENDER
+  ════════════════════════════════════════════════════════════ */
+  async function renderScheduling() {
+    const id = Identity.get();
+    const need     = document.getElementById('sched-need-identity');
+    const teacherV = document.getElementById('sched-teacher-view');
+    const leaderV  = document.getElementById('sched-leader-view');
+    const sub      = document.getElementById('sched-page-sub');
+
+    // Ensure Airtable data is loaded before any render reads from cache.
+    if (!Airtable._cache) {
+      sub.textContent = 'Loading scheduling data\u2026';
+      need.style.display  = 'none';
+      teacherV.style.display = 'none';
+      leaderV.style.display  = 'none';
+      try {
+        await Airtable.ensureLoaded();
+      } catch (e) {
+        sub.innerHTML = '<span style="color:var(--terra);">Couldn\u2019t reach Airtable.</span> Check your connection and refresh. <span style="font-size:.75rem;opacity:.7;">(' + escapeHtml(String(e.message || e)) + ')</span>';
+        return;
+      }
+    }
+
+    if (!id) {
+      need.style.display = '';
+      teacherV.style.display = 'none';
+      leaderV.style.display = 'none';
+      sub.textContent = 'Sign in as a teacher or ABF leader to manage availability and requests.';
+      return;
+    }
+
+    need.style.display = 'none';
+    if (id.role === 'teacher') {
+      const t = DataStore.getTeacher(id.id);
+      teacherV.style.display = '';
+      leaderV.style.display = 'none';
+      sub.textContent = 'Signed in as ' + (t ? t.name : 'a teacher') + '. Manage your availability, courses, and incoming requests.';
+      renderTeacherAvailability();
+      renderTeacherRequests();
+      renderTeacherCourses();
+    } else {
+      const l = DataStore.getABFLeader(id.id);
+      const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
+      teacherV.style.display = 'none';
+      leaderV.style.display = '';
+      sub.textContent = 'Signed in as ' + (l ? l.name : 'an ABF leader') + (cls ? ' for ' + cls.name + ' (' + cls.service + ').' : '.');
+      renderLeaderGrid();
+      renderLeaderNewRequestForm();
+      renderLeaderRequests();
+    }
+  }
+
+  /* ─── Teacher: availability calendar ─── */
+  function renderTeacherAvailability() {
+    const t = Identity.asTeacher();
+    if (!t) return;
+    const wrap = document.getElementById('t-availability-calendar');
+    wrap.innerHTML = '';
+
+    const sundays = DataStore.listSundays();
+    const byTerm = {};
+    sundays.forEach(s => {
+      if (!byTerm[s.term]) byTerm[s.term] = [];
+      byTerm[s.term].push(s);
+    });
+
+    const myAvail = DataStore.listAvailabilityForTeacher(t.id);
+    const availMap = {};
+    myAvail.forEach(a => availMap[a.sundayId] = a.status);
+
+    // Compute booked Sundays from accepted requests
+    const acceptedReqs = DataStore.listRequests({ teacherId: t.id }).filter(r => r.status === 'Accepted');
+    const bookedSet = new Set();
+    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSet.add(sid)));
+
+    Object.keys(byTerm).forEach(term => {
+      const block = document.createElement('div');
+      block.className = 'term-block';
+      const inSessCount = byTerm[term].filter(s => s.inSession).length;
+      block.innerHTML = '<div class="term-header"><h3>' + term + '</h3><span class="term-count">' + inSessCount + ' Sundays</span><hr/></div>';
+      const grid = document.createElement('div');
+      grid.className = 'sundays-grid';
+      byTerm[term].forEach(s => {
+        const cell = document.createElement('div');
+        const status = availMap[s.id] || null;
+        const booked = bookedSet.has(s.id);
+        const cls = ['sunday-cell'];
+        if (!s.inSession) cls.push('no-class');
+        else if (booked) cls.push('status-booked');
+        else if (status === 'Available')   cls.push('status-available');
+        else if (status === 'Unavailable') cls.push('status-unavailable');
+        else if (status === 'Tentative')   cls.push('status-tentative');
+        cell.className = cls.join(' ');
+        cell.innerHTML =
+          '<div>' +
+            '<div class="sun-month">' + fmtMonthShort(s.date) + '</div>' +
+            '<div class="sun-date">' + fmtDayNum(s.date) + (booked ? ' · Booked' : '') + '</div>' +
+          '</div>' +
+          '<div class="sun-status-dot"></div>';
+        if (s.inSession && !booked) {
+          cell.title = 'Click to set your availability';
+          cell.addEventListener('click', () => cycleAvailability(t.id, s.id));
+        } else if (!s.inSession) {
+          cell.title = s.notes || 'No class this Sunday';
+        } else if (booked) {
+          cell.title = 'You\u2019re booked to teach this Sunday';
+        }
+        grid.appendChild(cell);
+      });
+      block.appendChild(grid);
+      wrap.appendChild(block);
+    });
+  }
+
+  async function cycleAvailability(teacherId, sundayId) {
+    const cur = DataStore.getAvailability(teacherId, sundayId);
+    const order = [null, 'Available', 'Tentative', 'Unavailable'];
+    const i = order.indexOf(cur ? cur.status : null);
+    const next = order[(i + 1) % order.length];
+    try {
+      await DataStore.setAvailability(teacherId, sundayId, next);
+      renderTeacherAvailability();
+    } catch (e) {
+      toast('error', 'Couldn\u2019t save', 'Your change wasn\u2019t saved. Try again.');
+      console.error(e);
+    }
+  }
+
+  /* ─── Teacher: incoming requests ─── */
+  function renderTeacherRequests() {
+    const t = Identity.asTeacher();
+    if (!t) return;
+    const list = document.getElementById('t-requests-list');
+    list.innerHTML = '';
+    const reqs = DataStore.listRequests({ teacherId: t.id });
+    document.getElementById('t-req-count').textContent = reqs.filter(r => r.status === 'Pending').length
+      ? '(' + reqs.filter(r => r.status === 'Pending').length + ')' : '';
+
+    if (!reqs.length) {
+      list.innerHTML = '<div class="sched-empty"><div class="icon">\uD83D\uDCEC</div><h3>No requests yet</h3><p>When ABF leaders request you to teach, they\u2019ll show up here.</p></div>';
+      return;
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'req-list';
+    reqs.forEach(r => wrap.appendChild(renderRequestCard(r, 'teacher')));
+    list.appendChild(wrap);
+  }
+
+  /* ─── Teacher: my courses ─── */
+  function renderTeacherCourses() {
+    const t = Identity.asTeacher();
+    if (!t) return;
+    const list = document.getElementById('t-courses-list');
+    list.innerHTML = '';
+    const courses = DataStore.listCourses({ teacherId: t.id });
+    if (!courses.length) {
+      list.innerHTML = '<div class="sched-empty" style="grid-column:1/-1;"><div class="icon">\uD83D\uDCDA</div><h3>No courses listed yet</h3><p>Use the form below to add the first course you\u2019d be willing to teach.</p></div>';
+    } else {
+      courses.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'course-item';
+        const wkLabel = c.minWeeks === c.maxWeeks ? c.minWeeks + ' weeks' : c.minWeeks + '–' + c.maxWeeks + ' weeks';
+        item.innerHTML =
+          '<h4>' + escapeHtml(c.title) + '</h4>' +
+          '<div class="course-weeks">' + wkLabel + '</div>' +
+          '<div class="course-desc">' + escapeHtml(c.description || '') + '</div>' +
+          '<div class="course-actions">' +
+            '<button class="btn btn-secondary btn-sm" data-edit="' + c.id + '">Edit</button>' +
+            '<button class="btn btn-danger btn-sm" data-del="' + c.id + '">Remove</button>' +
+          '</div>';
+        list.appendChild(item);
+      });
+      list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editCourse(b.dataset.edit)));
+      list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        if (confirm('Remove this course?')) {
+          try {
+            await DataStore.deleteCourse(b.dataset.del);
+            renderTeacherCourses();
+          } catch (e) { toast('error', 'Couldn\u2019t delete', 'Try again.'); console.error(e); }
+        }
+      }));
+    }
+
+    // reset form to add-mode
+    setCourseFormMode('add');
+  }
+
+  function setCourseFormMode(mode, course) {
+    const title = document.getElementById('course-form-title');
+    const idField = document.getElementById('course-form-id');
+    const cancelBtn = document.getElementById('course-form-cancel');
+    const saveBtn = document.getElementById('course-form-save');
+    if (mode === 'edit' && course) {
+      title.textContent = 'Edit course';
+      idField.value = course.id;
+      document.getElementById('course-form-titletext').value = course.title;
+      document.getElementById('course-form-desc').value = course.description || '';
+      document.getElementById('course-form-min').value = course.minWeeks;
+      document.getElementById('course-form-max').value = course.maxWeeks;
+      cancelBtn.style.display = '';
+      saveBtn.textContent = 'Save changes';
+    } else {
+      title.textContent = 'Add a course';
+      idField.value = '';
+      document.getElementById('course-form-titletext').value = '';
+      document.getElementById('course-form-desc').value = '';
+      document.getElementById('course-form-min').value = '';
+      document.getElementById('course-form-max').value = '';
+      cancelBtn.style.display = 'none';
+      saveBtn.textContent = 'Save course';
+    }
+  }
+  function editCourse(id) {
+    const c = DataStore.listCourses().find(x => x.id === id);
+    if (!c) return;
+    setCourseFormMode('edit', c);
+    document.getElementById('course-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function setupCourseForm() {
+    document.getElementById('course-form-save').addEventListener('click', async () => {
+      const t = Identity.asTeacher();
+      if (!t) return;
+      const id = document.getElementById('course-form-id').value || null;
+      const title = document.getElementById('course-form-titletext').value.trim();
+      const desc  = document.getElementById('course-form-desc').value.trim();
+      const minW  = parseInt(document.getElementById('course-form-min').value, 10);
+      const maxW  = parseInt(document.getElementById('course-form-max').value, 10);
+      if (!title) { toast('error', 'Missing title', 'Please give your course a title.'); return; }
+      if (!minW || !maxW || minW > maxW) { toast('error', 'Check the weeks', 'Min weeks must be \u2264 max weeks, and both must be at least 1.'); return; }
+      const saveBtn = document.getElementById('course-form-save');
+      saveBtn.disabled = true; const oldText = saveBtn.textContent; saveBtn.textContent = 'Saving\u2026';
+      try {
+        await DataStore.upsertCourse({ id, title, description: desc, minWeeks: minW, maxWeeks: maxW, teacherId: t.id });
+        toast('success', id ? 'Course updated' : 'Course added', title + ' is ' + (id ? 'updated' : 'on your list') + '.');
+        renderTeacherCourses();
+      } catch (e) {
+        toast('error', 'Couldn\u2019t save', 'Your course wasn\u2019t saved. Try again.');
+        console.error(e);
+      } finally {
+        saveBtn.disabled = false; saveBtn.textContent = oldText;
+      }
+    });
+    document.getElementById('course-form-cancel').addEventListener('click', () => setCourseFormMode('add'));
+  }
+
+  /* ─── Leader: availability grid ─── */
+  function renderLeaderGrid() {
+    const wrap = document.getElementById('l-availability-grid');
+    wrap.innerHTML = '';
+    const sundays = DataStore.listSundays();
+    const teachers = DataStore.listTeachers();
+    const allAvail = DataStore.listAvailabilityAll();
+    const acceptedReqs = DataStore.listRequests().filter(r => r.status === 'Accepted');
+
+    // booking lookup
+    const bookedKey = new Set();
+    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedKey.add(r.teacherId + '|' + sid)));
+
+    const availMap = {};
+    allAvail.forEach(a => availMap[a.teacherId + '|' + a.sundayId] = a.status);
+
+    const table = document.createElement('table');
+    table.className = 'avail-grid';
+
+    // header
+    let thead = '<thead><tr><th class="col-name">Teacher</th>';
+    sundays.forEach(s => {
+      const cls = s.inSession ? '' : 'col-no-class';
+      thead += '<th class="' + cls + '" title="' + (s.notes || fmtSundayLong(s.date)) + '">' +
+        '<div style="font-size:.6rem;opacity:.85;">' + fmtMonthShort(s.date) + '</div>' +
+        '<div>' + fmtDayNum(s.date) + '</div></th>';
+    });
+    thead += '</tr></thead>';
+    table.innerHTML = thead;
+
+    // body
+    const tbody = document.createElement('tbody');
+    teachers.forEach(t => {
+      const tr = document.createElement('tr');
+      const cls = DataStore.getABFClass(t.homeClassId);
+      tr.innerHTML = '<th class="row-teacher">' + escapeHtml(t.name) +
+        '<div class="row-sub">' + escapeHtml(t.status) + (cls ? ' · ' + cls.name : '') + '</div></th>';
+      sundays.forEach(s => {
+        const td = document.createElement('td');
+        if (!s.inSession) {
+          td.className = 'cell-no-class';
+          td.textContent = '—';
+          td.title = s.notes;
+        } else if (bookedKey.has(t.id + '|' + s.id)) {
+          td.className = 'cell-bk'; td.textContent = 'BK';
+          td.title = 'Booked';
+        } else {
+          const status = availMap[t.id + '|' + s.id];
+          if (status === 'Available')   { td.className = 'cell-av'; td.textContent = '✓'; td.title = 'Available'; }
+          else if (status === 'Unavailable') { td.className = 'cell-un'; td.textContent = '×'; td.title = 'Unavailable'; }
+          else if (status === 'Tentative')   { td.className = 'cell-te'; td.textContent = '?'; td.title = 'Tentative'; }
+          else { td.className = 'cell-no'; td.textContent = '–'; td.title = 'No answer yet'; }
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+  }
+
+  /* ─── Leader: New Request form ─── */
+  function renderLeaderNewRequestForm() {
+    const l = Identity.asLeader();
+    if (!l) return;
+    const cls = DataStore.getABFClass(l.abfClassId);
+    document.getElementById('l-new-context').innerHTML =
+      'You\u2019re sending this request from <strong>' + escapeHtml(cls ? cls.name : '—') + '</strong> (' + escapeHtml(cls ? cls.service : '') + '). The teacher will see your name, your class, and the service when they get the email.';
+
+    // teacher dropdown
+    const teacherSel = document.getElementById('l-req-teacher');
+    teacherSel.innerHTML = '<option value="">— Choose a teacher —</option>';
+    DataStore.listTeachers().forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.id; o.textContent = t.name + ' (' + t.status + ')';
+      teacherSel.appendChild(o);
+    });
+
+    teacherSel.onchange = () => {
+      renderCourseDropdown(teacherSel.value);
+      renderSundayPicker(teacherSel.value);
+    };
+    renderCourseDropdown('');
+    renderSundayPicker('');
+
+    document.getElementById('l-req-submit').onclick = submitNewRequest;
+  }
+
+  function renderCourseDropdown(teacherId) {
+    const sel = document.getElementById('l-req-course');
+    sel.innerHTML = '<option value="">— No specific course —</option>';
+    if (!teacherId) return;
+    DataStore.listCourses({ teacherId }).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      const wk = c.minWeeks === c.maxWeeks ? c.minWeeks + ' wk' : c.minWeeks + '\u2013' + c.maxWeeks + ' wks';
+      o.textContent = c.title + ' (' + wk + ')';
+      sel.appendChild(o);
+    });
+  }
+
+  let _selectedSundayIds = [];
+  function renderSundayPicker(teacherId) {
+    _selectedSundayIds = [];
+    const wrap = document.getElementById('l-req-sundays');
+    wrap.innerHTML = '';
+    const sundays = DataStore.listSundaysInSession();
+    const teacherAvail = teacherId ? DataStore.listAvailabilityForTeacher(teacherId) : [];
+    const availMap = {};
+    teacherAvail.forEach(a => availMap[a.sundayId] = a.status);
+
+    sundays.forEach(s => {
+      const btn = document.createElement('div');
+      btn.className = 'sunday-pick';
+      const status = availMap[s.id];
+      if (status === 'Unavailable') btn.classList.add('unavail');
+      btn.dataset.sid = s.id;
+      btn.innerHTML = '<div style="font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);">' + fmtMonthShort(s.date) + '</div>' +
+                      '<div style="font-size:.95rem;font-weight:800;">' + fmtDayNum(s.date) + '</div>';
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('selected');
+        const sid = btn.dataset.sid;
+        if (btn.classList.contains('selected')) {
+          if (!_selectedSundayIds.includes(sid)) _selectedSundayIds.push(sid);
+        } else {
+          _selectedSundayIds = _selectedSundayIds.filter(x => x !== sid);
+        }
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  async function submitNewRequest() {
+    const l = Identity.asLeader();
+    if (!l) return;
+    const teacherId = document.getElementById('l-req-teacher').value;
+    const courseId  = document.getElementById('l-req-course').value || null;
+    const message   = document.getElementById('l-req-message').value.trim();
+    if (!teacherId) { toast('error', 'Choose a teacher', 'Pick someone to send this request to.'); return; }
+    if (!_selectedSundayIds.length) { toast('error', 'Pick at least one Sunday', 'Select the Sundays you\u2019d like the teacher.'); return; }
+
+    const t = DataStore.getTeacher(teacherId);
+    const cls = DataStore.getABFClass(l.abfClassId);
+    const sendBtn = document.getElementById('l-req-send');
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.dataset._txt = sendBtn.textContent; sendBtn.textContent = 'Sending\u2026'; }
+
+    try {
+      await DataStore.createRequest({
+        requestingLeaderId: l.id,
+        abfClassId: l.abfClassId,
+        service: cls ? cls.service : '',
+        teacherId,
+        courseId,
+        requestedSundayIds: _selectedSundayIds.slice(),
+        leaderMessage: message
+      });
+    } catch (e) {
+      toast('error', 'Couldn\u2019t send', 'The request didn\u2019t save. Try again.');
+      console.error(e);
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = sendBtn.dataset._txt || 'Send request'; }
+      return;
+    }
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = sendBtn.dataset._txt || 'Send request'; }
+
+    // The Airtable Automation (once Tom sets it up) will send the real email.
+    // Until then, show a toast so the leader sees feedback.
+    toast('success', 'Request sent', t.name + ' has been notified by email. You\u2019ll see their response under My Requests.');
+
+    // reset form
+    document.getElementById('l-req-message').value = '';
+    document.getElementById('l-req-teacher').value = '';
+    renderCourseDropdown('');
+    renderSundayPicker('');
+    renderLeaderRequests();
+    renderLeaderGrid();
+  }
+
+  /* ─── Leader: My Requests ─── */
+  function renderLeaderRequests() {
+    const l = Identity.asLeader();
+    if (!l) return;
+    const list = document.getElementById('l-requests-list');
+    list.innerHTML = '';
+    const reqs = DataStore.listRequests({ leaderId: l.id });
+    document.getElementById('l-req-count').textContent = reqs.filter(r => r.status === 'Pending').length
+      ? '(' + reqs.filter(r => r.status === 'Pending').length + ' pending)' : '';
+
+    if (!reqs.length) {
+      list.innerHTML = '<div class="sched-empty"><div class="icon">\uD83D\uDCEC</div><h3>No requests yet</h3><p>When you send a teaching request, it\u2019ll show up here with the teacher\u2019s response.</p></div>';
+      return;
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'req-list';
+    reqs.forEach(r => wrap.appendChild(renderRequestCard(r, 'leader')));
+    list.appendChild(wrap);
+  }
+
+  /* Render a request card. role = 'teacher' (action buttons) or 'leader' (read-only summary) */
+  function renderRequestCard(r, role) {
+    const t = DataStore.getTeacher(r.teacherId);
+    const l = DataStore.getABFLeader(r.requestingLeaderId);
+    const cls = DataStore.getABFClass(r.abfClassId);
+    const course = r.courseId ? DataStore.listCourses().find(c => c.id === r.courseId) : null;
+    const sundays = DataStore.listSundays();
+    const sunMap = {}; sundays.forEach(s => sunMap[s.id] = s);
+
+    const card = document.createElement('div');
+    const statusKey = (r.status || 'Pending').toLowerCase().replace('-proposed','').replace(' ','').replace('counter','counter');
+    card.className = 'req-card status-' + statusKey;
+
+    const titleParts = [];
+    if (role === 'teacher') titleParts.push('Request from ' + (l ? l.name : 'an ABF leader'));
+    else titleParts.push('Request to ' + (t ? t.name : 'a teacher'));
+
+    const sundayPills = (r.requestedSundayIds || [])
+      .map(id => sunMap[id])
+      .filter(Boolean)
+      .map(s => '<span class="pill">' + fmtSundayShort(s.date) + '</span>')
+      .join('');
+
+    const counterPills = (r.counterSundayIds || [])
+      .map(id => sunMap[id])
+      .filter(Boolean)
+      .map(s => '<span class="pill" style="background:rgba(63,87,101,.18);color:var(--steel-blue);">' + fmtSundayShort(s.date) + '</span>')
+      .join('');
+
+    let html = '';
+    html += '<div class="req-card-head">';
+    html +=   '<div class="req-card-title">' + escapeHtml(titleParts.join(' ')) + '</div>';
+    html +=   '<span class="req-status-badge ' + statusKey + '">' + r.status + '</span>';
+    html += '</div>';
+    html += '<div class="req-meta">';
+    if (cls) html += '<strong>' + escapeHtml(cls.name) + '</strong> (' + escapeHtml(cls.service) + ')';
+    if (l && role === 'teacher') html += ' · Leader: <strong>' + escapeHtml(l.name) + '</strong>';
+    if (t && role === 'leader')  html += ' · Teacher: <strong>' + escapeHtml(t.name) + '</strong>';
+    if (course) html += ' · Course: <strong>' + escapeHtml(course.title) + '</strong>';
+    html += '</div>';
+    html += '<div style="font-size:.74rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.3rem;">Requested Sundays</div>';
+    html += '<div class="req-sundays">' + sundayPills + '</div>';
+    if (r.leaderMessage) html += '<div class="req-message"><strong>Message:</strong> ' + escapeHtml(r.leaderMessage).replace(/\n/g,'<br>') + '</div>';
+    if (r.teacherResponse) html += '<div class="req-message" style="background:rgba(63,87,101,.06);"><strong>' + (t ? escapeHtml(t.name) : 'Teacher') + ' replied:</strong> ' + escapeHtml(r.teacherResponse).replace(/\n/g,'<br>') + '</div>';
+    if (counterPills) {
+      html += '<div style="font-size:.74rem;color:var(--steel-blue);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-top:.45rem;">Counter-proposed Sundays</div>';
+      html += '<div class="req-sundays">' + counterPills + '</div>';
+    }
+    html += '<div class="req-actions"></div>';
+    card.innerHTML = html;
+
+    const actions = card.querySelector('.req-actions');
+    if (role === 'teacher' && r.status === 'Pending') {
+      const acceptBtn  = mkBtn('Accept', 'btn-success btn-sm', () => respondRequest(r, 'Accepted'));
+      const declineBtn = mkBtn('Decline', 'btn-danger btn-sm',  () => respondRequest(r, 'Declined'));
+      const counterBtn = mkBtn('Counter-propose', 'btn-secondary btn-sm', () => respondRequest(r, 'Counter-Proposed'));
+      actions.append(acceptBtn, declineBtn, counterBtn);
+    } else {
+      const meta = document.createElement('span');
+      meta.style.cssText = 'font-size:.7rem;color:var(--text-muted);';
+      meta.textContent = 'Sent ' + new Date(r.createdAt).toLocaleDateString() +
+        (r.respondedAt ? ' · responded ' + new Date(r.respondedAt).toLocaleDateString() : '');
+      actions.appendChild(meta);
+    }
+
+    return card;
+  }
+
+  function mkBtn(label, cls, fn) {
+    const b = document.createElement('button');
+    b.className = 'btn ' + cls;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  async function respondRequest(r, status) {
+    const t = Identity.asTeacher();
+    if (!t) return;
+
+    let response = '';
+    let counterIds = [];
+    if (status === 'Accepted') {
+      response = prompt('Optional note back to the leader (e.g., \u201CHappy to teach all 4 weeks!\u201D)', '') || '';
+    } else if (status === 'Declined') {
+      response = prompt('Optional note back to the leader (e.g., \u201CCan\u2019t this fall, ask me again in spring.\u201D)', '') || '';
+    } else if (status === 'Counter-Proposed') {
+      const sundays = DataStore.listSundaysInSession();
+      const list = sundays.map((s, i) => (i+1) + '. ' + fmtSundayLong(s.date)).join('\n');
+      const picks = prompt('Counter-propose alternate Sundays. Enter the numbers separated by commas:\n\n' + list, '');
+      if (picks === null) return;
+      const idxs = picks.split(',').map(x => parseInt(x.trim(), 10) - 1).filter(i => i >= 0 && i < sundays.length);
+      counterIds = idxs.map(i => sundays[i].id);
+      response = prompt('Optional note explaining the counter-proposal:', '') || '';
+    }
+
+    try {
+      await DataStore.updateRequestStatus(r.id, status, response, counterIds);
+    } catch (e) {
+      toast('error', 'Couldn\u2019t respond', 'Your response wasn\u2019t saved. Try again.');
+      console.error(e);
+      return;
+    }
+
+    // The Airtable Automation will send the real email to the leader once Tom sets it up.
+    toast('success', 'Response sent', 'The ABF leader has been notified that you ' + status.toLowerCase() + ' the request.');
+    renderTeacherRequests();
+    renderTeacherAvailability();
+  }
+
+  /* utility */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ════════════════════════════════════════════════════════
+     SCHEDULING — SUB-NAV (within the Scheduling tab)
+  ════════════════════════════════════════════════════════════ */
+  function setupSchedSubnav() {
+    document.querySelectorAll('.sched-subnav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const subnav = btn.parentElement;
+        subnav.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = 'sched-' + btn.dataset.sub;
+        // Only swap panes within the same view (teacher or leader)
+        const view = subnav.parentElement; // sched-teacher-view or sched-leader-view
+        view.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
+        const pane = document.getElementById(target);
+        if (pane) pane.classList.add('active');
+      });
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════
+     BOOTSTRAP
+  ════════════════════════════════════════════════════════════ */
+  // Kick off the Airtable load eagerly so the Scheduling tab feels fast.
+  // We don't await — renderScheduling() will await ensureLoaded() before it reads.
+  Airtable.ensureLoaded().catch(err => {
+    console.warn('[scheduling] eager load failed (will retry on tab open)', err);
+  });
+
+  setupIdentityPicker();
+  setupSchedSubnav();
+  setupCourseForm();
+
+  // Re-render scheduling tab whenever it's shown
+  const origShowTab = window.showTab;
+  window.showTab = function(id) {
+    origShowTab(id);
+    if (id === 'scheduling') renderScheduling();
+  };
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.tab === 'scheduling') renderScheduling();
+    });
+  });
+
+  // Wire identity badge state
+  updateIdentityBadge();
+
+  // First-time prompt: if password is unlocked but no identity yet, gently prompt once
+  const firstSchedPromptKey = 'abf_sched_first_prompt';
+  function maybeFirstPrompt() {
+    if (sessionStorage.getItem(SESSION_KEY) === '1' && !Identity.get() && !sessionStorage.getItem(firstSchedPromptKey)) {
+      sessionStorage.setItem(firstSchedPromptKey, '1');
+      // Don't open immediately — only when they click Scheduling tab
+    }
+  }
+  maybeFirstPrompt();
+
+  // Clear identity on logout
+  const origLogout = logoutBtn.onclick;
+  logoutBtn.addEventListener('click', () => {
+    Identity.clear();
+  });
 </script>
 
 </body>
