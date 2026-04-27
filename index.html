@@ -1536,6 +1536,166 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ─── Feedback ────────────────────────────────────────── */
+    .fb-card {
+      background: #fff;
+      border: 1px solid var(--cream-border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      margin-bottom: .85rem;
+      box-shadow: 0 1px 4px rgba(50,40,30,.04);
+    }
+    .fb-card .fb-card-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: .8rem; margin-bottom: .35rem; flex-wrap: wrap;
+    }
+    .fb-card .fb-title { font-size: .98rem; font-weight: 800; color: var(--dark-brown); margin: 0; }
+    .fb-card .fb-meta  { font-size: .74rem; color: var(--text-muted); }
+    .fb-card .fb-meta strong { color: var(--dark-brown); font-weight: 700; }
+    .fb-card .fb-desc  { font-size: .82rem; color: var(--text); margin: .25rem 0 .65rem; line-height: 1.5; }
+    .fb-card .fb-slug-pill {
+      display: inline-block; font-family: monospace; font-size: .78rem;
+      background: var(--cream); color: var(--dark-brown); padding: .15rem .55rem;
+      border-radius: 6px; border: 1px solid var(--cream-border);
+    }
+    .fb-card .fb-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .5rem; }
+    .fb-status {
+      display: inline-block; font-size: .68rem; font-weight: 800; letter-spacing: .04em;
+      text-transform: uppercase; padding: .15rem .55rem; border-radius: 999px;
+    }
+    .fb-status.open    { background: #e6f1e3; color: #2f6d3a; }
+    .fb-status.closed  { background: #ece2dd; color: #8a3d2c; }
+    .fb-status.upcoming { background: #efeadb; color: #7a6a2c; }
+    .fb-empty {
+      text-align: center; color: var(--text-muted);
+      font-size: .85rem; padding: 2.2rem 1rem;
+      background: var(--cream); border-radius: 10px;
+      border: 1px dashed var(--cream-border);
+    }
+    .fb-response-card {
+      background: var(--cream); border-radius: 8px;
+      padding: .8rem .95rem; margin-bottom: .6rem;
+      border: 1px solid var(--cream-border);
+    }
+    .fb-response-card .fb-r-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: .35rem;
+    }
+    .fb-response-card .fb-r-name { font-weight: 800; color: var(--dark-brown); font-size: .85rem; }
+    .fb-response-card .fb-r-when { font-size: .72rem; color: var(--text-muted); }
+    .fb-response-card .fb-r-q { font-size: .76rem; color: var(--text-muted); margin-top: .45rem; font-weight: 700; }
+    .fb-response-card .fb-r-a { font-size: .85rem; color: var(--text); white-space: pre-wrap; line-height: 1.45; }
+
+    /* ─── Public feedback form (no chrome, deep-linkable) ── */
+    #public-feedback {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--cream);
+      overflow-y: auto;
+    }
+    #public-feedback .public-feedback-inner {
+      max-width: 720px; margin: 0 auto; padding: 2.2rem 1.5rem 4rem;
+    }
+    #public-feedback .public-feedback-brand {
+      display: flex; align-items: center; gap: .7rem; margin-bottom: 1.6rem;
+    }
+    #public-feedback h1 {
+      font-size: 1.45rem; font-weight: 900; color: var(--dark-brown);
+      margin: 0 0 .3rem;
+    }
+    #public-feedback .pf-sub {
+      font-size: .85rem; color: var(--text-muted); margin-bottom: 1.4rem;
+      line-height: 1.55;
+    }
+    #public-feedback .pf-card {
+      background: #fff; border: 1px solid var(--cream-border);
+      border-radius: 14px; padding: 1.3rem 1.4rem;
+      box-shadow: 0 2px 8px rgba(50,40,30,.06);
+    }
+    #public-feedback .pf-question {
+      margin-bottom: 1.15rem;
+      padding-bottom: 1.15rem;
+      border-bottom: 1px solid var(--cream-border);
+    }
+    #public-feedback .pf-question:last-child { border-bottom: none; padding-bottom: 0; }
+    #public-feedback .pf-q-label {
+      display: block; font-weight: 700; color: var(--dark-brown);
+      font-size: .92rem; margin-bottom: .35rem; line-height: 1.45;
+    }
+    #public-feedback .pf-q-required { color: var(--terra); margin-left: .25rem; }
+    #public-feedback .pf-q-help {
+      display: block; font-size: .76rem; color: var(--text-muted);
+      margin-bottom: .55rem; line-height: 1.5;
+    }
+    #public-feedback .pf-rating-row {
+      display: flex; gap: .35rem; flex-wrap: wrap;
+    }
+    #public-feedback .pf-rating-btn {
+      flex: 1; min-width: 38px; padding: .55rem .3rem;
+      background: var(--cream); border: 1.5px solid var(--cream-border);
+      border-radius: 8px; cursor: pointer; font-weight: 700;
+      color: var(--dark-brown); font-size: .9rem; transition: all .12s;
+    }
+    #public-feedback .pf-rating-btn:hover { border-color: var(--gold); }
+    #public-feedback .pf-rating-btn.selected {
+      background: var(--gold); border-color: var(--gold);
+      color: #fff;
+    }
+    #public-feedback .pf-rating-scale {
+      display: flex; justify-content: space-between;
+      font-size: .68rem; color: var(--text-muted); margin-top: .35rem;
+    }
+    #public-feedback .pf-choice-row { display: flex; flex-direction: column; gap: .5rem; }
+    #public-feedback .pf-choice {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .55rem .8rem;
+      background: var(--cream); border: 1.5px solid var(--cream-border);
+      border-radius: 8px; cursor: pointer; transition: all .12s;
+      font-size: .88rem; color: var(--text);
+    }
+    #public-feedback .pf-choice:hover { border-color: var(--gold); }
+    #public-feedback .pf-choice.selected {
+      background: #fff8e0; border-color: var(--gold);
+      color: var(--dark-brown); font-weight: 600;
+    }
+    #public-feedback .pf-choice input { accent-color: var(--gold); }
+    #public-feedback .pf-input,
+    #public-feedback .pf-textarea {
+      width: 100%; padding: .65rem .8rem;
+      background: var(--cream); border: 1.5px solid var(--cream-border);
+      border-radius: 8px; font-size: .92rem; color: var(--text);
+      font-family: inherit;
+    }
+    #public-feedback .pf-textarea { min-height: 110px; resize: vertical; }
+    #public-feedback .pf-input:focus,
+    #public-feedback .pf-textarea:focus {
+      outline: none; border-color: var(--gold); background: #fff;
+    }
+    #public-feedback .pf-submit-row {
+      margin-top: 1.5rem;
+      display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    }
+    #public-feedback .pf-submit-btn {
+      background: var(--terra); color: #fff;
+      padding: .85rem 1.6rem; border: none; border-radius: 8px;
+      font-weight: 800; font-size: .92rem; cursor: pointer;
+      transition: background .12s;
+    }
+    #public-feedback .pf-submit-btn:hover { background: #a85533; }
+    #public-feedback .pf-submit-btn:disabled { background: #c8b5a8; cursor: not-allowed; }
+    #public-feedback .pf-status {
+      font-size: .8rem; color: var(--text-muted);
+    }
+    #public-feedback .pf-error {
+      color: var(--terra); font-weight: 700;
+    }
+    #public-feedback .pf-thanks {
+      text-align: center; padding: 3rem 1rem 1rem;
+    }
+    #public-feedback .pf-thanks-icon {
+      font-size: 3rem; margin-bottom: .8rem;
+    }
+    #public-feedback .pf-thanks h1 { margin-bottom: .5rem; }
+
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1659,6 +1819,7 @@
       <button class="tab-btn" data-tab="courses">LEFCU</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
+      <button class="tab-btn" data-tab="feedback">Feedback</button>
     </div>
   </nav>
 
@@ -1693,6 +1854,11 @@
           <div class="icon">🎙️</div>
           <h3>Teachers</h3>
           <p>Learn about the LEFC teachers — who they are and what topics they teach.</p>
+        </div>
+        <div class="home-nav-card steel" onclick="showTab('feedback')">
+          <div class="icon">💬</div>
+          <h3>Feedback</h3>
+          <p>Open feedback surveys for ABF classes. Teachers can launch new ones from a template.</p>
         </div>
         <div class="home-nav-card terra">
           <div class="icon">✉️</div>
@@ -2795,6 +2961,74 @@
       </div><!-- /#course-videos-joshua -->
     </div><!-- /#tab-course-detail -->
 
+    <!-- ── FEEDBACK ───────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-feedback">
+      <div class="page-header">
+        <h2>Class Feedback</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Open surveys are listed below — anyone can fill one out using the link or QR code their teacher shares. Teachers: sign in to launch a new survey from a template.</p>
+      </div>
+
+      <div class="sched-subnav" id="fb-subnav">
+        <button class="sched-subnav-btn active" data-fb-sub="open">Open Surveys</button>
+        <button class="sched-subnav-btn" data-fb-sub="mine" id="fb-tab-mine" style="display:none;">My Surveys</button>
+        <button class="sched-subnav-btn" data-fb-sub="create" id="fb-tab-create" style="display:none;">Create Survey</button>
+      </div>
+
+      <div class="sched-pane active" id="fb-pane-open">
+        <div id="fb-open-list"></div>
+      </div>
+
+      <div class="sched-pane" id="fb-pane-mine">
+        <div id="fb-mine-list"></div>
+      </div>
+
+      <div class="sched-pane" id="fb-pane-create">
+        <div class="sched-notice">
+          <strong>How this works:</strong> Pick a template, give your survey a title, and choose how long it should stay open (1–12 weeks). You'll get a public link and a 5-digit code (e.g. <code>abfresources.com/12345</code>) you can drop into a QR code for class.
+        </div>
+        <form class="sched-form" id="fb-create-form" autocomplete="off">
+          <div class="form-row row-2">
+            <div>
+              <label class="form-label" for="fb-create-title">Survey title</label>
+              <input type="text" id="fb-create-title" class="form-input" required placeholder="e.g. Spring 2026 Joshua Series" />
+            </div>
+            <div>
+              <label class="form-label" for="fb-create-template">Template</label>
+              <select id="fb-create-template" class="form-select" required></select>
+            </div>
+          </div>
+          <div class="form-row row-2">
+            <div>
+              <label class="form-label" for="fb-create-class">ABF class (optional)</label>
+              <select id="fb-create-class" class="form-select"><option value="">— None —</option></select>
+            </div>
+            <div>
+              <label class="form-label" for="fb-create-weeks">Open for</label>
+              <select id="fb-create-weeks" class="form-select">
+                <option value="1">1 week</option>
+                <option value="2">2 weeks</option>
+                <option value="3">3 weeks</option>
+                <option value="4" selected>4 weeks</option>
+                <option value="6">6 weeks</option>
+                <option value="8">8 weeks</option>
+                <option value="10">10 weeks</option>
+                <option value="12">12 weeks</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="fb-create-desc">Description / instructions for respondents (optional)</label>
+            <textarea id="fb-create-desc" class="form-textarea" placeholder="Anything you want the class to know before they fill it out."></textarea>
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <button type="button" class="btn btn-primary" id="fb-create-save">Create survey</button>
+            <span id="fb-create-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </main>
 
   <footer>
@@ -2897,6 +3131,58 @@
   </div>
 </div>
 
+<!-- Feedback responses modal -->
+<div id="fb-responses-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:780px;">
+    <button type="button" class="sched-modal-close" id="fb-responses-close" aria-label="Close">&times;</button>
+    <h2 id="fb-responses-title" style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Feedback Responses</h2>
+    <p id="fb-responses-sub" style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;"></p>
+    <div id="fb-responses-list"></div>
+  </div>
+</div>
+
+<!-- Feedback share modal (after creating a form) -->
+<div id="fb-share-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:520px;">
+    <button type="button" class="sched-modal-close" id="fb-share-close" aria-label="Close">&times;</button>
+    <h2 style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Survey created!</h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Share either of these with your class. Both work without a password — perfect for QR codes or a quick text.</p>
+    <div class="form-row">
+      <label class="form-label">Short link</label>
+      <input type="text" id="fb-share-short" class="form-input" readonly style="font-family:monospace;" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">Full link</label>
+      <input type="text" id="fb-share-full" class="form-input" readonly style="font-family:monospace;font-size:.78rem;" />
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      <button type="button" class="btn btn-primary" id="fb-share-copy">Copy short link</button>
+      <button type="button" class="btn btn-ghost" id="fb-share-open">Open survey</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PUBLIC FEEDBACK FORM VIEW (no auth, deep-linked via ?f=)
+══════════════════════════════════════════════════════════ -->
+<div id="public-feedback" style="display:none;">
+  <div class="public-feedback-inner">
+    <div class="public-feedback-brand">
+      <div class="logo-mark" style="width:42px;height:42px;border-radius:8px;">
+        <svg viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 10v10h7v-6h6v6h7V10L12 2z" fill="#BCA944" stroke="#BCA944" stroke-width="1" stroke-linejoin="round"/>
+          <path d="M9 22v-7h6v7" stroke="#342D25" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-weight:800;color:var(--dark-brown);font-size:1rem;">LEFC ABF Feedback</div>
+        <div style="font-size:.72rem;color:var(--text-muted);">Lancaster Evangelical Free Church</div>
+      </div>
+    </div>
+    <div id="public-feedback-content"></div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -2916,6 +3202,28 @@
   const pwBtn    = document.getElementById('pw-btn');
   const pwError  = document.getElementById('pw-error');
   const logoutBtn = document.getElementById('logout-btn');
+
+  // ─── Public Feedback Form Routing ───────────────────────
+  // If the URL has ?f=<slug>, render the standalone public feedback
+  // form (no password gate). The slug is set by either ?f=12345 directly
+  // or via the 404.html redirect from /12345.
+  const PUBLIC_FEEDBACK_SLUG = (function () {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const s = (p.get('f') || '').trim();
+      return /^\d{4,7}$/.test(s) ? s : '';
+    } catch { return ''; }
+  })();
+  const IS_PUBLIC_FEEDBACK_MODE = !!PUBLIC_FEEDBACK_SLUG;
+  if (IS_PUBLIC_FEEDBACK_MODE) {
+    // Hide everything else immediately so there's no flash of the password gate.
+    if (pwScreen) pwScreen.style.display = 'none';
+    const idScreen = document.getElementById('id-screen');
+    if (idScreen) idScreen.style.display = 'none';
+    if (site) site.style.display = 'none';
+    const pf = document.getElementById('public-feedback');
+    if (pf) pf.style.display = 'block';
+  }
 
   // Fetch the current password hash from Airtable Settings. Returns the
   // default hash on any error so the gate stays usable. Cached for the
@@ -3261,6 +3569,9 @@
       requests:    'tblr0brmHkKaep6ez',
       changeLog:   'tblzU7ANhqp9HTvHB',
       settings:    'tblU0XGRCrWQJBPH6',
+      feedbackTemplates: 'tblFuma2qufToaLV2',
+      feedbackForms:     'tbl2gDQMd4zLBYC5v',
+      feedbackResponses: 'tblv1DxkrUiqEZsYH',
     },
     _cache: null,
     _bootstrapPromise: null,
@@ -3344,9 +3655,43 @@
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
+    _mapFeedbackTemplate(r) {
+      const f = r.fields || {};
+      let questions = [];
+      try { questions = JSON.parse(f.Questions || '[]'); } catch { questions = []; }
+      return { id: r.id, name: f.Name || '', description: f.Description || '', questions, active: !!f.Active };
+    },
+    _mapFeedbackForm(r) {
+      const f = r.fields || {};
+      return {
+        id: r.id,
+        title: f.Title || '',
+        slug: f.Slug || '',
+        teacherId: (f.Teacher || [])[0] || '',
+        templateId: (f.Template || [])[0] || '',
+        description: f.Description || '',
+        abfClassId: (f['ABF Class'] || [])[0] || '',
+        opensAt: f['Opens At'] || '',
+        closesAt: f['Closes At'] || '',
+        createdAt: f['Created At'] || '',
+      };
+    },
+    _mapFeedbackResponse(r) {
+      const f = r.fields || {};
+      let answers = {};
+      try { answers = JSON.parse(f.Answers || '{}'); } catch { answers = {}; }
+      return {
+        id: r.id,
+        submitterName: f['Submitter Name'] || '',
+        formId: (f.Form || [])[0] || '',
+        submitterEmail: f['Submitter Email'] || '',
+        submittedAt: f['Submitted At'] || '',
+        answers,
+      };
+    },
 
     async _bootstrap() {
-      const [classes, teachers, leaders, courses, sundays, avail, reqs] = await Promise.all([
+      const [classes, teachers, leaders, courses, sundays, avail, reqs, fbTpls, fbForms, fbResps] = await Promise.all([
         this._listAll(this.TBL.abfClasses),
         this._listAll(this.TBL.teachers),
         this._listAll(this.TBL.abfLeaders),
@@ -3354,6 +3699,9 @@
         this._listAll(this.TBL.sundays),
         this._listAll(this.TBL.availability),
         this._listAll(this.TBL.requests),
+        this._listAll(this.TBL.feedbackTemplates),
+        this._listAll(this.TBL.feedbackForms),
+        this._listAll(this.TBL.feedbackResponses),
       ]);
       this._cache = {
         abfClasses: classes.map(r => this._mapClass(r)),
@@ -3363,6 +3711,9 @@
         sundays:    sundays.map(r => this._mapSunday(r)),
         availability: avail.map(r => this._mapAvail(r)),
         requests:   reqs.map(r => this._mapRequest(r)),
+        feedbackTemplates: fbTpls.map(r => this._mapFeedbackTemplate(r)),
+        feedbackForms:     fbForms.map(r => this._mapFeedbackForm(r)),
+        feedbackResponses: fbResps.map(r => this._mapFeedbackResponse(r)),
       };
       console.log('[scheduling] loaded',
         this._cache.abfClasses.length, 'classes,',
@@ -3371,7 +3722,10 @@
         this._cache.courses.length, 'courses,',
         this._cache.sundays.length, 'sundays,',
         this._cache.availability.length, 'avail,',
-        this._cache.requests.length, 'requests');
+        this._cache.requests.length, 'requests,',
+        this._cache.feedbackTemplates.length, 'templates,',
+        this._cache.feedbackForms.length, 'forms,',
+        this._cache.feedbackResponses.length, 'responses');
     },
 
     ensureLoaded() {
@@ -3510,6 +3864,43 @@
         'Request status changed from ' + (before.status || 'Pending') + ' to ' + mapped.status);
       return mapped;
     },
+
+    async createFeedbackForm(fields) {
+      const res = await this.api('POST', this.TBL.feedbackForms, { body: { fields } });
+      const mapped = this._mapFeedbackForm(res);
+      this._cache.feedbackForms.push(mapped);
+      const t = this._cache.teachers.find(x => x.id === mapped.teacherId);
+      this.logChange('Feedback Forms', 'create', mapped.id, mapped.title,
+        'New feedback form "' + mapped.title + '" (slug ' + mapped.slug + ')' +
+        (t ? ' for ' + t.name : ''));
+      return mapped;
+    },
+    async updateFeedbackForm(id, fields) {
+      const res = await this.api('PATCH', this.TBL.feedbackForms, { recordId: id, body: { fields } });
+      const mapped = this._mapFeedbackForm(res);
+      this._cache.feedbackForms = this._cache.feedbackForms.map(f => f.id === id ? mapped : f);
+      this.logChange('Feedback Forms', 'update', id, mapped.title,
+        'Updated feedback form: ' + mapped.title);
+      return mapped;
+    },
+    async deleteFeedbackForm(id) {
+      const gone = this._cache.feedbackForms.find(f => f.id === id);
+      await this.api('DELETE', this.TBL.feedbackForms, { recordId: id });
+      this._cache.feedbackForms = this._cache.feedbackForms.filter(f => f.id !== id);
+      if (gone) this.logChange('Feedback Forms', 'delete', id, gone.title,
+        'Deleted feedback form: ' + gone.title);
+    },
+    async createFeedbackResponse(fields) {
+      const res = await this.api('POST', this.TBL.feedbackResponses, { body: { fields } });
+      const mapped = this._mapFeedbackResponse(res);
+      this._cache.feedbackResponses.push(mapped);
+      const formId = mapped.formId;
+      const form = this._cache.feedbackForms.find(f => f.id === formId);
+      this.logChange('Feedback Responses', 'create', mapped.id, mapped.submitterName,
+        'New feedback response from ' + (mapped.submitterName || 'anonymous') +
+        (form ? ' on "' + form.title + '"' : ''));
+      return mapped;
+    },
   };
 
   /* getCache: synchronous read of the in-memory cache. Returns an
@@ -3518,7 +3909,8 @@
   function getCache() {
     return Airtable._cache || {
       abfClasses: [], teachers: [], abfLeaders: [], courses: [],
-      sundays: [], availability: [], requests: []
+      sundays: [], availability: [], requests: [],
+      feedbackTemplates: [], feedbackForms: [], feedbackResponses: []
     };
   }
 
@@ -3630,6 +4022,96 @@
       if (response !== undefined) fields['Teacher Response'] = response || '';
       if (counterSundayIds !== undefined) fields['Counter Sundays'] = counterSundayIds || [];
       return Airtable.updateRequest(id, fields);
+    },
+
+    /* ── Feedback ────────────────────────────────────────────
+       Templates are admin-managed in Airtable; teachers create Forms
+       from a template, and class members submit Responses linked
+       to a Form. */
+    listFeedbackTemplates() {
+      return getCache().feedbackTemplates.filter(t => t.active);
+    },
+    getFeedbackTemplate(id) {
+      return getCache().feedbackTemplates.find(t => t.id === id);
+    },
+    listFeedbackForms() {
+      return getCache().feedbackForms.slice().sort((a, b) =>
+        (b.createdAt || '').localeCompare(a.createdAt || ''));
+    },
+    getFeedbackForm(id) {
+      return getCache().feedbackForms.find(f => f.id === id);
+    },
+    getFeedbackFormBySlug(slug) {
+      const s = String(slug || '').trim();
+      if (!s) return null;
+      return getCache().feedbackForms.find(f => String(f.slug) === s);
+    },
+    listOpenFeedbackForms() {
+      const now = new Date();
+      return this.listFeedbackForms().filter(f => {
+        const opens  = f.opensAt  ? new Date(f.opensAt)  : null;
+        const closes = f.closesAt ? new Date(f.closesAt) : null;
+        if (opens  && opens  > now) return false;
+        if (closes && closes < now) return false;
+        return true;
+      });
+    },
+    listFeedbackFormsByTeacher(teacherId) {
+      return this.listFeedbackForms().filter(f => f.teacherId === teacherId);
+    },
+    listFeedbackResponses(formId) {
+      return getCache().feedbackResponses
+        .filter(r => r.formId === formId)
+        .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    },
+    /* generateUniqueSlug — pick a 5-digit numeric slug not currently
+       used by any cached form. Falls back to 6 digits after 50 tries. */
+    generateUniqueSlug() {
+      const used = new Set(this.listFeedbackForms().map(f => String(f.slug)));
+      for (let i = 0; i < 50; i++) {
+        const s = String(10000 + Math.floor(Math.random() * 90000));
+        if (!used.has(s)) return s;
+      }
+      return String(100000 + Math.floor(Math.random() * 900000));
+    },
+    async createFeedbackForm(form) {
+      // form: { title, teacherId, templateId, abfClassId?, description?, opensAt?, closesAt }
+      const slug = form.slug || this.generateUniqueSlug();
+      const fields = {
+        Title:        form.title || '',
+        Slug:         slug,
+        Description:  form.description || '',
+        'Opens At':   form.opensAt || new Date().toISOString(),
+        'Closes At':  form.closesAt || '',
+        'Created At': new Date().toISOString(),
+      };
+      if (form.teacherId)  fields.Teacher = [form.teacherId];
+      if (form.templateId) fields.Template = [form.templateId];
+      if (form.abfClassId) fields['ABF Class'] = [form.abfClassId];
+      return Airtable.createFeedbackForm(fields);
+    },
+    async updateFeedbackForm(id, patch) {
+      const fields = {};
+      if (patch.title !== undefined)       fields.Title = patch.title;
+      if (patch.description !== undefined) fields.Description = patch.description;
+      if (patch.opensAt !== undefined)     fields['Opens At'] = patch.opensAt;
+      if (patch.closesAt !== undefined)    fields['Closes At'] = patch.closesAt;
+      if (patch.abfClassId !== undefined)  fields['ABF Class'] = patch.abfClassId ? [patch.abfClassId] : [];
+      return Airtable.updateFeedbackForm(id, fields);
+    },
+    async deleteFeedbackForm(id) {
+      return Airtable.deleteFeedbackForm(id);
+    },
+    async submitFeedbackResponse(resp) {
+      // resp: { formId, submitterName, submitterEmail?, answers }
+      const fields = {
+        'Submitter Name':  resp.submitterName || '',
+        'Submitter Email': resp.submitterEmail || '',
+        'Submitted At':    new Date().toISOString(),
+        Answers:           JSON.stringify(resp.answers || {}),
+      };
+      if (resp.formId) fields.Form = [resp.formId];
+      return Airtable.createFeedbackResponse(fields);
     },
   };
 
@@ -5103,8 +5585,534 @@
   }
 
   /* ════════════════════════════════════════════════════════
+     FEEDBACK
+     Two surfaces:
+       1) The portal Feedback tab (signed-in teachers can create surveys
+          and view responses; everyone past oikos sees Open Surveys).
+       2) The public form view at /?f=<slug> — no password, fill it out
+          and submit. (404.html maps /<slug> → /?f=<slug> for short URLs.)
+  ════════════════════════════════════════════════════════════ */
+  function fbStatusOf(form) {
+    const now = new Date();
+    const opens  = form.opensAt  ? new Date(form.opensAt)  : null;
+    const closes = form.closesAt ? new Date(form.closesAt) : null;
+    if (opens  && opens  > now) return 'upcoming';
+    if (closes && closes < now) return 'closed';
+    return 'open';
+  }
+  function fbStatusLabel(s) {
+    return s === 'open' ? 'Open' : s === 'upcoming' ? 'Upcoming' : 'Closed';
+  }
+  function fbFmtDate(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleDateString('en-US',
+        { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return iso; }
+  }
+  function fbPublicUrl(slug) {
+    const origin = window.location.origin;
+    const path   = window.location.pathname.replace(/[^/]*$/, '');
+    return origin + path + '?f=' + slug;
+  }
+  function fbShortUrl(slug) {
+    const host = (window.location.host || 'abfresources.com')
+      .replace(/^www\./, '');
+    return host + '/' + slug;
+  }
+
+  function renderFbOpenList() {
+    const host = document.getElementById('fb-open-list');
+    if (!host) return;
+    const open = DataStore.listOpenFeedbackForms();
+    if (!open.length) {
+      host.innerHTML = '<div class="fb-empty">No open surveys right now. Check back later, or — if you\'re a teacher — create one from the <strong>Create Survey</strong> tab.</div>';
+      return;
+    }
+    host.innerHTML = open.map(f => {
+      const t = DataStore.getTeacher(f.teacherId);
+      const cls = DataStore.getABFClass(f.abfClassId);
+      const status = fbStatusOf(f);
+      return '<div class="fb-card">' +
+        '<div class="fb-card-head">' +
+          '<div>' +
+            '<h3 class="fb-title">' + escapeHtml(f.title) + '</h3>' +
+            '<div class="fb-meta">' +
+              (t   ? 'Teacher: <strong>' + escapeHtml(t.name) + '</strong> · ' : '') +
+              (cls ? 'Class: <strong>'   + escapeHtml(cls.name) + '</strong> · ' : '') +
+              'Closes ' + fbFmtDate(f.closesAt) +
+            '</div>' +
+          '</div>' +
+          '<span class="fb-status ' + status + '">' + fbStatusLabel(status) + '</span>' +
+        '</div>' +
+        (f.description ? '<p class="fb-desc">' + escapeHtml(f.description) + '</p>' : '') +
+        '<div class="fb-actions">' +
+          '<a class="btn btn-primary" href="?f=' + encodeURIComponent(f.slug) + '" target="_blank" rel="noopener">Fill out survey</a>' +
+          '<span class="fb-slug-pill">' + escapeHtml(fbShortUrl(f.slug)) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderFbMineList() {
+    const host = document.getElementById('fb-mine-list');
+    if (!host) return;
+    const t = Identity.asTeacher();
+    const isAdmin = Identity.isAdmin();
+    if (!t && !isAdmin) {
+      host.innerHTML = '<div class="fb-empty">Sign in as a teacher to create and manage surveys.</div>';
+      return;
+    }
+    const forms = isAdmin && !t
+      ? DataStore.listFeedbackForms()
+      : DataStore.listFeedbackFormsByTeacher(t.id);
+    if (!forms.length) {
+      host.innerHTML = '<div class="fb-empty">You haven\'t created any surveys yet. Click <strong>Create Survey</strong> above to get started.</div>';
+      return;
+    }
+    host.innerHTML = forms.map(f => {
+      const status = fbStatusOf(f);
+      const responses = DataStore.listFeedbackResponses(f.id);
+      const cls = DataStore.getABFClass(f.abfClassId);
+      return '<div class="fb-card">' +
+        '<div class="fb-card-head">' +
+          '<div>' +
+            '<h3 class="fb-title">' + escapeHtml(f.title) + '</h3>' +
+            '<div class="fb-meta">' +
+              (cls ? 'Class: <strong>' + escapeHtml(cls.name) + '</strong> · ' : '') +
+              'Opened ' + fbFmtDate(f.opensAt) + ' · ' +
+              'Closes ' + fbFmtDate(f.closesAt) + ' · ' +
+              '<strong>' + responses.length + '</strong> response' + (responses.length === 1 ? '' : 's') +
+            '</div>' +
+          '</div>' +
+          '<span class="fb-status ' + status + '">' + fbStatusLabel(status) + '</span>' +
+        '</div>' +
+        (f.description ? '<p class="fb-desc">' + escapeHtml(f.description) + '</p>' : '') +
+        '<div class="fb-actions">' +
+          '<button class="btn btn-primary" data-fb-view="' + f.id + '">View responses (' + responses.length + ')</button>' +
+          '<button class="btn btn-ghost"   data-fb-share="' + f.id + '">Share link</button>' +
+          '<button class="btn btn-ghost"   data-fb-delete="' + f.id + '">Delete</button>' +
+          '<span class="fb-slug-pill">' + escapeHtml(fbShortUrl(f.slug)) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    // Wire action buttons
+    host.querySelectorAll('[data-fb-view]').forEach(btn => {
+      btn.addEventListener('click', () => openFbResponsesModal(btn.dataset.fbView));
+    });
+    host.querySelectorAll('[data-fb-share]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = DataStore.getFeedbackForm(btn.dataset.fbShare);
+        if (f) openFbShareModal(f);
+      });
+    });
+    host.querySelectorAll('[data-fb-delete]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.fbDelete;
+        const f = DataStore.getFeedbackForm(id);
+        if (!f) return;
+        if (!confirm('Delete the survey "' + f.title + '"? Existing responses are kept in Airtable but the survey will no longer be open. This cannot be undone.')) return;
+        try {
+          await DataStore.deleteFeedbackForm(id);
+          toast('success', 'Survey deleted', '"' + f.title + '" was removed.');
+          renderFbMineList();
+          renderFbOpenList();
+        } catch (err) {
+          console.error('[feedback] delete failed', err);
+          toast('error', 'Could not delete survey', err.message || String(err));
+        }
+      });
+    });
+  }
+
+  function populateFbCreateSelects() {
+    const tplSel = document.getElementById('fb-create-template');
+    const clsSel = document.getElementById('fb-create-class');
+    if (tplSel) {
+      const tpls = DataStore.listFeedbackTemplates();
+      tplSel.innerHTML = tpls.length
+        ? tpls.map(t => '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>').join('')
+        : '<option value="">— No templates available —</option>';
+    }
+    if (clsSel) {
+      const classes = DataStore.listABFClasses();
+      clsSel.innerHTML = '<option value="">— None —</option>' +
+        classes.map(c => '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>').join('');
+      // If signed-in as a teacher, pre-pick their home class.
+      const t = Identity.asTeacher();
+      if (t && t.homeClassId) clsSel.value = t.homeClassId;
+    }
+  }
+
+  function setupFbCreateForm() {
+    const saveBtn = document.getElementById('fb-create-save');
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', async () => {
+      const t = Identity.asTeacher();
+      if (!t && !Identity.isAdmin()) {
+        toast('error', 'Sign in required', 'Sign in as a teacher to create a survey.');
+        return;
+      }
+      const title = (document.getElementById('fb-create-title').value || '').trim();
+      const templateId = document.getElementById('fb-create-template').value;
+      const abfClassId = document.getElementById('fb-create-class').value;
+      const weeks = parseInt(document.getElementById('fb-create-weeks').value, 10) || 4;
+      const desc  = (document.getElementById('fb-create-desc').value || '').trim();
+      if (!title)      { toast('error', 'Missing title', 'Give the survey a title.'); return; }
+      if (!templateId) { toast('error', 'Missing template', 'Choose a template.'); return; }
+
+      const opens  = new Date();
+      const closes = new Date(opens.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+      const status = document.getElementById('fb-create-status');
+      if (status) status.textContent = 'Saving…';
+      saveBtn.disabled = true;
+      try {
+        const created = await DataStore.createFeedbackForm({
+          title,
+          teacherId: t ? t.id : '',
+          templateId,
+          abfClassId: abfClassId || '',
+          description: desc,
+          opensAt: opens.toISOString(),
+          closesAt: closes.toISOString(),
+        });
+        if (status) status.textContent = '';
+        // Reset form
+        document.getElementById('fb-create-title').value = '';
+        document.getElementById('fb-create-desc').value  = '';
+        // Show share modal
+        openFbShareModal(created);
+        // Refresh lists
+        renderFbOpenList();
+        renderFbMineList();
+        showFbSubsection('mine');
+      } catch (err) {
+        console.error('[feedback] create failed', err);
+        if (status) status.textContent = '';
+        toast('error', 'Could not create survey', err.message || String(err));
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+  }
+
+  function showFbSubsection(sub) {
+    document.querySelectorAll('#fb-subnav [data-fb-sub]').forEach(b => {
+      b.classList.toggle('active', b.dataset.fbSub === sub);
+    });
+    document.querySelectorAll('#tab-feedback .sched-pane').forEach(p => {
+      p.classList.remove('active');
+    });
+    const pane = document.getElementById('fb-pane-' + sub);
+    if (pane) pane.classList.add('active');
+    if (sub === 'open')   renderFbOpenList();
+    if (sub === 'mine')   renderFbMineList();
+    if (sub === 'create') populateFbCreateSelects();
+  }
+
+  function setupFbSubnav() {
+    document.querySelectorAll('#fb-subnav [data-fb-sub]').forEach(btn => {
+      btn.addEventListener('click', () => showFbSubsection(btn.dataset.fbSub));
+    });
+  }
+
+  function refreshFbTabAffordances() {
+    const t = Identity.asTeacher();
+    const isAdmin = Identity.isAdmin();
+    const canCreate = !!(t || isAdmin);
+    const tabMine   = document.getElementById('fb-tab-mine');
+    const tabCreate = document.getElementById('fb-tab-create');
+    if (tabMine)   tabMine.style.display   = canCreate ? '' : 'none';
+    if (tabCreate) tabCreate.style.display = canCreate ? '' : 'none';
+  }
+
+  function renderFeedbackTab() {
+    refreshFbTabAffordances();
+    // Default to Open Surveys whenever the tab is opened.
+    showFbSubsection('open');
+  }
+
+  function openFbShareModal(form) {
+    const modal = document.getElementById('fb-share-modal');
+    const closeBtn = document.getElementById('fb-share-close');
+    const shortInput = document.getElementById('fb-share-short');
+    const fullInput  = document.getElementById('fb-share-full');
+    const copyBtn    = document.getElementById('fb-share-copy');
+    const openBtn    = document.getElementById('fb-share-open');
+    if (!modal) return;
+    if (shortInput) shortInput.value = fbShortUrl(form.slug);
+    if (fullInput)  fullInput.value  = fbPublicUrl(form.slug);
+    modal.classList.add('visible');
+
+    const close = () => modal.classList.remove('visible');
+    closeBtn.onclick = close;
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(fbShortUrl(form.slug));
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy short link'; }, 1500);
+      } catch {
+        if (shortInput) { shortInput.select(); document.execCommand('copy'); }
+      }
+    };
+    openBtn.onclick = () => window.open(fbPublicUrl(form.slug), '_blank');
+  }
+
+  function openFbResponsesModal(formId) {
+    const form = DataStore.getFeedbackForm(formId);
+    if (!form) return;
+    const tpl = DataStore.getFeedbackTemplate(form.templateId);
+    const modal = document.getElementById('fb-responses-modal');
+    const titleEl = document.getElementById('fb-responses-title');
+    const subEl   = document.getElementById('fb-responses-sub');
+    const list    = document.getElementById('fb-responses-list');
+    const closeBtn = document.getElementById('fb-responses-close');
+    if (!modal) return;
+    titleEl.textContent = form.title + ' — Responses';
+    const responses = DataStore.listFeedbackResponses(formId);
+    subEl.textContent  = responses.length + ' response' + (responses.length === 1 ? '' : 's') +
+      ' · ' + (tpl ? tpl.name : 'Unknown template');
+    if (!responses.length) {
+      list.innerHTML = '<div class="fb-empty">No responses yet.</div>';
+    } else {
+      const qById = {};
+      const qOrder = [];
+      if (tpl && Array.isArray(tpl.questions)) {
+        tpl.questions.forEach(q => { qById[q.id] = q; qOrder.push(q.id); });
+      }
+      list.innerHTML = responses.map(r => {
+        const ans = r.answers || {};
+        const ids = qOrder.length ? qOrder : Object.keys(ans);
+        return '<div class="fb-response-card">' +
+          '<div class="fb-r-head">' +
+            '<span class="fb-r-name">' + escapeHtml(r.submitterName || 'Anonymous') + '</span>' +
+            '<span class="fb-r-when">' + fbFmtDate(r.submittedAt) + '</span>' +
+          '</div>' +
+          (r.submitterEmail ? '<div class="fb-r-when">' + escapeHtml(r.submitterEmail) + '</div>' : '') +
+          ids.map(qid => {
+            const q = qById[qid] || { label: qid, type: 'text' };
+            const v = ans[qid];
+            if (v === undefined || v === null || v === '') return '';
+            return '<div class="fb-r-q">' + escapeHtml(q.label) + '</div>' +
+                   '<div class="fb-r-a">' + escapeHtml(String(v)) + '</div>';
+          }).join('') +
+        '</div>';
+      }).join('');
+    }
+    modal.classList.add('visible');
+    closeBtn.onclick = () => modal.classList.remove('visible');
+  }
+
+  /* ── PUBLIC FEEDBACK FORM VIEW ──────────────────────────
+     Self-contained: doesn't depend on the portal having loaded
+     anything beyond the Airtable cache. Renders the form, handles
+     submission, and shows a thank-you message. */
+  function pfShowError(msg) {
+    const host = document.getElementById('public-feedback-content');
+    if (!host) return;
+    host.innerHTML =
+      '<div class="pf-card"><h1>Survey unavailable</h1>' +
+      '<p class="pf-sub">' + escapeHtml(msg) + '</p>' +
+      '<p class="pf-sub" style="margin-top:1rem;">Reach out to your ABF leader or the teacher who shared this link with you.</p>' +
+      '</div>';
+  }
+
+  function pfRenderQuestion(q) {
+    const required = q.required ? '<span class="pf-q-required">*</span>' : '';
+    const help = q.help ? '<span class="pf-q-help">' + escapeHtml(q.help) + '</span>' : '';
+    const label = '<label class="pf-q-label" for="pf-q-' + q.id + '">' + escapeHtml(q.label) + required + '</label>' + help;
+    if (q.type === 'date') {
+      return label +
+        '<input type="date" id="pf-q-' + q.id + '" data-qid="' + q.id + '" data-qtype="date" class="pf-input" ' +
+        (q.required ? 'required' : '') + ' />';
+    }
+    if (q.type === 'rating') {
+      const min = q.min || 1, max = q.max || 5;
+      const minLabel = q.minLabel || ('' + min);
+      const maxLabel = q.maxLabel || ('' + max);
+      let buttons = '';
+      for (let i = min; i <= max; i++) {
+        buttons += '<button type="button" class="pf-rating-btn" data-rating="' + i + '">' + i + '</button>';
+      }
+      return label +
+        '<div class="pf-rating-row" data-qid="' + q.id + '" data-qtype="rating">' + buttons + '</div>' +
+        '<div class="pf-rating-scale"><span>' + escapeHtml(minLabel) + '</span><span>' + escapeHtml(maxLabel) + '</span></div>' +
+        '<input type="hidden" data-rating-value="' + q.id + '" ' + (q.required ? 'required' : '') + ' />';
+    }
+    if (q.type === 'choice' || q.type === 'single_choice') {
+      const opts = (q.options || []).map((opt, i) =>
+        '<label class="pf-choice"><input type="radio" name="pf-q-' + q.id + '" value="' + escapeHtml(opt) + '" ' +
+        (q.required ? 'required' : '') + ' />' +
+        '<span>' + escapeHtml(opt) + '</span></label>'
+      ).join('');
+      return label +
+        '<div class="pf-choice-row" data-qid="' + q.id + '" data-qtype="choice">' + opts + '</div>';
+    }
+    if (q.type === 'long_text' || q.type === 'textarea') {
+      return label +
+        '<textarea id="pf-q-' + q.id + '" data-qid="' + q.id + '" data-qtype="long_text" class="pf-textarea" ' +
+        (q.required ? 'required' : '') + '></textarea>';
+    }
+    // default: short text
+    return label +
+      '<input type="text" id="pf-q-' + q.id + '" data-qid="' + q.id + '" data-qtype="text" class="pf-input" ' +
+      (q.required ? 'required' : '') + ' />';
+  }
+
+  function pfWireRatingButtons(host) {
+    host.querySelectorAll('[data-qtype="rating"]').forEach(group => {
+      const qid = group.getAttribute('data-qid');
+      const hidden = host.querySelector('[data-rating-value="' + qid + '"]');
+      group.querySelectorAll('.pf-rating-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.querySelectorAll('.pf-rating-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          if (hidden) hidden.value = btn.dataset.rating;
+        });
+      });
+    });
+    // Wire choice radio styling
+    host.querySelectorAll('[data-qtype="choice"]').forEach(group => {
+      group.querySelectorAll('.pf-choice').forEach(label => {
+        const input = label.querySelector('input');
+        if (!input) return;
+        input.addEventListener('change', () => {
+          group.querySelectorAll('.pf-choice').forEach(l => l.classList.remove('selected'));
+          if (input.checked) label.classList.add('selected');
+        });
+      });
+    });
+  }
+
+  function pfCollectAnswers(host, questions) {
+    const answers = {};
+    let firstMissing = null;
+    for (const q of questions) {
+      let value = '';
+      if (q.type === 'rating') {
+        const hidden = host.querySelector('[data-rating-value="' + q.id + '"]');
+        value = hidden ? hidden.value : '';
+      } else if (q.type === 'choice' || q.type === 'single_choice') {
+        const checked = host.querySelector('input[name="pf-q-' + q.id + '"]:checked');
+        value = checked ? checked.value : '';
+      } else {
+        const el = host.querySelector('[data-qid="' + q.id + '"]');
+        if (el) value = (el.value || '').trim();
+      }
+      if (q.required && !value) {
+        if (!firstMissing) firstMissing = q;
+      }
+      if (value !== '') answers[q.id] = value;
+    }
+    return { answers, firstMissing };
+  }
+
+  async function renderPublicFeedback() {
+    const host = document.getElementById('public-feedback-content');
+    if (!host) return;
+    host.innerHTML = '<div class="pf-card"><p class="pf-sub">Loading survey…</p></div>';
+    try {
+      await Airtable.ensureLoaded();
+    } catch (err) {
+      console.error('[public-feedback] bootstrap failed', err);
+      pfShowError('Could not load the survey. Please check your internet connection and try again.');
+      return;
+    }
+
+    const form = DataStore.getFeedbackFormBySlug(PUBLIC_FEEDBACK_SLUG);
+    if (!form) {
+      pfShowError('We couldn\'t find a survey with that link. The survey may have been removed, or the link may be wrong.');
+      return;
+    }
+    const status = fbStatusOf(form);
+    if (status === 'upcoming') {
+      pfShowError('This survey isn\'t open yet — it opens on ' + fbFmtDate(form.opensAt) + '.');
+      return;
+    }
+    if (status === 'closed') {
+      pfShowError('This survey closed on ' + fbFmtDate(form.closesAt) + '. Thank you for your interest!');
+      return;
+    }
+    const tpl = DataStore.getFeedbackTemplate(form.templateId);
+    if (!tpl || !Array.isArray(tpl.questions) || !tpl.questions.length) {
+      pfShowError('This survey doesn\'t have any questions configured. Please let your teacher know.');
+      return;
+    }
+    const teacher = DataStore.getTeacher(form.teacherId);
+    const cls     = DataStore.getABFClass(form.abfClassId);
+
+    const html =
+      '<h1>' + escapeHtml(form.title) + '</h1>' +
+      '<p class="pf-sub">' +
+        (teacher ? 'Feedback for <strong>' + escapeHtml(teacher.name) + '</strong>' : '') +
+        (cls ? ' · ' + escapeHtml(cls.name) : '') +
+        ' · Closes ' + fbFmtDate(form.closesAt) +
+      '</p>' +
+      (form.description ? '<p class="pf-sub">' + escapeHtml(form.description) + '</p>' : '') +
+      '<form id="pf-form" class="pf-card" autocomplete="off">' +
+        '<div class="pf-question">' +
+          '<label class="pf-q-label" for="pf-name">Your name<span class="pf-q-required">*</span></label>' +
+          '<input type="text" id="pf-name" class="pf-input" required placeholder="First and last name" />' +
+        '</div>' +
+        '<div class="pf-question">' +
+          '<label class="pf-q-label" for="pf-email">Your email <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>' +
+          '<input type="email" id="pf-email" class="pf-input" placeholder="So your teacher can follow up if helpful" />' +
+        '</div>' +
+        tpl.questions.map(q => '<div class="pf-question">' + pfRenderQuestion(q) + '</div>').join('') +
+        '<div class="pf-submit-row">' +
+          '<button type="submit" class="pf-submit-btn" id="pf-submit">Submit feedback</button>' +
+          '<span class="pf-status" id="pf-status"></span>' +
+        '</div>' +
+      '</form>';
+    host.innerHTML = html;
+    pfWireRatingButtons(host);
+
+    document.getElementById('pf-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('pf-submit');
+      const statusEl  = document.getElementById('pf-status');
+      const name  = (document.getElementById('pf-name').value  || '').trim();
+      const email = (document.getElementById('pf-email').value || '').trim();
+      if (!name) { statusEl.innerHTML = '<span class="pf-error">Please enter your name.</span>'; return; }
+      const { answers, firstMissing } = pfCollectAnswers(host, tpl.questions);
+      if (firstMissing) {
+        statusEl.innerHTML = '<span class="pf-error">Please answer: "' + escapeHtml(firstMissing.label) + '"</span>';
+        return;
+      }
+      submitBtn.disabled = true;
+      statusEl.textContent = 'Submitting…';
+      try {
+        await DataStore.submitFeedbackResponse({
+          formId: form.id,
+          submitterName:  name,
+          submitterEmail: email,
+          answers,
+        });
+        host.innerHTML =
+          '<div class="pf-thanks">' +
+            '<div class="pf-thanks-icon">🙏</div>' +
+            '<h1>Thank you!</h1>' +
+            '<p class="pf-sub">Your feedback was submitted. ' +
+              (teacher ? escapeHtml(teacher.name) : 'The teacher') +
+              ' will see it as soon as they check the survey.</p>' +
+          '</div>';
+      } catch (err) {
+        console.error('[public-feedback] submit failed', err);
+        statusEl.innerHTML = '<span class="pf-error">Could not submit. Please try again.</span>';
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════
      BOOTSTRAP
   ════════════════════════════════════════════════════════════ */
+  // Public feedback mode: skip the rest of the portal bootstrap and
+  // go straight to rendering the form once the cache is warm.
+  if (IS_PUBLIC_FEEDBACK_MODE) {
+    renderPublicFeedback();
+  } else {
   // Kick off the Airtable load eagerly so the Scheduling tab feels fast.
   // We don't await — renderScheduling() will await ensureLoaded() before it reads.
   Airtable.ensureLoaded().catch(err => {
@@ -5117,6 +6125,8 @@
   setupProfileForm();
   setupRegisterForm();
   setupProfileViewModal();
+  setupFbSubnav();
+  setupFbCreateForm();
   // Make the badge reflect the current sessionStorage state on load.
   updateIdentityBadge();
 
@@ -5133,7 +6143,7 @@
     btn.addEventListener('click', () => showLefcuSection(btn.dataset.lefcuSub));
   });
 
-  // Re-render scheduling/teacher tabs whenever they're shown.
+  // Re-render scheduling/teacher/feedback tabs whenever they're shown.
   // Also redirect legacy 'articles' / 'training' tab IDs into the merged LEFCU tab.
   const origShowTab = window.showTab;
   window.showTab = function(id) {
@@ -5150,11 +6160,13 @@
     origShowTab(id);
     if (id === 'scheduling') renderScheduling();
     if (id === 'teachers')   renderTeachersRoster();
+    if (id === 'feedback')   renderFeedbackTab();
   };
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.tab === 'scheduling') renderScheduling();
       if (btn.dataset.tab === 'teachers')   renderTeachersRoster();
+      if (btn.dataset.tab === 'feedback')   renderFeedbackTab();
     });
   });
 
@@ -5185,7 +6197,15 @@
   const origLogout = logoutBtn.onclick;
   logoutBtn.addEventListener('click', () => {
     Identity.clear();
+    refreshFbTabAffordances();
   });
+
+  // Initial refresh: the Feedback tab's "Create Survey" / "My Surveys"
+  // buttons should be visible only when signed in. They get refreshed
+  // again every time the tab is opened (renderFeedbackTab).
+  refreshFbTabAffordances();
+
+  } // end else (non-public-feedback portal bootstrap)
 </script>
 
 </body>

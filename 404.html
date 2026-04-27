@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LEFC ABF Resources — Redirecting…</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: #f4ede2; color: #342D25;
+      height: 100%;
+    }
+    .wrap {
+      min-height: 100%; display: flex;
+      align-items: center; justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+    .card {
+      max-width: 480px; text-align: center;
+      background: #fff; border-radius: 14px;
+      padding: 2.2rem 1.8rem;
+      box-shadow: 0 2px 8px rgba(50,40,30,.06);
+      border: 1px solid #e6dccb;
+    }
+    h1 { font-size: 1.4rem; font-weight: 800; margin: 0 0 .5rem; color: #342D25; }
+    p  { font-size: .9rem; color: #6b6258; margin: .25rem 0; line-height: 1.55; }
+    a  { color: #b35e3a; font-weight: 700; text-decoration: none; border-bottom: 1px dotted currentColor; }
+    .spinner {
+      display: inline-block; width: 36px; height: 36px;
+      border: 3px solid #e6dccb; border-top-color: #BCA944;
+      border-radius: 50%; animation: spin .9s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+  <script>
+    // GitHub Pages serves 404.html when the user requests a path that
+    // doesn't exist as a file. We use that to support short URLs like
+    // /12345 — if the path is a 4–7 digit number, redirect to the
+    // index.html with ?f=<slug>, which boots the public feedback view.
+    (function () {
+      try {
+        var path = (location.pathname || '').replace(/^\/+|\/+$/g, '');
+        // If GitHub Pages site is hosted under a subpath, strip it.
+        var parts = path.split('/');
+        var slug = parts[parts.length - 1] || '';
+        if (/^\d{4,7}$/.test(slug)) {
+          var origin = location.origin;
+          var basePath = location.pathname.replace(/[^/]*$/, '');
+          // basePath now ends with the directory of the slug — strip back to root.
+          // For /12345 → basePath = "/" → target = origin + "/?f=12345"
+          // For /repo/12345 → basePath = "/repo/" → target = origin + "/repo/?f=12345"
+          location.replace(origin + basePath + '?f=' + encodeURIComponent(slug));
+          return;
+        }
+      } catch (e) { /* fall through to the human-readable 404 below */ }
+    })();
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="spinner"></div>
+      <h1>Redirecting…</h1>
+      <p>If you're not redirected automatically, head back to <a href="/">abfresources.com</a>.</p>
+      <p style="margin-top:1rem;font-size:.78rem;">Lancaster Evangelical Free Church · ABF Leader Resources</p>
+    </div>
+  </div>
+</body>
+</html>
