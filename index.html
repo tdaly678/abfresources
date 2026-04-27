@@ -2440,11 +2440,14 @@
               <p class="form-help">Select any that apply. Leaders can filter by these when planning.</p>
             </div>
             <div class="form-row">
-              <label class="form-label">Have you taught before?</label>
-              <label class="form-toggle" id="prof-taught-toggle">
-                <input type="checkbox" id="prof-taught" />
-                <span>Yes, I've taught before</span>
-              </label>
+              <label class="form-label" for="prof-series-count">How many series have you taught?</label>
+              <select id="prof-series-count" class="form-input">
+                <option value="">— Select —</option>
+                <option value="0">0</option>
+                <option value="1-3">1-3</option>
+                <option value="4-9">4-9</option>
+                <option value="10+">10+</option>
+              </select>
             </div>
             <div class="form-row">
               <label class="form-label">In what venues have you taught in the past?</label>
@@ -3109,11 +3112,14 @@
         <div class="chip-list" id="reg-contexts"></div>
       </div>
       <div class="form-row">
-        <label class="form-label">Have you taught before?</label>
-        <label class="form-toggle" id="reg-taught-toggle">
-          <input type="checkbox" id="reg-taught" />
-          <span>Yes, I've taught before</span>
-        </label>
+        <label class="form-label" for="reg-series-count">How many series have you taught?</label>
+        <select id="reg-series-count" class="form-input">
+          <option value="">— Select —</option>
+          <option value="0">0</option>
+          <option value="1-3">1-3</option>
+          <option value="4-9">4-9</option>
+          <option value="10+">10+</option>
+        </select>
       </div>
       <div class="form-row">
         <label class="form-label">In what venues have you taught in the past?</label>
@@ -3653,6 +3659,7 @@
         lefcMember: !!f['LEFC Member'],
         teachingContexts: f['Teaching Contexts'] || [],
         hasTaughtBefore: !!f['Has Taught Before'],
+        seriesTaughtCount: f['Series Taught Count'] || '',
         pastVenues: f['Past Venues'] || [],
         otherVenueNotes: f['Other Venue Notes'] || '',
         training: f.Training || '',
@@ -3943,6 +3950,7 @@
         'LEFC Member':            !!teacher.lefcMember,
         'Teaching Contexts':      teacher.teachingContexts || [],
         'Has Taught Before':      !!teacher.hasTaughtBefore,
+        'Series Taught Count':    teacher.seriesTaughtCount || null,
         'Past Venues':            teacher.pastVenues || [],
         'Other Venue Notes':      teacher.otherVenueNotes || '',
         Training:                 teacher.training || '',
@@ -4961,9 +4969,13 @@
     const member = document.getElementById('prof-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('prof-member-toggle'));
-    const taught = document.getElementById('prof-taught');
-    taught.checked = !!t.hasTaughtBefore;
-    syncToggleVisual(document.getElementById('prof-taught-toggle'));
+    // Series Taught Count: prefer the new field, but fall back to the legacy
+    // hasTaughtBefore boolean for teachers who haven't been edited since the
+    // field was added (true → '1-3' as a non-judgmental default; false → '0').
+    const profSeries = document.getElementById('prof-series-count');
+    if (profSeries) {
+      profSeries.value = t.seriesTaughtCount || (t.hasTaughtBefore ? '1-3' : (t.hasTaughtBefore === false ? '0' : ''));
+    }
     renderChipList(document.getElementById('prof-contexts'), 'prof-ctx', t.teachingContexts);
     renderChipList(document.getElementById('prof-venues'),   'prof-ven', t.pastVenues);
     const profOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
@@ -4977,7 +4989,7 @@
 
   function setupProfileForm() {
     // Wire toggle visuals
-    ['prof-member-toggle', 'prof-taught-toggle'].forEach(id => {
+    ['prof-member-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
@@ -5003,7 +5015,8 @@
         yearStartedAttending: parseInt(document.getElementById('prof-year').value, 10) || null,
         lefcMember:      !!document.getElementById('prof-member').checked,
         teachingContexts: readChipList(document.getElementById('prof-contexts'), 'prof-ctx'),
-        hasTaughtBefore: !!document.getElementById('prof-taught').checked,
+        seriesTaughtCount: document.getElementById('prof-series-count').value || '',
+        hasTaughtBefore: document.getElementById('prof-series-count').value !== '0' && !!document.getElementById('prof-series-count').value,
         pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
         otherVenueNotes: joinChipsAndExtras(
           readChipList(document.getElementById('prof-other-venues'), 'prof-ov'),
@@ -5069,9 +5082,10 @@
     const member = document.getElementById('reg-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('reg-member-toggle'));
-    const taught = document.getElementById('reg-taught');
-    taught.checked = !!t.hasTaughtBefore;
-    syncToggleVisual(document.getElementById('reg-taught-toggle'));
+    const regSeries = document.getElementById('reg-series-count');
+    if (regSeries) {
+      regSeries.value = t.seriesTaughtCount || (t.hasTaughtBefore === true ? '1-3' : (t.hasTaughtBefore === false ? '0' : ''));
+    }
     renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', t.teachingContexts || []);
     renderChipList(document.getElementById('reg-venues'),   'reg-ven', t.pastVenues || []);
     const regOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
@@ -5094,7 +5108,7 @@
 
   function setupRegisterForm() {
     // Toggle visuals
-    ['reg-member-toggle', 'reg-taught-toggle'].forEach(id => {
+    ['reg-member-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
@@ -5129,7 +5143,8 @@
         yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
         lefcMember:      !!document.getElementById('reg-member').checked,
         teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
-        hasTaughtBefore: !!document.getElementById('reg-taught').checked,
+        seriesTaughtCount: document.getElementById('reg-series-count').value || '',
+        hasTaughtBefore: document.getElementById('reg-series-count').value !== '0' && !!document.getElementById('reg-series-count').value,
         pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
         otherVenueNotes: joinChipsAndExtras(
           readChipList(document.getElementById('reg-other-venues'), 'reg-ov'),
@@ -5370,7 +5385,9 @@
   function renderProfileCardHTML(t, cls) {
     const memberLabel = t.lefcMember ? 'Yes' : '—';
     const yearLabel   = t.yearStartedAttending ? String(t.yearStartedAttending) : '—';
-    const taughtLabel = t.hasTaughtBefore ? 'Yes' : 'No';
+    const seriesLabel = t.seriesTaughtCount
+      ? t.seriesTaughtCount + (t.seriesTaughtCount === '0' ? ' series' : ' series')
+      : (t.hasTaughtBefore ? 'Some' : '—');
     const homeClass   = cls ? cls.name : '—';
     const tagsList = (arr) => (arr && arr.length)
       ? '<div class="profile-tags">' + arr.map(v => '<span class="profile-tag">' + escapeHtml(v) + '</span>').join('') + '</div>'
@@ -5383,7 +5400,7 @@
       '  <div><dt>LEFC Member</dt><dd>' + memberLabel + '</dd></div>',
       '  <div><dt>Attending Since</dt><dd>' + yearLabel + '</dd></div>',
       '  <div><dt>Home Class</dt><dd>' + escapeHtml(homeClass) + '</dd></div>',
-      '  <div><dt>Has Taught Before</dt><dd>' + taughtLabel + '</dd></div>',
+      '  <div><dt>Series Taught</dt><dd>' + escapeHtml(seriesLabel) + '</dd></div>',
       '</dl>',
       t.bio ? '<div class="profile-section"><h4>Bio</h4><p>' + escapeHtml(t.bio) + '</p></div>' : '',
       '<div class="profile-section"><h4>Wants to teach in</h4>' + tagsList(t.teachingContexts) + '</div>',
