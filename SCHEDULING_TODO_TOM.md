@@ -2,6 +2,21 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## What changed on 2026-04-27 (heads-up before you log in)
+
+A handful of profile-related changes shipped together — the profile/registration form and teacher cards will look a little different from what you may remember:
+
+- **"Get to know me" tagline.** A new 140-character open-ended field on every teacher profile, shown as an italicized pull-quote above the bio. Encourage teachers to write something fun (hobbies, family, where they're from).
+- **Statement of Faith affirmation.** A new checkbox on the profile that says: *"I have read and affirm LEFC's Statement of Faith and Matters of Faith and Practice and will teach in alignment with both."* The box links out to lancasterefree.com/about/what-we-believe. Date is auto-stamped the first time it's checked. The profile card meta shows "Affirmed on YYYY-MM-DD".
+- **Weeks taught (replaces "Have you taught before?").** Buckets are `0`, `1-9`, `10-24`, `25+` weeks (with an "approximately" caveat in the help text). Stage is now auto-derived from this — you no longer pick the stage manually. `0` and `1-9` → Up & Comer; `10-24` → Active; `25+` → Veteran. The display collapses "Up & Comer Yr 1" / "Up & Comer Yr 2-3" to a single "Up & Comer" badge — the year flavor is preserved underneath if it was already set.
+- **Past venues + relevant training are now chip lists.** Common options pre-populated (Churches, Schools, Conferences, Workshops, Retreats, Camps, etc. for venues; Seminary, Bible college, Local-church courses, etc. for training). Multi-select. There's still a free-text box for "anything else" notes.
+- **"In what contexts do you intend to teach?" is gone.** The field still lives in the Airtable schema so legacy data is preserved, but the question was removed from the form.
+- **Header polish.** The "LEFC Adults" badge in the header was removed (it was redundant with the LEFC ABF Resources logotype). The identity button is now a big terra-red **"Teacher & Leader Sign In"** call-to-action when nobody's signed in, so leaders and teachers can find the entry point at a glance.
+
+**Schema-level note for you:** the old `Series Taught Count` field was renamed to `_DEPRECATED Series Count` because the Airtable Metadata API doesn't allow editing singleSelect options or deleting fields. You can hide or delete it manually in the Airtable UI when you feel like it. The new live field is `Weeks Taught`. The `Teaching Contexts` field is also no longer being written to (still readable for legacy values).
+
+
+
 ## 0. Per-person sign-in is now live — populate phone numbers and change the admin PIN
 
 The portal now defaults to **read-only browsing** for everyone past the password gate. To **edit** a teacher's profile/availability/courses, the user has to sign in as that teacher; to **send or respond to teaching requests as a leader**, they sign in as that leader. Sign-in uses the **last 4 digits of the phone number** stored in Airtable.
@@ -22,7 +37,7 @@ Until a person's phone is on file they can still browse but they can't sign in. 
   4. Takes effect on next page load.
 - To **disable** admin override entirely, blank out the **Value** cell (the "Sign in as admin →" link will then say "Admin override is not configured").
 
-**To use admin override:** click the badge in the header (says "Browsing — Sign in") → click **"Sign in as admin →"** at the bottom → enter the PIN. The badge turns red ("Admin Override Active"). While admin is active you can pick any teacher or leader from the role pickers without needing their phone number; the badge stays red until you sign out.
+**To use admin override:** click the big red **"Teacher & Leader Sign In"** button in the header → click **"Sign in as admin →"** at the bottom of the picker → enter the PIN. The badge stays red and shows "Admin Override Active". While admin is active you can pick any teacher or leader from the role pickers without needing their phone number; the badge stays red until you sign out.
 
 **Heads up — security caveat.** Last-4-of-phone is a low-friction barrier, not a real auth system. Anyone who can read a teacher's phone number (printed church directories, public bulletins, Realm/Rock if those are visible to attendees) can sign in as them. The same shared site password ("oikos") is still the main perimeter. The Change Log audit trail (section 6 below) tells you who edited what after the fact, so a bad actor can be traced and rolled back.
 
