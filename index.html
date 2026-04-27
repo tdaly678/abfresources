@@ -2462,8 +2462,20 @@
               <input type="text" id="prof-training-extra" class="form-input" placeholder="Add any training not listed above…" />
             </div>
             <div class="form-row">
+              <label class="form-label" for="prof-tagline">Get to know me <span style="font-weight:400;color:var(--text-muted);">(140 characters)</span></label>
+              <input type="text" id="prof-tagline" class="form-input" maxlength="140" placeholder="A short, fun line about you — hobbies, family, where you're from, etc." />
+              <p class="form-help"><span id="prof-tagline-count">0</span>/140</p>
+            </div>
+            <div class="form-row">
               <label class="form-label" for="prof-bio">Short bio (optional)</label>
               <textarea id="prof-bio" class="form-textarea" placeholder="A sentence or two leaders will see when they're choosing teachers."></textarea>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Doctrinal alignment</label>
+              <label class="form-toggle" id="prof-sof-toggle">
+                <input type="checkbox" id="prof-sof" />
+                <span>I have read and affirm LEFC's <a href="https://lancasterefree.com/about/what-we-believe/" target="_blank" rel="noopener" style="color:var(--steel-blue);text-decoration:underline;">Statement of Faith</a> and Matters of Faith &amp; Practice, and will teach in alignment with both.</span>
+              </label>
             </div>
             <div style="display:flex;gap:.5rem;align-items:center;">
               <button type="button" class="btn btn-primary" id="profile-form-save">Save profile</button>
@@ -3119,6 +3131,18 @@
         <label class="form-label" for="reg-training-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
         <input type="text" id="reg-training-extra" class="form-input" placeholder="Add any training not listed above…" />
       </div>
+      <div class="form-row">
+        <label class="form-label" for="reg-tagline">Get to know me <span style="font-weight:400;color:var(--text-muted);">(140 characters)</span></label>
+        <input type="text" id="reg-tagline" class="form-input" maxlength="140" placeholder="A short, fun line about you — hobbies, family, where you're from, etc." />
+        <p class="form-help"><span id="reg-tagline-count">0</span>/140</p>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Doctrinal alignment</label>
+        <label class="form-toggle" id="reg-sof-toggle">
+          <input type="checkbox" id="reg-sof" />
+          <span>I have read and affirm LEFC's <a href="https://lancasterefree.com/about/what-we-believe/" target="_blank" rel="noopener" style="color:var(--steel-blue);text-decoration:underline;">Statement of Faith</a> and Matters of Faith &amp; Practice, and will teach in alignment with both.</span>
+        </label>
+      </div>
       <div style="display:flex;gap:.5rem;align-items:center;">
         <button type="button" class="btn btn-primary" id="register-save">Save and continue</button>
         <span id="register-status" style="font-size:.78rem;color:var(--text-muted);"></span>
@@ -3636,12 +3660,15 @@
         initials: f.Initials || '',
         avatarColor: f['Avatar Color'] || 'olive',
         bio: f.Bio || '',
+        tagline: f.Tagline || '',
         active: !!f.Active,
         yearStartedAttending: f['Year Started Attending'] || null,
         lefcMember: !!f['LEFC Member'],
         teachingContexts: f['Teaching Contexts'] || [],
         hasTaughtBefore: !!f['Has Taught Before'],
         weeksTaught: f['Weeks Taught'] || '',
+        affirmsSof: !!f['Affirms SoF & MFP'],
+        sofAffirmedDate: f['SoF Affirmed Date'] || '',
         pastVenues: f['Past Venues'] || [],
         otherVenueNotes: f['Other Venue Notes'] || '',
         training: f.Training || '',
@@ -3928,6 +3955,7 @@
         Email:   teacher.email || '',
         Phone:   teacher.phone || '',
         Bio:     teacher.bio || '',
+        Tagline: (teacher.tagline || '').slice(0, 140),
         'Year Started Attending': teacher.yearStartedAttending || null,
         'LEFC Member':            !!teacher.lefcMember,
         'Has Taught Before':      !!teacher.hasTaughtBefore,
@@ -3935,7 +3963,19 @@
         'Past Venues':            teacher.pastVenues || [],
         'Other Venue Notes':      teacher.otherVenueNotes || '',
         Training:                 teacher.training || '',
+        'Affirms SoF & MFP':      !!teacher.affirmsSof,
       };
+      // Stamp affirmation date when first checked or re-checked.
+      if (teacher.affirmsSof) {
+        // Only set/refresh if the caller explicitly passed a date OR the box was just checked.
+        // We use the caller-supplied value if present; otherwise we leave whatever Airtable has.
+        if (teacher.sofAffirmedDate) {
+          fields['SoF Affirmed Date'] = teacher.sofAffirmedDate;
+        }
+      } else {
+        // Unchecked → clear the date so the record reflects current consent state.
+        fields['SoF Affirmed Date'] = null;
+      }
       if (teacher.status) fields.Status = teacher.status;
       if (teacher.homeClassId) fields['Home Class'] = [teacher.homeClassId];
       if (teacher.id) {
@@ -4982,6 +5022,16 @@
     document.getElementById('prof-phone').value = t.phone || '';
     document.getElementById('prof-year').value  = t.yearStartedAttending || '';
     document.getElementById('prof-bio').value      = t.bio || '';
+    const profTag = document.getElementById('prof-tagline');
+    if (profTag) {
+      profTag.value = t.tagline || '';
+      const counter = document.getElementById('prof-tagline-count');
+      if (counter) counter.textContent = String(profTag.value.length);
+    }
+    const profSof = document.getElementById('prof-sof');
+    if (profSof) profSof.checked = !!t.affirmsSof;
+    const profSofToggle = document.getElementById('prof-sof-toggle');
+    if (profSofToggle) syncToggleVisual(profSofToggle);
     const member = document.getElementById('prof-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('prof-member-toggle'));
@@ -5004,11 +5054,19 @@
 
   function setupProfileForm() {
     // Wire toggle visuals
-    ['prof-member-toggle'].forEach(id => {
+    ['prof-member-toggle', 'prof-sof-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
     });
+    // Tagline live character counter
+    const profTagInp = document.getElementById('prof-tagline');
+    const profTagCnt = document.getElementById('prof-tagline-count');
+    if (profTagInp && profTagCnt) {
+      profTagInp.addEventListener('input', () => {
+        profTagCnt.textContent = String(profTagInp.value.length);
+      });
+    }
 
     document.getElementById('profile-form-save').addEventListener('click', async () => {
       const t = Identity.asTeacher();
@@ -5041,7 +5099,17 @@
           document.getElementById('prof-training-extra').value
         ),
         bio:             document.getElementById('prof-bio').value.trim(),
+        tagline:         (document.getElementById('prof-tagline').value || '').trim().slice(0, 140),
+        affirmsSof:      !!document.getElementById('prof-sof').checked,
       };
+      // Stamp affirmation date on the day the teacher checks the box.
+      // If they were already affirmed in Airtable, keep the original date by
+      // omitting it; if newly checked OR the date was previously cleared, set today.
+      if (fields.affirmsSof && !t.sofAffirmedDate) {
+        fields.sofAffirmedDate = new Date().toISOString().slice(0, 10);
+      } else if (fields.affirmsSof) {
+        fields.sofAffirmedDate = t.sofAffirmedDate;
+      }
       // Auto-derive Stage from the Weeks-Taught bucket. We keep the existing
       // Up & Comer Yr 1/Yr 2-3 flavor if it was already set.
       fields.status = deriveStageWithRetention(t.status, fields.weeksTaught);
@@ -5110,6 +5178,17 @@
     const regTr = parseChipsAndExtras(t.training, TRAINING_OPTIONS);
     renderChipList(document.getElementById('reg-training'), 'reg-tr', regTr.chips, TRAINING_OPTIONS);
     document.getElementById('reg-training-extra').value = regTr.extras;
+    // Tagline + SoF affirmation
+    const regTag = document.getElementById('reg-tagline');
+    if (regTag) {
+      regTag.value = t.tagline || '';
+      const cnt = document.getElementById('reg-tagline-count');
+      if (cnt) cnt.textContent = String(regTag.value.length);
+    }
+    const regSof = document.getElementById('reg-sof');
+    if (regSof) regSof.checked = !!t.affirmsSof;
+    const regSofToggle = document.getElementById('reg-sof-toggle');
+    if (regSofToggle) syncToggleVisual(regSofToggle);
     // Home class (Stage is now auto-derived from Weeks Taught — no UI control)
     fillHomeClassSelect('reg-home-class', t.homeClassId);
     document.getElementById('register-save').textContent = isEdit ? 'Save changes' : 'Save and continue';
@@ -5122,11 +5201,19 @@
 
   function setupRegisterForm() {
     // Toggle visuals
-    ['reg-member-toggle'].forEach(id => {
+    ['reg-member-toggle', 'reg-sof-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
     });
+    // Tagline live character counter
+    const regTagInp = document.getElementById('reg-tagline');
+    const regTagCnt = document.getElementById('reg-tagline-count');
+    if (regTagInp && regTagCnt) {
+      regTagInp.addEventListener('input', () => {
+        regTagCnt.textContent = String(regTagInp.value.length);
+      });
+    }
     document.getElementById('register-close').addEventListener('click', closeRegisterModal);
     document.getElementById('register-modal').addEventListener('click', (e) => {
       if (e.target.id === 'register-modal') closeRegisterModal();
@@ -5170,7 +5257,16 @@
           readChipList(document.getElementById('reg-training'), 'reg-tr'),
           document.getElementById('reg-training-extra').value
         ),
+        tagline:         (document.getElementById('reg-tagline').value || '').trim().slice(0, 140),
+        affirmsSof:      !!document.getElementById('reg-sof').checked,
       };
+      // Stamp affirmation date on the day the box is checked, preserving an
+      // earlier date if it was already affirmed.
+      if (teacher.affirmsSof && existing && existing.sofAffirmedDate) {
+        teacher.sofAffirmedDate = existing.sofAffirmedDate;
+      } else if (teacher.affirmsSof) {
+        teacher.sofAffirmedDate = new Date().toISOString().slice(0, 10);
+      }
       const btn = document.getElementById('register-save');
       const status = document.getElementById('register-status');
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving\u2026';
@@ -5407,15 +5503,20 @@
     const tagsList = (arr) => (arr && arr.length)
       ? '<div class="profile-tags">' + arr.map(v => '<span class="profile-tag">' + escapeHtml(v) + '</span>').join('') + '</div>'
       : '<p style="font-size:.8rem;color:var(--text-muted);font-style:italic;">None listed.</p>';
+    const sofLabel = t.affirmsSof
+      ? ('Affirmed' + (t.sofAffirmedDate ? ' on ' + escapeHtml(t.sofAffirmedDate) : ''))
+      : '—';
     return [
       '<h2>' + escapeHtml(t.name || '—') + '</h2>',
       '<div class="profile-sub">' + escapeHtml(stageDisplayLabel(t.status)) + (cls ? ' · ' + escapeHtml(cls.name) : '') + '</div>',
+      t.tagline ? '<p style="margin:.6rem 0 1rem;font-style:italic;color:var(--text-muted);font-size:.95rem;line-height:1.4;">\u201C' + escapeHtml(t.tagline) + '\u201D</p>' : '',
       '<dl class="profile-meta">',
       '  <div><dt>Email</dt><dd>' + (t.email ? '<a href="mailto:' + escapeHtml(t.email) + '" style="color:var(--steel-blue);">' + escapeHtml(t.email) + '</a>' : '—') + '</dd></div>',
       '  <div><dt>LEFC Member</dt><dd>' + memberLabel + '</dd></div>',
       '  <div><dt>Attending Since</dt><dd>' + yearLabel + '</dd></div>',
       '  <div><dt>Home Class</dt><dd>' + escapeHtml(homeClass) + '</dd></div>',
       '  <div><dt>Weeks Taught</dt><dd>' + escapeHtml(weeksLabel) + '</dd></div>',
+      '  <div><dt>SoF &amp; MFP</dt><dd>' + sofLabel + '</dd></div>',
       '</dl>',
       t.bio ? '<div class="profile-section"><h4>Bio</h4><p>' + escapeHtml(t.bio) + '</p></div>' : '',
       '<div class="profile-section"><h4>Has taught in</h4>' + tagsList(t.pastVenues) +
