@@ -912,6 +912,25 @@
       color: #fff;
     }
     .id-badge.id-badge-admin .role-tag { color: #fff; }
+    /* Big red call-to-action when nobody is signed in, so teachers
+       and leaders can find the entry point at a glance. */
+    .id-badge.id-badge-signin {
+      background: var(--terra);
+      border-color: var(--terra);
+      color: #fff;
+      font-size: .95rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      padding: .65em 1.1em;
+      box-shadow: 0 2px 8px rgba(208, 91, 70, .35);
+    }
+    .id-badge.id-badge-signin:hover {
+      background: #b94a36;
+      border-color: #b94a36;
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(208, 91, 70, .5);
+    }
+    .id-badge.id-badge-signin .role-tag { display: none; }
 
     /* Scheduling tab sub-nav */
     .sched-subnav {
@@ -1801,10 +1820,9 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="adults-badge">LEFC Adults</div>
-      <button class="id-badge" id="id-badge" title="Click to sign in or switch identity">
+      <button class="id-badge id-badge-signin" id="id-badge" title="Click to sign in or switch identity">
         <span class="role-tag" id="id-badge-role">Browsing</span>
-        <span id="id-badge-name">Sign in</span>
+        <span id="id-badge-name">Teacher &amp; Leader Sign In</span>
       </button>
       <button class="logout-btn" id="logout-btn">Sign Out</button>
     </div>
@@ -4275,9 +4293,11 @@
     // they're signed in or just browsing.
     badge.style.display = 'flex';
     badge.classList.toggle('id-badge-admin', adm);
+    // Highlight the badge as a big red CTA when nobody is signed in.
+    badge.classList.toggle('id-badge-signin', !id && !adm);
     if (!id) {
       roleEl.textContent = adm ? 'Admin' : 'Browsing';
-      nameEl.textContent = adm ? 'Override active' : 'Sign in';
+      nameEl.textContent = adm ? 'Override active' : 'Teacher & Leader Sign In';
       badge.title = adm ? 'Click to switch identity or sign out' : 'Click to sign in or switch identity';
       return;
     }
