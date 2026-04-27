@@ -2451,12 +2451,16 @@
               <div class="chip-list" id="prof-venues"></div>
             </div>
             <div class="form-row">
-              <label class="form-label" for="prof-other-venues">Other venues (free text)</label>
-              <input type="text" id="prof-other-venues" class="form-input" placeholder="e.g. seminary classroom, military chaplaincy…" />
+              <label class="form-label">Other venues you've taught in</label>
+              <div class="chip-list" id="prof-other-venues"></div>
+              <label class="form-label" for="prof-other-venues-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+              <input type="text" id="prof-other-venues-extra" class="form-input" placeholder="Add any venues not listed above…" />
             </div>
             <div class="form-row">
-              <label class="form-label" for="prof-training">Relevant training (formal & informal)</label>
-              <textarea id="prof-training" class="form-textarea" placeholder="Theological education, teaching certifications, mentorships, self-study, etc."></textarea>
+              <label class="form-label">Relevant training (formal & informal)</label>
+              <div class="chip-list" id="prof-training"></div>
+              <label class="form-label" for="prof-training-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+              <input type="text" id="prof-training-extra" class="form-input" placeholder="Add any training not listed above…" />
             </div>
             <div class="form-row">
               <label class="form-label" for="prof-bio">Short bio (optional)</label>
@@ -3116,12 +3120,16 @@
         <div class="chip-list" id="reg-venues"></div>
       </div>
       <div class="form-row">
-        <label class="form-label" for="reg-other-venues">Other venues (free text)</label>
-        <input type="text" id="reg-other-venues" class="form-input" placeholder="e.g. seminary classroom, military chaplaincy…" />
+        <label class="form-label">Other venues you've taught in</label>
+        <div class="chip-list" id="reg-other-venues"></div>
+        <label class="form-label" for="reg-other-venues-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+        <input type="text" id="reg-other-venues-extra" class="form-input" placeholder="Add any venues not listed above…" />
       </div>
       <div class="form-row">
-        <label class="form-label" for="reg-training">Relevant training (formal & informal)</label>
-        <textarea id="reg-training" class="form-textarea" placeholder="Theological education, teaching certifications, mentorships, self-study, etc."></textarea>
+        <label class="form-label">Relevant training (formal & informal)</label>
+        <div class="chip-list" id="reg-training"></div>
+        <label class="form-label" for="reg-training-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+        <input type="text" id="reg-training-extra" class="form-input" placeholder="Add any training not listed above…" />
       </div>
       <div style="display:flex;gap:.5rem;align-items:center;">
         <button type="button" class="btn btn-primary" id="register-save">Save and continue</button>
@@ -4852,13 +4860,49 @@
     'Para-church',
   ];
 
+  /* Common venues OUTSIDE of LEFC where a teacher may have taught. Kept
+     distinct from VENUE_OPTIONS (which is LEFC-internal contexts). */
+  const OTHER_VENUE_OPTIONS = [
+    'Other church / congregation',
+    'Christian conference',
+    'Workshop / seminar',
+    'Christian camp',
+    'Retreat (non-LEFC)',
+    'Mission trip',
+    'Schools (K-12)',
+    'College / campus ministry',
+    'Seminary / Bible college',
+    'Workplace Bible study',
+    'Prison / jail ministry',
+    'Online / podcast / video',
+    'Para-church organization',
+  ];
+
+  /* Common forms of teaching-related training. Mix of formal and informal
+     so a wide range of backgrounds can find an honest fit. */
+  const TRAINING_OPTIONS = [
+    'Seminary degree',
+    'Bible college',
+    'Local church teaching course',
+    'Mentorship / discipleship program',
+    'Conferences / workshops',
+    'Apologetics training',
+    'Preaching / homiletics class',
+    'Bible study methods training',
+    'Small group leadership training',
+    'Self-study (books, podcasts, courses)',
+    'Teaching ministry internship',
+  ];
+
   /* Render a chip-list of checkbox pills inside `host`. `selected`
      is an array of currently-selected values. `name` is the input
-     name attribute used to read the current selection back later. */
-  function renderChipList(host, name, selected) {
+     name attribute used to read the current selection back later.
+     `options` defaults to VENUE_OPTIONS for backward compatibility. */
+  function renderChipList(host, name, selected, options) {
+    const opts = options || VENUE_OPTIONS;
     const sel = new Set(selected || []);
     host.innerHTML = '';
-    VENUE_OPTIONS.forEach(v => {
+    opts.forEach(v => {
       const wrap = document.createElement('label');
       const checked = sel.has(v);
       wrap.className = checked ? 'checked' : '';
@@ -4875,6 +4919,31 @@
   function readChipList(host, name) {
     return Array.from(host.querySelectorAll('input[name="' + name + '"]:checked')).map(i => i.value);
   }
+
+  /* Parse a stored string into chips that match `options` (case-insensitive)
+     plus any leftover free text. Used to migrate legacy free-text values
+     into the new chip-list UI without losing what people already typed. */
+  function parseChipsAndExtras(value, options) {
+    const optsByLower = new Map(options.map(o => [o.toLowerCase(), o]));
+    const parts = String(value || '').split(/\s*[,;]\s*|\s*\n+\s*/).map(s => s.trim()).filter(Boolean);
+    const chips = [];
+    const extras = [];
+    for (const p of parts) {
+      const canonical = optsByLower.get(p.toLowerCase());
+      if (canonical && !chips.includes(canonical)) {
+        chips.push(canonical);
+      } else {
+        extras.push(p);
+      }
+    }
+    return { chips, extras: extras.join(', ') };
+  }
+  function joinChipsAndExtras(chips, extras) {
+    const arr = (chips || []).slice();
+    const trimmed = (extras || '').trim();
+    if (trimmed) arr.push(trimmed);
+    return arr.join(', ');
+  }
   function syncToggleVisual(label) {
     const input = label.querySelector('input');
     label.classList.toggle('checked', !!input.checked);
@@ -4888,8 +4957,6 @@
     document.getElementById('prof-email').value = t.email || '';
     document.getElementById('prof-phone').value = t.phone || '';
     document.getElementById('prof-year').value  = t.yearStartedAttending || '';
-    document.getElementById('prof-other-venues').value = t.otherVenueNotes || '';
-    document.getElementById('prof-training').value = t.training || '';
     document.getElementById('prof-bio').value      = t.bio || '';
     const member = document.getElementById('prof-member');
     member.checked = !!t.lefcMember;
@@ -4899,6 +4966,12 @@
     syncToggleVisual(document.getElementById('prof-taught-toggle'));
     renderChipList(document.getElementById('prof-contexts'), 'prof-ctx', t.teachingContexts);
     renderChipList(document.getElementById('prof-venues'),   'prof-ven', t.pastVenues);
+    const profOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
+    renderChipList(document.getElementById('prof-other-venues'), 'prof-ov', profOv.chips, OTHER_VENUE_OPTIONS);
+    document.getElementById('prof-other-venues-extra').value = profOv.extras;
+    const profTr = parseChipsAndExtras(t.training, TRAINING_OPTIONS);
+    renderChipList(document.getElementById('prof-training'), 'prof-tr', profTr.chips, TRAINING_OPTIONS);
+    document.getElementById('prof-training-extra').value = profTr.extras;
     document.getElementById('profile-form-status').textContent = '';
   }
 
@@ -4932,8 +5005,14 @@
         teachingContexts: readChipList(document.getElementById('prof-contexts'), 'prof-ctx'),
         hasTaughtBefore: !!document.getElementById('prof-taught').checked,
         pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
-        otherVenueNotes: document.getElementById('prof-other-venues').value.trim(),
-        training:        document.getElementById('prof-training').value.trim(),
+        otherVenueNotes: joinChipsAndExtras(
+          readChipList(document.getElementById('prof-other-venues'), 'prof-ov'),
+          document.getElementById('prof-other-venues-extra').value
+        ),
+        training:        joinChipsAndExtras(
+          readChipList(document.getElementById('prof-training'), 'prof-tr'),
+          document.getElementById('prof-training-extra').value
+        ),
         bio:             document.getElementById('prof-bio').value.trim(),
       };
       const btn    = document.getElementById('profile-form-save');
@@ -4987,8 +5066,6 @@
     document.getElementById('reg-email').value = t.email || '';
     document.getElementById('reg-phone').value = t.phone || '';
     document.getElementById('reg-year').value  = t.yearStartedAttending || '';
-    document.getElementById('reg-other-venues').value = t.otherVenueNotes || '';
-    document.getElementById('reg-training').value     = t.training || '';
     const member = document.getElementById('reg-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('reg-member-toggle'));
@@ -4997,6 +5074,12 @@
     syncToggleVisual(document.getElementById('reg-taught-toggle'));
     renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', t.teachingContexts || []);
     renderChipList(document.getElementById('reg-venues'),   'reg-ven', t.pastVenues || []);
+    const regOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
+    renderChipList(document.getElementById('reg-other-venues'), 'reg-ov', regOv.chips, OTHER_VENUE_OPTIONS);
+    document.getElementById('reg-other-venues-extra').value = regOv.extras;
+    const regTr = parseChipsAndExtras(t.training, TRAINING_OPTIONS);
+    renderChipList(document.getElementById('reg-training'), 'reg-tr', regTr.chips, TRAINING_OPTIONS);
+    document.getElementById('reg-training-extra').value = regTr.extras;
     // Stage + home class
     const statusSel = document.getElementById('reg-status');
     if (statusSel) statusSel.value = t.status || 'Up & Comer Yr 1';
@@ -5048,8 +5131,14 @@
         teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
         hasTaughtBefore: !!document.getElementById('reg-taught').checked,
         pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
-        otherVenueNotes: document.getElementById('reg-other-venues').value.trim(),
-        training:        document.getElementById('reg-training').value.trim(),
+        otherVenueNotes: joinChipsAndExtras(
+          readChipList(document.getElementById('reg-other-venues'), 'reg-ov'),
+          document.getElementById('reg-other-venues-extra').value
+        ),
+        training:        joinChipsAndExtras(
+          readChipList(document.getElementById('reg-training'), 'reg-tr'),
+          document.getElementById('reg-training-extra').value
+        ),
       };
       const btn = document.getElementById('register-save');
       const status = document.getElementById('register-status');
