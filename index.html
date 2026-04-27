@@ -4673,6 +4673,11 @@
         btn.style.display = showActions ? '' : 'none';
       }
     });
+    // When only the Availability grid is visible there's nothing to
+    // switch between — hide the whole subnav so the lone red pill
+    // doesn't sit there looking like a meaningless label.
+    const subnav = leaderV.querySelector('.sched-subnav');
+    if (subnav) subnav.style.display = showActions ? '' : 'none';
     // Make sure the active pane is the grid if actions are hidden
     if (!showActions) {
       leaderV.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
