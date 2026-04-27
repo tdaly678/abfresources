@@ -1120,6 +1120,151 @@
       color: var(--text-muted);
       margin-top: .25rem;
     }
+    /* Checkbox pills (used for multi-select chips on the profile form) */
+    .chip-list {
+      display: flex; flex-wrap: wrap;
+      gap: .4rem;
+    }
+    .chip-list label {
+      display: inline-flex; align-items: center;
+      gap: .4rem;
+      padding: .4rem .75rem;
+      border: 1.5px solid var(--light-gray);
+      border-radius: 999px;
+      background: #fff;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .chip-list label:hover { border-color: var(--gold); }
+    .chip-list label.checked {
+      background: var(--olive);
+      color: #fff;
+      border-color: var(--olive);
+    }
+    .chip-list input { display: none; }
+    /* Single yes/no toggle */
+    .form-toggle {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: .5rem .9rem;
+      border: 1.5px solid var(--light-gray);
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text);
+      background: #fff;
+      user-select: none;
+    }
+    .form-toggle.checked {
+      background: var(--olive);
+      color: #fff;
+      border-color: var(--olive);
+    }
+    .form-toggle input { display: none; }
+    /* Profile read-only card (used by the leader profile modal) */
+    .profile-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+    }
+    .profile-card h2 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      margin-bottom: .15rem;
+    }
+    .profile-card .profile-sub {
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .profile-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: .75rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .profile-meta dt {
+      font-size: .65rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: .15rem;
+    }
+    .profile-meta dd {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .profile-section { margin-bottom: 1rem; }
+    .profile-section h4 {
+      font-size: .72rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: .35rem;
+    }
+    .profile-section p {
+      font-size: .85rem;
+      color: var(--text);
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .profile-tags {
+      display: flex; flex-wrap: wrap; gap: .35rem;
+    }
+    .profile-tag {
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .25rem .65rem;
+      border-radius: 999px;
+      background: rgba(82,75,48,.1);
+      color: var(--olive);
+    }
+    /* Modal overlay */
+    .sched-modal {
+      position: fixed; inset: 0;
+      background: rgba(52,45,37,.55);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .sched-modal.visible { display: flex; }
+    .sched-modal-inner {
+      background: #fff;
+      border-radius: var(--radius);
+      max-width: 540px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+      position: relative;
+    }
+    .sched-modal-close {
+      position: absolute; top: .65rem; right: .8rem;
+      background: none; border: none;
+      font-size: 1.5rem; line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: .15rem .4rem;
+    }
+    .sched-modal-close:hover { color: var(--terra); }
+    /* Clickable teacher name in the leader's grid */
+    .teacher-name-link {
+      cursor: pointer;
+      color: var(--steel-blue);
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px dotted var(--steel-blue);
+    }
+    .teacher-name-link:hover { color: var(--terra); border-bottom-color: var(--terra); }
     .btn {
       display: inline-flex;
       align-items: center; justify-content: center;
@@ -1423,6 +1568,9 @@
       <label class="id-select-label" id="id-picker-label">Choose your name</label>
       <select id="id-picker" class="id-select"></select>
       <button id="id-confirm" class="id-confirm-btn" disabled>Continue</button>
+      <p id="id-register-row" style="display:none;font-size:.78rem;color:var(--text-muted);margin-top:.6rem;line-height:1.5;text-align:center;">
+        Don't see your name? <a href="#" id="id-register-link" style="color:var(--terra);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--terra);">Add yourself as a teacher</a>
+      </p>
     </div>
 
     <button class="id-skip" id="id-skip">Just browsing — skip this</button>
@@ -2227,6 +2375,7 @@
           <button class="sched-subnav-btn active" data-sub="t-availability">My Availability</button>
           <button class="sched-subnav-btn" data-sub="t-requests">Incoming Requests <span id="t-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
           <button class="sched-subnav-btn" data-sub="t-courses">My Courses</button>
+          <button class="sched-subnav-btn" data-sub="t-profile">My Profile</button>
         </div>
 
         <!-- Teacher: My Availability -->
@@ -2281,6 +2430,74 @@
               <button class="btn btn-ghost" id="course-form-cancel" style="display:none;">Cancel edit</button>
             </div>
           </div>
+        </div>
+
+        <!-- Teacher: My Profile -->
+        <div class="sched-pane" id="sched-t-profile">
+          <div class="sched-notice">
+            <strong>Why this matters:</strong> ABF leaders click your name on the availability grid to see your background. Filling this out helps them match you with the right class and topic.
+          </div>
+          <form class="sched-form" id="profile-form" autocomplete="off">
+            <div class="form-row row-2">
+              <div>
+                <label class="form-label" for="prof-name">Your name</label>
+                <input type="text" id="prof-name" class="form-input" required />
+              </div>
+              <div>
+                <label class="form-label" for="prof-email">Email</label>
+                <input type="email" id="prof-email" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-row row-2">
+              <div>
+                <label class="form-label" for="prof-phone">Phone (optional)</label>
+                <input type="tel" id="prof-phone" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label" for="prof-year">Year you began attending LEFC</label>
+                <input type="number" id="prof-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Are you a member of LEFC?</label>
+              <label class="form-toggle" id="prof-member-toggle">
+                <input type="checkbox" id="prof-member" />
+                <span>Yes, I'm a member</span>
+              </label>
+            </div>
+            <div class="form-row">
+              <label class="form-label">In what contexts do you intend to teach?</label>
+              <div class="chip-list" id="prof-contexts"></div>
+              <p class="form-help">Select any that apply. Leaders can filter by these when planning.</p>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Have you taught before?</label>
+              <label class="form-toggle" id="prof-taught-toggle">
+                <input type="checkbox" id="prof-taught" />
+                <span>Yes, I've taught before</span>
+              </label>
+            </div>
+            <div class="form-row">
+              <label class="form-label">In what venues have you taught in the past?</label>
+              <div class="chip-list" id="prof-venues"></div>
+            </div>
+            <div class="form-row">
+              <label class="form-label" for="prof-other-venues">Other venues (free text)</label>
+              <input type="text" id="prof-other-venues" class="form-input" placeholder="e.g. seminary classroom, military chaplaincy…" />
+            </div>
+            <div class="form-row">
+              <label class="form-label" for="prof-training">Relevant training (formal & informal)</label>
+              <textarea id="prof-training" class="form-textarea" placeholder="Theological education, teaching certifications, mentorships, self-study, etc."></textarea>
+            </div>
+            <div class="form-row">
+              <label class="form-label" for="prof-bio">Short bio (optional)</label>
+              <textarea id="prof-bio" class="form-textarea" placeholder="A sentence or two leaders will see when they're choosing teachers."></textarea>
+            </div>
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <button type="button" class="btn btn-primary" id="profile-form-save">Save profile</button>
+              <span id="profile-form-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -2543,6 +2760,83 @@
   </footer>
 
 </div><!-- /#site -->
+
+<!-- ════════════════════════════════════════════════════════
+     PROFILE VIEW MODAL (leader-side: read-only teacher profile)
+════════════════════════════════════════════════════════════ -->
+<div id="profile-view-modal" class="sched-modal">
+  <div class="sched-modal-inner">
+    <button type="button" class="sched-modal-close" id="profile-view-close" aria-label="Close">&times;</button>
+    <div class="profile-card" id="profile-view-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     TEACHER SELF-REGISTRATION MODAL
+════════════════════════════════════════════════════════════ -->
+<div id="register-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
+    <button type="button" class="sched-modal-close" id="register-close" aria-label="Close">&times;</button>
+    <h2 style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Add yourself as a teacher</h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Tell us about yourself. ABF leaders will see this so they know whether to ask you to teach. You can edit any of it later from your profile.</p>
+    <form class="sched-form" id="register-form" autocomplete="off" style="padding:0;">
+      <div class="form-row row-2">
+        <div>
+          <label class="form-label" for="reg-name">Your name</label>
+          <input type="text" id="reg-name" class="form-input" required />
+        </div>
+        <div>
+          <label class="form-label" for="reg-email">Email</label>
+          <input type="email" id="reg-email" class="form-input" required />
+        </div>
+      </div>
+      <div class="form-row row-2">
+        <div>
+          <label class="form-label" for="reg-phone">Phone (optional)</label>
+          <input type="tel" id="reg-phone" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label" for="reg-year">Year you began attending LEFC</label>
+          <input type="number" id="reg-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Are you a member of LEFC?</label>
+        <label class="form-toggle" id="reg-member-toggle">
+          <input type="checkbox" id="reg-member" />
+          <span>Yes, I'm a member</span>
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="form-label">In what contexts do you intend to teach?</label>
+        <div class="chip-list" id="reg-contexts"></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Have you taught before?</label>
+        <label class="form-toggle" id="reg-taught-toggle">
+          <input type="checkbox" id="reg-taught" />
+          <span>Yes, I've taught before</span>
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="form-label">In what venues have you taught in the past?</label>
+        <div class="chip-list" id="reg-venues"></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="reg-other-venues">Other venues (free text)</label>
+        <input type="text" id="reg-other-venues" class="form-input" placeholder="e.g. seminary classroom, military chaplaincy…" />
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="reg-training">Relevant training (formal & informal)</label>
+        <textarea id="reg-training" class="form-textarea" placeholder="Theological education, teaching certifications, mentorships, self-study, etc."></textarea>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <button type="button" class="btn btn-primary" id="register-save">Save and continue</button>
+        <span id="register-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div id="toast-container"></div>
 
@@ -2833,7 +3127,28 @@
 
     /* ── flatteners: Airtable record -> internal shape used by the UI ── */
     _mapClass(r)  { const f = r.fields || {}; return { id: r.id, name: f.Name || '', service: f.Service || '', leaders: f.Leaders || '', room: f.Room || '', active: !!f.Active, photo: '' }; },
-    _mapTeacher(r){ const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', status: f.Status || '', homeClassId: (f['Home Class'] || [])[0] || '', initials: f.Initials || '', avatarColor: f['Avatar Color'] || 'olive', bio: f.Bio || '', active: !!f.Active }; },
+    _mapTeacher(r){
+      const f = r.fields || {};
+      return {
+        id: r.id,
+        name: f.Name || '',
+        email: f.Email || '',
+        phone: f.Phone || '',
+        status: f.Status || '',
+        homeClassId: (f['Home Class'] || [])[0] || '',
+        initials: f.Initials || '',
+        avatarColor: f['Avatar Color'] || 'olive',
+        bio: f.Bio || '',
+        active: !!f.Active,
+        yearStartedAttending: f['Year Started Attending'] || null,
+        lefcMember: !!f['LEFC Member'],
+        teachingContexts: f['Teaching Contexts'] || [],
+        hasTaughtBefore: !!f['Has Taught Before'],
+        pastVenues: f['Past Venues'] || [],
+        otherVenueNotes: f['Other Venue Notes'] || '',
+        training: f.Training || '',
+      };
+    },
     _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
     _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, available: !!f.Available }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
@@ -2881,6 +3196,19 @@
     },
 
     /* ── mutations ────────────────────────────────────── */
+    async createTeacher(fields) {
+      const res = await this.api('POST', this.TBL.teachers, { body: { fields } });
+      const mapped = this._mapTeacher(res);
+      this._cache.teachers.push(mapped);
+      return mapped;
+    },
+    async updateTeacher(id, fields) {
+      const res = await this.api('PATCH', this.TBL.teachers, { recordId: id, body: { fields } });
+      const mapped = this._mapTeacher(res);
+      this._cache.teachers = this._cache.teachers.map(t => t.id === id ? mapped : t);
+      return mapped;
+    },
+
     async createCourse(fields) {
       const res = await this.api('POST', this.TBL.courses, { body: { fields } });
       const mapped = this._mapCourse(res);
@@ -2967,6 +3295,37 @@
 
     listTeachers() { return getCache().teachers.filter(x => x.active); },
     getTeacher(id) { return getCache().teachers.find(x => x.id === id); },
+    async upsertTeacher(teacher) {
+      // teacher: { id?, name, email, phone, status, homeClassId, bio,
+      //           yearStartedAttending, lefcMember, teachingContexts,
+      //           hasTaughtBefore, pastVenues, otherVenueNotes, training }
+      const fields = {
+        Name:    teacher.name || '',
+        Email:   teacher.email || '',
+        Phone:   teacher.phone || '',
+        Bio:     teacher.bio || '',
+        'Year Started Attending': teacher.yearStartedAttending || null,
+        'LEFC Member':            !!teacher.lefcMember,
+        'Teaching Contexts':      teacher.teachingContexts || [],
+        'Has Taught Before':      !!teacher.hasTaughtBefore,
+        'Past Venues':            teacher.pastVenues || [],
+        'Other Venue Notes':      teacher.otherVenueNotes || '',
+        Training:                 teacher.training || '',
+      };
+      if (teacher.status) fields.Status = teacher.status;
+      if (teacher.homeClassId) fields['Home Class'] = [teacher.homeClassId];
+      if (teacher.id) {
+        return Airtable.updateTeacher(teacher.id, fields);
+      }
+      // New teacher: default to active so leaders see them right away
+      // (auto-approval flow). Initials + avatar color use sensible defaults.
+      fields.Active = true;
+      if (!fields.Status) fields.Status = 'Active';
+      const initials = (teacher.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('') || '?';
+      fields.Initials = initials;
+      fields['Avatar Color'] = teacher.avatarColor || 'olive';
+      return Airtable.createTeacher(fields);
+    },
 
     listABFLeaders() { return getCache().abfLeaders.filter(x => x.active); },
     getABFLeader(id) { return getCache().abfLeaders.find(x => x.id === id); },
@@ -3110,6 +3469,7 @@
         const role = btn.dataset.role;
         const select = document.getElementById('id-picker');
         const label  = document.getElementById('id-picker-label');
+        const regRow = document.getElementById('id-register-row');
         select.innerHTML = '<option value="">— Choose —</option>';
         if (role === 'teacher') {
           label.textContent = 'Choose your name (Teacher)';
@@ -3118,6 +3478,7 @@
             o.value = t.id; o.textContent = t.name;
             select.appendChild(o);
           });
+          if (regRow) regRow.style.display = '';
         } else {
           label.textContent = 'Choose your name (ABF Leader)';
           DataStore.listABFLeaders().forEach(l => {
@@ -3127,11 +3488,20 @@
             o.textContent = l.name + (cls ? ' — ' + cls.name : '');
             select.appendChild(o);
           });
+          if (regRow) regRow.style.display = 'none';
         }
         document.getElementById('id-picker-area').style.display = 'block';
         document.getElementById('id-confirm').disabled = true;
       });
     });
+
+    const regLink = document.getElementById('id-register-link');
+    if (regLink) {
+      regLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        openRegisterModal();
+      });
+    }
 
     document.getElementById('id-picker').addEventListener('change', (e) => {
       document.getElementById('id-confirm').disabled = !e.target.value;
@@ -3228,6 +3598,7 @@
       renderTeacherAvailability();
       renderTeacherRequests();
       renderTeacherCourses();
+      renderTeacherProfile();
     } else {
       const l = DataStore.getABFLeader(id.id);
       const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
@@ -3435,6 +3806,203 @@
     document.getElementById('course-form-cancel').addEventListener('click', () => setCourseFormMode('add'));
   }
 
+  /* ════════════════════════════════════════════════════════
+     TEACHER PROFILE — bio fields, multi-select chips, save flow
+  ════════════════════════════════════════════════════════════ */
+  const VENUE_OPTIONS = [
+    'ABF',
+    'Crossover',
+    'Sunday School / Kids',
+    'Students (Youth)',
+    'Small group / Bible study',
+    'Retreat',
+    'Camp',
+    'Pulpit / preaching',
+    'School / classroom',
+    'Other church',
+    'Para-church',
+  ];
+
+  /* Render a chip-list of checkbox pills inside `host`. `selected`
+     is an array of currently-selected values. `name` is the input
+     name attribute used to read the current selection back later. */
+  function renderChipList(host, name, selected) {
+    const sel = new Set(selected || []);
+    host.innerHTML = '';
+    VENUE_OPTIONS.forEach(v => {
+      const wrap = document.createElement('label');
+      const checked = sel.has(v);
+      wrap.className = checked ? 'checked' : '';
+      wrap.innerHTML =
+        '<input type="checkbox" name="' + name + '" value="' + escapeHtml(v) + '"' + (checked ? ' checked' : '') + ' />' +
+        '<span>' + escapeHtml(v) + '</span>';
+      const input = wrap.querySelector('input');
+      input.addEventListener('change', () => {
+        wrap.classList.toggle('checked', input.checked);
+      });
+      host.appendChild(wrap);
+    });
+  }
+  function readChipList(host, name) {
+    return Array.from(host.querySelectorAll('input[name="' + name + '"]:checked')).map(i => i.value);
+  }
+  function syncToggleVisual(label) {
+    const input = label.querySelector('input');
+    label.classList.toggle('checked', !!input.checked);
+  }
+
+  /* ─── Teacher: My Profile pane ─── */
+  function renderTeacherProfile() {
+    const t = Identity.asTeacher();
+    if (!t) return;
+    document.getElementById('prof-name').value  = t.name || '';
+    document.getElementById('prof-email').value = t.email || '';
+    document.getElementById('prof-phone').value = t.phone || '';
+    document.getElementById('prof-year').value  = t.yearStartedAttending || '';
+    document.getElementById('prof-other-venues').value = t.otherVenueNotes || '';
+    document.getElementById('prof-training').value = t.training || '';
+    document.getElementById('prof-bio').value      = t.bio || '';
+    const member = document.getElementById('prof-member');
+    member.checked = !!t.lefcMember;
+    syncToggleVisual(document.getElementById('prof-member-toggle'));
+    const taught = document.getElementById('prof-taught');
+    taught.checked = !!t.hasTaughtBefore;
+    syncToggleVisual(document.getElementById('prof-taught-toggle'));
+    renderChipList(document.getElementById('prof-contexts'), 'prof-ctx', t.teachingContexts);
+    renderChipList(document.getElementById('prof-venues'),   'prof-ven', t.pastVenues);
+    document.getElementById('profile-form-status').textContent = '';
+  }
+
+  function setupProfileForm() {
+    // Wire toggle visuals
+    ['prof-member-toggle', 'prof-taught-toggle'].forEach(id => {
+      const lbl = document.getElementById(id);
+      if (!lbl) return;
+      lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
+    });
+
+    document.getElementById('profile-form-save').addEventListener('click', async () => {
+      const t = Identity.asTeacher();
+      if (!t) return;
+      const name  = document.getElementById('prof-name').value.trim();
+      const email = document.getElementById('prof-email').value.trim();
+      if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
+      if (!email) { toast('error', 'Email required', 'ABF leaders need a way to contact you.'); return; }
+
+      const fields = {
+        id: t.id,
+        name,
+        email,
+        phone:  document.getElementById('prof-phone').value.trim(),
+        yearStartedAttending: parseInt(document.getElementById('prof-year').value, 10) || null,
+        lefcMember:      !!document.getElementById('prof-member').checked,
+        teachingContexts: readChipList(document.getElementById('prof-contexts'), 'prof-ctx'),
+        hasTaughtBefore: !!document.getElementById('prof-taught').checked,
+        pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
+        otherVenueNotes: document.getElementById('prof-other-venues').value.trim(),
+        training:        document.getElementById('prof-training').value.trim(),
+        bio:             document.getElementById('prof-bio').value.trim(),
+      };
+      const btn    = document.getElementById('profile-form-save');
+      const status = document.getElementById('profile-form-status');
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving\u2026';
+      status.textContent = '';
+      try {
+        await DataStore.upsertTeacher(fields);
+        status.textContent = 'Saved.';
+        toast('success', 'Profile saved', 'Your profile is up to date.');
+        // Refresh badge in case the name changed
+        updateIdentityBadge();
+      } catch (e) {
+        console.error(e);
+        toast('error', 'Couldn\u2019t save', 'Your profile wasn\u2019t saved. Try again.');
+      } finally {
+        btn.disabled = false; btn.textContent = old;
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════
+     SELF-REGISTRATION — teacher adds themselves to the database
+  ════════════════════════════════════════════════════════════ */
+  function openRegisterModal() {
+    // Reset fields
+    ['reg-name','reg-email','reg-phone','reg-year','reg-other-venues','reg-training']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('reg-member').checked = false;
+    syncToggleVisual(document.getElementById('reg-member-toggle'));
+    document.getElementById('reg-taught').checked = false;
+    syncToggleVisual(document.getElementById('reg-taught-toggle'));
+    renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', []);
+    renderChipList(document.getElementById('reg-venues'),   'reg-ven', []);
+    document.getElementById('register-status').textContent = '';
+    document.getElementById('register-modal').classList.add('visible');
+  }
+  function closeRegisterModal() {
+    document.getElementById('register-modal').classList.remove('visible');
+  }
+
+  function setupRegisterForm() {
+    // Toggle visuals
+    ['reg-member-toggle', 'reg-taught-toggle'].forEach(id => {
+      const lbl = document.getElementById(id);
+      if (!lbl) return;
+      lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
+    });
+    document.getElementById('register-close').addEventListener('click', closeRegisterModal);
+    document.getElementById('register-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'register-modal') closeRegisterModal();
+    });
+
+    document.getElementById('register-save').addEventListener('click', async () => {
+      const name  = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
+      if (!email) { toast('error', 'Email required', 'ABF leaders need a way to contact you.'); return; }
+      const newTeacher = {
+        name,
+        email,
+        phone:  document.getElementById('reg-phone').value.trim(),
+        status: 'Active',
+        yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
+        lefcMember:      !!document.getElementById('reg-member').checked,
+        teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
+        hasTaughtBefore: !!document.getElementById('reg-taught').checked,
+        pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
+        otherVenueNotes: document.getElementById('reg-other-venues').value.trim(),
+        training:        document.getElementById('reg-training').value.trim(),
+      };
+      const btn = document.getElementById('register-save');
+      const status = document.getElementById('register-status');
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving\u2026';
+      status.textContent = '';
+      try {
+        const created = await DataStore.upsertTeacher(newTeacher);
+        // Auto sign them in as the new teacher
+        Identity.set('teacher', created.id);
+        closeRegisterModal();
+        closeIdentityPicker();
+        toast('success', 'Welcome aboard!', 'You\u2019re signed in as ' + created.name + '.');
+        if (document.getElementById('tab-scheduling').classList.contains('active')) {
+          renderScheduling();
+        }
+      } catch (e) {
+        console.error(e);
+        toast('error', 'Couldn\u2019t save', 'We couldn\u2019t add you. Try again or check your connection.');
+      } finally {
+        btn.disabled = false; btn.textContent = old;
+      }
+    });
+  }
+
+  function setupProfileViewModal() {
+    const modal = document.getElementById('profile-view-modal');
+    document.getElementById('profile-view-close').addEventListener('click', closeTeacherProfileModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'profile-view-modal') closeTeacherProfileModal();
+    });
+  }
+
   /* ─── Leader: availability grid ─── */
   function renderLeaderGrid() {
     const wrap = document.getElementById('l-availability-grid');
@@ -3470,7 +4038,8 @@
     teachers.forEach(t => {
       const tr = document.createElement('tr');
       const cls = DataStore.getABFClass(t.homeClassId);
-      tr.innerHTML = '<th class="row-teacher">' + escapeHtml(t.name) +
+      tr.innerHTML = '<th class="row-teacher">' +
+        '<a href="#" class="teacher-name-link" data-teacher-id="' + t.id + '" title="View profile">' + escapeHtml(t.name) + '</a>' +
         '<div class="row-sub">' + escapeHtml(t.status) + (cls ? ' · ' + cls.name : '') + '</div></th>';
       sundays.forEach(s => {
         const td = document.createElement('td');
@@ -3494,6 +4063,53 @@
     });
     table.appendChild(tbody);
     wrap.appendChild(table);
+
+    // Wire teacher-name links → open profile modal
+    wrap.querySelectorAll('.teacher-name-link').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        openTeacherProfileModal(a.dataset.teacherId);
+      });
+    });
+  }
+
+  /* ─── Leader: profile modal (read-only) ─── */
+  function openTeacherProfileModal(teacherId) {
+    const t = DataStore.getTeacher(teacherId);
+    if (!t) return;
+    const body = document.getElementById('profile-view-body');
+    const cls = DataStore.getABFClass(t.homeClassId);
+    body.innerHTML = renderProfileCardHTML(t, cls);
+    document.getElementById('profile-view-modal').classList.add('visible');
+  }
+  function closeTeacherProfileModal() {
+    document.getElementById('profile-view-modal').classList.remove('visible');
+  }
+  function renderProfileCardHTML(t, cls) {
+    const memberLabel = t.lefcMember ? 'Yes' : '—';
+    const yearLabel   = t.yearStartedAttending ? String(t.yearStartedAttending) : '—';
+    const taughtLabel = t.hasTaughtBefore ? 'Yes' : 'No';
+    const homeClass   = cls ? cls.name : '—';
+    const tagsList = (arr) => (arr && arr.length)
+      ? '<div class="profile-tags">' + arr.map(v => '<span class="profile-tag">' + escapeHtml(v) + '</span>').join('') + '</div>'
+      : '<p style="font-size:.8rem;color:var(--text-muted);font-style:italic;">None listed.</p>';
+    return [
+      '<h2>' + escapeHtml(t.name || '—') + '</h2>',
+      '<div class="profile-sub">' + escapeHtml(t.status || '') + (cls ? ' · ' + escapeHtml(cls.name) : '') + '</div>',
+      '<dl class="profile-meta">',
+      '  <div><dt>Email</dt><dd>' + (t.email ? '<a href="mailto:' + escapeHtml(t.email) + '" style="color:var(--steel-blue);">' + escapeHtml(t.email) + '</a>' : '—') + '</dd></div>',
+      '  <div><dt>Phone</dt><dd>' + (t.phone ? escapeHtml(t.phone) : '—') + '</dd></div>',
+      '  <div><dt>LEFC Member</dt><dd>' + memberLabel + '</dd></div>',
+      '  <div><dt>Attending Since</dt><dd>' + yearLabel + '</dd></div>',
+      '  <div><dt>Home Class</dt><dd>' + escapeHtml(homeClass) + '</dd></div>',
+      '  <div><dt>Has Taught Before</dt><dd>' + taughtLabel + '</dd></div>',
+      '</dl>',
+      t.bio ? '<div class="profile-section"><h4>Bio</h4><p>' + escapeHtml(t.bio) + '</p></div>' : '',
+      '<div class="profile-section"><h4>Wants to teach in</h4>' + tagsList(t.teachingContexts) + '</div>',
+      '<div class="profile-section"><h4>Has taught in</h4>' + tagsList(t.pastVenues) +
+        (t.otherVenueNotes ? '<p style="margin-top:.4rem;">' + escapeHtml(t.otherVenueNotes) + '</p>' : '') + '</div>',
+      t.training ? '<div class="profile-section"><h4>Training</h4><p>' + escapeHtml(t.training) + '</p></div>' : '',
+    ].join('\n');
   }
 
   /* ─── Leader: New Request form ─── */
@@ -3780,6 +4396,9 @@
   setupIdentityPicker();
   setupSchedSubnav();
   setupCourseForm();
+  setupProfileForm();
+  setupRegisterForm();
+  setupProfileViewModal();
 
   // Re-render scheduling tab whenever it's shown
   const origShowTab = window.showTab;
