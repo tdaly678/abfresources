@@ -905,6 +905,13 @@
       text-transform: uppercase;
       color: var(--gold);
     }
+    /* Admin override gets a more emphatic look so it's obvious. */
+    .id-badge.id-badge-admin {
+      background: rgba(208, 91, 70, .25);
+      border-color: var(--terra);
+      color: #fff;
+    }
+    .id-badge.id-badge-admin .role-tag { color: #fff; }
 
     /* Scheduling tab sub-nav */
     .sched-subnav {
@@ -1575,7 +1582,7 @@
 <div id="id-screen">
   <div class="id-card">
     <h2>Who are you?</h2>
-    <p class="id-sub">So we know whose schedule and requests to show you. You can change this any time.</p>
+    <p class="id-sub">Browsing is open to everyone — sign in only if you need to <strong>edit</strong> your availability, courses, profile, or send/respond to requests.</p>
 
     <div class="id-role-row">
       <button class="id-role-btn" id="id-role-leader" data-role="leader">I'm an ABF Leader</button>
@@ -1585,13 +1592,31 @@
     <div id="id-picker-area" style="display:none;">
       <label class="id-select-label" id="id-picker-label">Choose your name</label>
       <select id="id-picker" class="id-select"></select>
+
+      <label class="id-select-label" id="id-pin-label" style="margin-top:.85rem;">Last 4 digits of your phone number</label>
+      <input type="tel" id="id-pin" class="id-select" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9]*" placeholder="• • • •" style="text-align:center;letter-spacing:.5em;font-size:1.1rem;" />
+      <p id="id-pin-error" style="display:none;color:var(--terra);font-size:.78rem;margin-top:.4rem;text-align:center;font-weight:600;"></p>
+
       <button id="id-confirm" class="id-confirm-btn" disabled>Continue</button>
       <p id="id-register-row" style="display:none;font-size:.78rem;color:var(--text-muted);margin-top:.6rem;line-height:1.5;text-align:center;">
         Don't see your name? <a href="#" id="id-register-link" style="color:var(--terra);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--terra);">Add yourself as a teacher</a>
       </p>
     </div>
 
+    <div id="id-admin-area" style="display:none;margin-top:.85rem;">
+      <label class="id-select-label">Admin PIN</label>
+      <input type="password" id="id-admin-pin" class="id-select" inputmode="numeric" autocomplete="off" placeholder="Enter PIN" style="text-align:center;letter-spacing:.3em;" />
+      <p id="id-admin-error" style="display:none;color:var(--terra);font-size:.78rem;margin-top:.4rem;text-align:center;font-weight:600;"></p>
+      <button id="id-admin-confirm" class="id-confirm-btn">Unlock admin override</button>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;line-height:1.5;text-align:center;">
+        Admin override grants edit access on every teacher and leader. Use only when you're filling in for someone.
+      </p>
+    </div>
+
     <button class="id-skip" id="id-skip">Just browsing — skip this</button>
+    <p style="font-size:.72rem;color:var(--text-muted);margin-top:.6rem;text-align:center;">
+      <a href="#" id="id-admin-link" style="color:var(--text-muted);text-decoration:none;border-bottom:1px dotted currentColor;">Sign in as admin →</a>
+    </p>
   </div>
 </div>
 
@@ -1617,8 +1642,8 @@
     </div>
     <div class="header-right">
       <div class="adults-badge">LEFC Adults</div>
-      <button class="id-badge" id="id-badge" style="display:none;" title="Switch user">
-        <span class="role-tag" id="id-badge-role">—</span>
+      <button class="id-badge" id="id-badge" title="Click to sign in or switch identity">
+        <span class="role-tag" id="id-badge-role">Browsing</span>
         <span id="id-badge-name">Sign in</span>
       </button>
       <button class="logout-btn" id="logout-btn">Sign Out</button>
@@ -2942,6 +2967,39 @@
       .map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  // Fetch the admin override PIN hash from Airtable Settings. Empty
+  // string means admin override is disabled. Cached for the page
+  // lifetime so repeated checks don't re-hit Airtable.
+  let _adminPinHashPromise = null;
+  function getAdminPinHash() {
+    if (_adminPinHashPromise) return _adminPinHashPromise;
+    _adminPinHashPromise = (async () => {
+      try {
+        const BASE  = 'appTpp1agJQqoId07';
+        const TBL   = 'tblU0XGRCrWQJBPH6'; // Settings
+        const TOKEN = ['pat1pppuwziUpjdcJ',
+          '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+        const res = await fetch(
+          'https://api.airtable.com/v0/' + BASE + '/' + TBL + '?pageSize=100',
+          { headers: { 'Authorization': 'Bearer ' + TOKEN } }
+        );
+        if (!res.ok) throw new Error('Settings fetch ' + res.status);
+        const json = await res.json();
+        const row = (json.records || []).find(
+          r => (r.fields || {}).Key === 'adminPinHash');
+        const hash = row && row.fields && row.fields.Value
+          ? String(row.fields.Value).trim().toLowerCase()
+          : '';
+        if (/^[0-9a-f]{64}$/.test(hash)) return hash;
+        return ''; // disabled
+      } catch (err) {
+        console.warn('[auth] could not fetch Settings.adminPinHash', err);
+        return '';
+      }
+    })();
+    return _adminPinHashPromise;
+  }
+
   // Constant-time-ish hex comparison. Both inputs should already be
   // lowercase 64-char hex strings; bails fast if not the same length.
   function hexEquals(a, b) {
@@ -2991,6 +3049,9 @@
 
   // Warm the password-hash cache so the first login attempt is snappy.
   getPasswordHash();
+  // Also warm the admin PIN hash cache so the identity picker can
+  // show or hide the admin override link without a flicker.
+  getAdminPinHash();
 
   pwBtn.addEventListener('click', tryPassword);
   pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
@@ -3071,6 +3132,7 @@
 
   const STORE_KEY = 'abf_sched_v1';
   const IDENTITY_KEY = 'abf_sched_identity';
+  const ADMIN_KEY    = 'abf_sched_admin';
 
   // --- helpers ---
   function uid(prefix) {
@@ -3286,7 +3348,7 @@
         training: f.Training || '',
       };
     },
-    _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
+    _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
     _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, available: !!f.Available }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', status: f.Status || '', notes: f.Notes || '' }; },
@@ -3583,17 +3645,52 @@
   /* ════════════════════════════════════════════════════════
      IDENTITY
   ════════════════════════════════════════════════════════════ */
+  /* Identity model — orthogonal "who am I" + "do I have admin override":
+
+       Identity.get()        → {role:'teacher'|'leader', id} | null
+                               null = anonymous (read-only browsing)
+       Identity.isAdmin()    → boolean (admin override active?)
+
+     A user can be:
+       - anonymous, no admin             → read-only everywhere
+       - signed in as teacher T          → can edit T (only)
+       - signed in as leader L           → can edit L's request flow
+       - admin only, no acting-as        → can edit anyone, no specific
+                                            teacher/leader view
+       - admin AND acting as teacher T   → admin can flip into a teacher
+                                            view to manage their stuff
+       - admin AND acting as leader L    → likewise
+
+     The role+id pair is verified by last-4-of-phone at sign-in time;
+     admin override is verified by PIN. Authorization is enforced in
+     two places: renderers hide edit affordances and write paths
+     check canEdit* defensively. */
   const Identity = {
     get() {
       try { return JSON.parse(sessionStorage.getItem(IDENTITY_KEY) || 'null'); }
       catch { return null; }
     },
     set(role, id) {
-      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify({ role, id }));
+      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify({ role, id: id || null }));
       updateIdentityBadge();
     },
+    /* Clear the acting-as identity but leave admin override in place.
+       Use clearAll() for a full sign-out. */
     clear() {
       sessionStorage.removeItem(IDENTITY_KEY);
+      updateIdentityBadge();
+    },
+    clearAll() {
+      sessionStorage.removeItem(IDENTITY_KEY);
+      sessionStorage.removeItem(ADMIN_KEY);
+      updateIdentityBadge();
+    },
+    isAdmin() {
+      return sessionStorage.getItem(ADMIN_KEY) === '1';
+    },
+    setAdmin(on) {
+      if (on) sessionStorage.setItem(ADMIN_KEY, '1');
+      else    sessionStorage.removeItem(ADMIN_KEY);
       updateIdentityBadge();
     },
     asTeacher() {
@@ -3603,6 +3700,18 @@
     asLeader() {
       const i = this.get();
       return i && i.role === 'leader' ? DataStore.getABFLeader(i.id) : null;
+    },
+    /* canEditTeacher(id) — true if admin OR signed in as that teacher. */
+    canEditTeacher(teacherId) {
+      if (this.isAdmin()) return true;
+      const i = this.get();
+      return !!(i && i.role === 'teacher' && i.id === teacherId);
+    },
+    /* canEditLeader(id) — true if admin OR signed in as that leader. */
+    canEditLeader(leaderId) {
+      if (this.isAdmin()) return true;
+      const i = this.get();
+      return !!(i && i.role === 'leader' && i.id === leaderId);
     }
   };
 
@@ -3647,19 +3756,30 @@
 
   function updateIdentityBadge() {
     const id = Identity.get();
+    const adm = Identity.isAdmin();
     const badge = document.getElementById('id-badge');
     const roleEl = document.getElementById('id-badge-role');
     const nameEl = document.getElementById('id-badge-name');
-    if (!id) { badge.style.display = 'none'; return; }
+    if (!badge) return;
+    // Always show the badge so people can see (and click) whether
+    // they're signed in or just browsing.
     badge.style.display = 'flex';
+    badge.classList.toggle('id-badge-admin', adm);
+    if (!id) {
+      roleEl.textContent = adm ? 'Admin' : 'Browsing';
+      nameEl.textContent = adm ? 'Override active' : 'Sign in';
+      badge.title = adm ? 'Click to switch identity or sign out' : 'Click to sign in or switch identity';
+      return;
+    }
+    badge.title = 'Click to switch identity or sign out';
     if (id.role === 'teacher') {
       const t = DataStore.getTeacher(id.id);
-      roleEl.textContent = 'Teacher';
+      roleEl.textContent = adm ? 'Admin · Teacher' : 'Teacher';
       nameEl.textContent = t ? t.name : 'Teacher';
     } else {
       const l = DataStore.getABFLeader(id.id);
       const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
-      roleEl.textContent = cls ? cls.name : 'Leader';
+      roleEl.textContent = adm ? ('Admin · ' + (cls ? cls.name : 'Leader')) : (cls ? cls.name : 'Leader');
       nameEl.textContent = l ? l.name : 'Leader';
     }
   }
@@ -3671,10 +3791,13 @@
     // Reset
     document.querySelectorAll('.id-role-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('id-picker-area').style.display = 'none';
+    document.getElementById('id-admin-area').style.display = 'none';
     document.getElementById('id-confirm').disabled = true;
-    if (autoOpen) {
-      document.getElementById('id-skip').style.display = 'block';
-    }
+    document.getElementById('id-pin').value = '';
+    document.getElementById('id-pin-error').style.display = 'none';
+    document.getElementById('id-admin-pin').value = '';
+    document.getElementById('id-admin-error').style.display = 'none';
+    document.getElementById('id-skip').style.display = autoOpen ? 'block' : 'block';
     // Ensure data is loaded so the role dropdown can populate teachers/leaders.
     try { await Airtable.ensureLoaded(); } catch (e) { console.warn('[scheduling] picker load failed', e); }
   }
@@ -3682,11 +3805,32 @@
     document.getElementById('id-screen').classList.remove('visible');
   }
 
+  /* Last 4 digits of an arbitrary phone string. Strips everything
+     non-numeric so '(717) 555-1234' and '717.555.1234' both yield
+     '1234'. Returns '' if there aren't 4 digits to pull. */
+  function lastFourDigits(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    return digits.length >= 4 ? digits.slice(-4) : '';
+  }
+
+  /* Re-evaluate whether the Continue button should be enabled.
+     Requires a name selected AND exactly 4 digits typed in the
+     PIN box (unless admin override is active, in which case PIN
+     is bypassed). Actual matching happens on click. */
+  function refreshIdConfirmState() {
+    const id   = document.getElementById('id-picker').value;
+    const pin  = document.getElementById('id-pin').value.trim();
+    const ok   = id && (Identity.isAdmin() || /^\d{4}$/.test(pin));
+    document.getElementById('id-confirm').disabled = !ok;
+  }
+
   function setupIdentityPicker() {
     document.querySelectorAll('.id-role-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.id-role-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        // Hide admin area whenever a normal role is picked
+        document.getElementById('id-admin-area').style.display = 'none';
         const role = btn.dataset.role;
         const select = document.getElementById('id-picker');
         const label  = document.getElementById('id-picker-label');
@@ -3712,7 +3856,13 @@
           if (regRow) regRow.style.display = 'none';
         }
         document.getElementById('id-picker-area').style.display = 'block';
-        document.getElementById('id-confirm').disabled = true;
+        // Reset PIN entry state. Admins skip the phone challenge.
+        const adm = Identity.isAdmin();
+        document.getElementById('id-pin').value = '';
+        document.getElementById('id-pin').style.display      = adm ? 'none' : '';
+        document.getElementById('id-pin-label').style.display = adm ? 'none' : '';
+        document.getElementById('id-pin-error').style.display = 'none';
+        refreshIdConfirmState();
       });
     });
 
@@ -3724,28 +3874,158 @@
       });
     }
 
-    document.getElementById('id-picker').addEventListener('change', (e) => {
-      document.getElementById('id-confirm').disabled = !e.target.value;
+    // Selecting a name resets the PIN input + error and re-checks button state
+    document.getElementById('id-picker').addEventListener('change', () => {
+      document.getElementById('id-pin').value = '';
+      document.getElementById('id-pin-error').style.display = 'none';
+      refreshIdConfirmState();
+    });
+    // Sanitize PIN to digits only and re-check button state on every keystroke
+    document.getElementById('id-pin').addEventListener('input', (e) => {
+      const cleaned = e.target.value.replace(/\D/g, '').slice(0, 4);
+      if (e.target.value !== cleaned) e.target.value = cleaned;
+      document.getElementById('id-pin-error').style.display = 'none';
+      refreshIdConfirmState();
     });
 
     document.getElementById('id-confirm').addEventListener('click', () => {
       const role = document.querySelector('.id-role-btn.active').dataset.role;
       const id   = document.getElementById('id-picker').value;
+      const pin  = document.getElementById('id-pin').value.trim();
+      const errEl = document.getElementById('id-pin-error');
       if (!id) return;
+
+      const person = role === 'teacher'
+        ? DataStore.getTeacher(id)
+        : DataStore.getABFLeader(id);
+      if (!person) {
+        errEl.textContent = 'Couldn\u2019t find that record. Try again.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      // Admins bypass the phone challenge — they're already authenticated.
+      // Everyone else must match last 4 of phone.
+      if (!Identity.isAdmin()) {
+        if (!/^\d{4}$/.test(pin)) return;
+        const expected = lastFourDigits(person.phone);
+        if (!expected) {
+          errEl.textContent = 'No phone number on file for this person yet — ask an admin to add one before signing in.';
+          errEl.style.display = 'block';
+          return;
+        }
+        if (pin !== expected) {
+          errEl.textContent = 'That doesn\u2019t match the last 4 digits we have. Try again or ask an admin.';
+          errEl.style.display = 'block';
+          return;
+        }
+      }
+
       Identity.set(role, id);
       closeIdentityPicker();
       // If we were on Scheduling, re-render
       if (document.getElementById('tab-scheduling').classList.contains('active')) {
         renderScheduling();
       }
-      toast('success', 'Signed in', 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
+      // Re-render Teachers roster so edit affordances pick up the new identity
+      if (document.getElementById('tab-teachers').classList.contains('active')) {
+        renderTeachersRoster();
+      }
+      toast('success', 'Signed in', Identity.isAdmin()
+        ? 'Acting as ' + person.name + ' (admin override).'
+        : 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
+    });
+
+    // Admin override link → reveal admin area, hide normal picker
+    document.getElementById('id-admin-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.id-role-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('id-picker-area').style.display = 'none';
+      document.getElementById('id-admin-area').style.display = 'block';
+      document.getElementById('id-admin-pin').value = '';
+      document.getElementById('id-admin-error').style.display = 'none';
+      document.getElementById('id-admin-pin').focus();
+    });
+
+    document.getElementById('id-admin-confirm').addEventListener('click', async () => {
+      const pin = document.getElementById('id-admin-pin').value.trim();
+      const errEl = document.getElementById('id-admin-error');
+      if (!pin) {
+        errEl.textContent = 'Enter the admin PIN.';
+        errEl.style.display = 'block';
+        return;
+      }
+      const btn = document.getElementById('id-admin-confirm');
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'Checking\u2026';
+      try {
+        const [enteredHash, correctHash] = await Promise.all([
+          sha256Hex(pin),
+          getAdminPinHash(),
+        ]);
+        if (!correctHash) {
+          errEl.textContent = 'Admin override is not configured.';
+          errEl.style.display = 'block';
+          return;
+        }
+        if (!hexEquals(enteredHash, correctHash)) {
+          errEl.textContent = 'Wrong PIN. Try again.';
+          errEl.style.display = 'block';
+          return;
+        }
+        Identity.setAdmin(true);
+        closeIdentityPicker();
+        if (document.getElementById('tab-scheduling').classList.contains('active')) {
+          renderScheduling();
+        }
+        if (document.getElementById('tab-teachers').classList.contains('active')) {
+          renderTeachersRoster();
+        }
+        toast('success', 'Admin override on', 'You can edit any teacher or leader. Sign out when finished.');
+      } finally {
+        btn.disabled = false; btn.textContent = old;
+      }
+    });
+    document.getElementById('id-admin-pin').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('id-admin-confirm').click();
     });
 
     document.getElementById('id-skip').addEventListener('click', () => {
+      // "Just browsing" = anonymous, but make sure any prior identity is cleared
+      Identity.clear();
       closeIdentityPicker();
+      if (document.getElementById('tab-scheduling').classList.contains('active')) {
+        renderScheduling();
+      }
+      if (document.getElementById('tab-teachers').classList.contains('active')) {
+        renderTeachersRoster();
+      }
     });
 
     document.getElementById('id-badge').addEventListener('click', () => {
+      // If signed in (acting-as) or admin override is active, offer Sign out vs Switch.
+      const cur = Identity.get();
+      const adm = Identity.isAdmin();
+      if (cur || adm) {
+        const parts = [];
+        if (cur) {
+          parts.push(cur.role === 'teacher'
+            ? ((DataStore.getTeacher(cur.id) || {}).name || 'this teacher')
+            : ((DataStore.getABFLeader(cur.id) || {}).name || 'this leader'));
+        }
+        if (adm) parts.push('admin override');
+        const label = parts.join(' + ');
+        if (confirm('Sign out of ' + label + '?\n\nClick OK to sign out completely, or Cancel to keep your current sign-in.')) {
+          Identity.clearAll();
+          if (document.getElementById('tab-scheduling').classList.contains('active')) {
+            renderScheduling();
+          }
+          if (document.getElementById('tab-teachers').classList.contains('active')) {
+            renderTeachersRoster();
+          }
+          toast('', 'Signed out', 'You\u2019re browsing anonymously now.');
+          return;
+        }
+      }
       openIdentityPicker(false);
     });
 
@@ -3802,11 +4082,26 @@
       }
     }
 
+    const adm = Identity.isAdmin();
+
     if (!id) {
-      need.style.display = '';
+      // Anonymous OR admin-without-acting-as. Show a browse-only leader
+      // view (availability grid only) plus a banner explaining how to
+      // gain edit access.
+      need.style.display = 'none';
       teacherV.style.display = 'none';
-      leaderV.style.display = 'none';
-      sub.textContent = 'Sign in as a teacher or ABF leader to manage availability and requests.';
+      leaderV.style.display  = '';
+      if (adm) {
+        sub.innerHTML = '<strong>Admin override active.</strong> Click your badge in the header to act as a specific teacher or leader, or just browse below.';
+      } else {
+        sub.innerHTML = 'Browsing read-only. <a href="#" id="sched-sub-signin" style="color:var(--terra);font-weight:700;">Sign in</a> to manage your availability or send requests.';
+        const link = document.getElementById('sched-sub-signin');
+        if (link) link.addEventListener('click', (e) => { e.preventDefault(); openIdentityPicker(false); });
+      }
+      renderLeaderGrid();
+      // Hide leader-specific sub-tabs that require an identity
+      configureLeaderSubnav();
+      // Don't try to render request form / my requests for anonymous
       return;
     }
 
@@ -3815,7 +4110,8 @@
       const t = DataStore.getTeacher(id.id);
       teacherV.style.display = '';
       leaderV.style.display = 'none';
-      sub.textContent = 'Signed in as ' + (t ? t.name : 'a teacher') + '. Manage your availability, courses, and incoming requests.';
+      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (t ? t.name : 'a teacher') + '. Manage availability, courses, and incoming requests.';
+      configureLeaderSubnav();
       renderTeacherAvailability();
       renderTeacherRequests();
       renderTeacherCourses();
@@ -3825,10 +4121,36 @@
       const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
       teacherV.style.display = 'none';
       leaderV.style.display = '';
-      sub.textContent = 'Signed in as ' + (l ? l.name : 'an ABF leader') + (cls ? ' for ' + cls.name + ' (' + cls.service + ').' : '.');
+      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (l ? l.name : 'an ABF leader') + (cls ? ' for ' + cls.name + ' (' + cls.service + ').' : '.');
+      configureLeaderSubnav();
       renderLeaderGrid();
       renderLeaderNewRequestForm();
       renderLeaderRequests();
+    }
+  }
+
+  /* Show or hide the Leader sub-tabs that require an identity (New
+     Request, My Requests). Anonymous browsers + admin-without-acting-as
+     only see the Availability grid tab. */
+  function configureLeaderSubnav() {
+    const leaderV = document.getElementById('sched-leader-view');
+    if (!leaderV) return;
+    const id = Identity.get();
+    const showActions = !!(id && id.role === 'leader');
+    leaderV.querySelectorAll('.sched-subnav-btn').forEach(btn => {
+      const sub = btn.dataset.sub;
+      if (sub === 'l-new' || sub === 'l-mine') {
+        btn.style.display = showActions ? '' : 'none';
+      }
+    });
+    // Make sure the active pane is the grid if actions are hidden
+    if (!showActions) {
+      leaderV.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
+      const gridBtn = leaderV.querySelector('.sched-subnav-btn[data-sub="l-grid"]');
+      if (gridBtn) gridBtn.classList.add('active');
+      leaderV.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
+      const gridPane = document.getElementById('sched-l-grid');
+      if (gridPane) gridPane.classList.add('active');
     }
   }
 
@@ -3895,6 +4217,10 @@
   }
 
   async function cycleAvailability(teacherId, sundayId) {
+    if (!Identity.canEditTeacher(teacherId)) {
+      toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to change availability.');
+      return;
+    }
     const cur = DataStore.getAvailability(teacherId, sundayId);
     const order = [null, 'Available', 'Tentative', 'Unavailable'];
     const i = order.indexOf(cur ? cur.status : null);
@@ -3955,6 +4281,11 @@
       });
       list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editCourse(b.dataset.edit)));
       list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const t = Identity.asTeacher();
+        if (!t || !Identity.canEditTeacher(t.id)) {
+          toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to remove courses.');
+          return;
+        }
         if (confirm('Remove this course?')) {
           try {
             await DataStore.deleteCourse(b.dataset.del);
@@ -4004,6 +4335,10 @@
     document.getElementById('course-form-save').addEventListener('click', async () => {
       const t = Identity.asTeacher();
       if (!t) return;
+      if (!Identity.canEditTeacher(t.id)) {
+        toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to add or edit courses.');
+        return;
+      }
       const id = document.getElementById('course-form-id').value || null;
       const title = document.getElementById('course-form-titletext').value.trim();
       const desc  = document.getElementById('course-form-desc').value.trim();
@@ -4105,6 +4440,10 @@
     document.getElementById('profile-form-save').addEventListener('click', async () => {
       const t = Identity.asTeacher();
       if (!t) return;
+      if (!Identity.canEditTeacher(t.id)) {
+        toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to edit this profile.');
+        return;
+      }
       const name  = document.getElementById('prof-name').value.trim();
       const email = document.getElementById('prof-email').value.trim();
       if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
@@ -4212,6 +4551,12 @@
     document.getElementById('register-save').addEventListener('click', async () => {
       const id    = document.getElementById('reg-id').value || null;
       const isEdit = !!id;
+      // Edits require sign-in as that teacher OR admin override.
+      // New teacher creation (self-registration) is open to anyone past the password gate.
+      if (isEdit && !Identity.canEditTeacher(id)) {
+        toast('error', 'Sign in to edit', 'You need to sign in as this teacher (or an admin) to edit their profile.');
+        return;
+      }
       const name  = document.getElementById('reg-name').value.trim();
       const email = document.getElementById('reg-email').value.trim();
       if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
@@ -4346,7 +4691,14 @@
               (cls ? '<span class="teacher-topic teacher-home">' + escapeHtml(cls.name) + '</span>' : '') +
             '</div>' +
           '</div>';
-        card.addEventListener('click', () => openRegisterModal(teacher));
+        // Editable to that specific teacher OR an admin; read-only view otherwise.
+        if (Identity.canEditTeacher(teacher.id)) {
+          card.title = 'Click to edit ' + teacher.name + '\u2019s profile';
+          card.addEventListener('click', () => openRegisterModal(teacher));
+        } else {
+          card.title = 'Click to view ' + teacher.name + '\u2019s profile';
+          card.addEventListener('click', () => openTeacherProfileModal(teacher.id));
+        }
         grid.appendChild(card);
       });
 
@@ -4554,6 +4906,10 @@
   async function submitNewRequest() {
     const l = Identity.asLeader();
     if (!l) return;
+    if (!Identity.canEditLeader(l.id)) {
+      toast('error', 'Read-only', 'Sign in as this leader (or an admin) to send requests.');
+      return;
+    }
     const teacherId = document.getElementById('l-req-teacher').value;
     const courseId  = document.getElementById('l-req-course').value || null;
     const message   = document.getElementById('l-req-message').value.trim();
@@ -4695,6 +5051,10 @@
   async function respondRequest(r, status) {
     const t = Identity.asTeacher();
     if (!t) return;
+    if (!Identity.canEditTeacher(r.teacherId)) {
+      toast('error', 'Not your request', 'Only the requested teacher (or an admin) can respond.');
+      return;
+    }
 
     let response = '';
     let counterIds = [];
@@ -4767,6 +5127,8 @@
   setupProfileForm();
   setupRegisterForm();
   setupProfileViewModal();
+  // Make the badge reflect the current sessionStorage state on load.
+  updateIdentityBadge();
 
   // Re-render scheduling/teacher tabs whenever they're shown
   const origShowTab = window.showTab;

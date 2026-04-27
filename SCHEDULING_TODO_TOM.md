@@ -2,6 +2,30 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## 0. Per-person sign-in is now live — populate phone numbers and change the admin PIN
+
+The portal now defaults to **read-only browsing** for everyone past the password gate. To **edit** a teacher's profile/availability/courses, the user has to sign in as that teacher; to **send or respond to teaching requests as a leader**, they sign in as that leader. Sign-in uses the **last 4 digits of the phone number** stored in Airtable.
+
+**For this to work you need real phone numbers in two places:**
+
+1. **Teachers table → Phone column** — already exists, but a few rows might still be empty. Open the Teachers table and fill any blanks. Format doesn't matter (`(717) 555-1234`, `717.555.1234`, `7175551234` all work — only the last 4 digits are checked).
+2. **ABF Leaders table → Phone column** — this is **new** (just added). Open the table and add each leader's phone number.
+
+Until a person's phone is on file they can still browse but they can't sign in. They'll see "No phone number on file for this person yet — ask an admin to add one before signing in."
+
+**Admin override.** There's also an **Admin PIN** that unlocks edit access on every teacher and leader (so you can fill in for someone). It's stored as a SHA-256 hash in **Settings** (Key = `adminPinHash`), the same way the site password works.
+
+- **Default PIN: `1234`** — please change this. To rotate:
+  1. Pick a new PIN.
+  2. On a Mac terminal: `echo -n 'newpin' | shasum -a 256` → copy the 64-character hex digest.
+  3. Open the **Settings** table → row where **Key** = `adminPinHash` → paste into the **Value** cell.
+  4. Takes effect on next page load.
+- To **disable** admin override entirely, blank out the **Value** cell (the "Sign in as admin →" link will then say "Admin override is not configured").
+
+**To use admin override:** click the badge in the header (says "Browsing — Sign in") → click **"Sign in as admin →"** at the bottom → enter the PIN. The badge turns red ("Admin Override Active"). While admin is active you can pick any teacher or leader from the role pickers without needing their phone number; the badge stays red until you sign out.
+
+**Heads up — security caveat.** Last-4-of-phone is a low-friction barrier, not a real auth system. Anyone who can read a teacher's phone number (printed church directories, public bulletins, Realm/Rock if those are visible to attendees) can sign in as them. The same shared site password ("oikos") is still the main perimeter. The Change Log audit trail (section 6 below) tells you who edited what after the fact, so a bad actor can be traced and rolled back.
+
 ## 1. Set up the two email Automations (15 min)
 
 Open the base: <https://airtable.com/appTpp1agJQqoId07>
