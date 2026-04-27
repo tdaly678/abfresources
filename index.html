@@ -602,6 +602,24 @@
     .teacher-topic.teacher-home {
       background: rgba(188,169,68,.2); color: var(--olive); font-weight: 800;
     }
+    /* Clickable teacher cards on the Teachers roster */
+    button.teacher-card-clickable {
+      width: 100%;
+      display: block;
+      padding: 0;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform .1s ease, box-shadow .15s ease;
+    }
+    button.teacher-card-clickable:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0,0,0,.12);
+    }
+    button.teacher-card-clickable:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
 
     /* ─── COURSES ──────────────────────────────────────────── */
     .course-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
@@ -2147,9 +2165,17 @@
       <div class="page-header">
         <h2>LEFC Teachers</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">Active and developing teachers at LEFC. Add photos and teaching topics as available.</p>
+        <p class="page-sub">Active and developing teachers at LEFC. <strong>Click any teacher</strong> to view or edit their profile.</p>
+        <div style="margin-top:.85rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" id="teachers-add-self-btn" type="button">+ Add yourself as a teacher</button>
+          <span style="font-size:.75rem;color:var(--text-muted);">New here? Get yourself on the roster so ABF leaders can find you.</span>
+        </div>
       </div>
 
+      <div id="teachers-roster"></div>
+
+      <!-- Static fallback content (hidden once Airtable loads) -->
+      <div id="teachers-roster-fallback" style="display:none;">
       <!-- Veteran Teachers -->
       <div class="service-section">
         <div class="service-header">
@@ -2350,6 +2376,7 @@
 
         </div>
       </div>
+      </div><!-- /#teachers-roster-fallback -->
 
     </div>
 
@@ -2777,9 +2804,10 @@
 <div id="register-modal" class="sched-modal">
   <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
     <button type="button" class="sched-modal-close" id="register-close" aria-label="Close">&times;</button>
-    <h2 style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Add yourself as a teacher</h2>
-    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Tell us about yourself. ABF leaders will see this so they know whether to ask you to teach. You can edit any of it later from your profile.</p>
+    <h2 id="register-title" style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Add yourself as a teacher</h2>
+    <p id="register-sub" style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Tell us about yourself. ABF leaders will see this so they know whether to ask you to teach. You can edit any of it later from your profile.</p>
     <form class="sched-form" id="register-form" autocomplete="off" style="padding:0;">
+      <input type="hidden" id="reg-id" />
       <div class="form-row row-2">
         <div>
           <label class="form-label" for="reg-name">Your name</label>
@@ -2798,6 +2826,21 @@
         <div>
           <label class="form-label" for="reg-year">Year you began attending LEFC</label>
           <input type="number" id="reg-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
+        </div>
+      </div>
+      <div class="form-row row-2">
+        <div>
+          <label class="form-label" for="reg-status">Stage</label>
+          <select id="reg-status" class="form-select">
+            <option value="Up &amp; Comer Yr 1">Up &amp; Comer (Year 1)</option>
+            <option value="Up &amp; Comer Yr 2-3">Up &amp; Comer (Yrs 2–3)</option>
+            <option value="Active">Active</option>
+            <option value="Veteran">Veteran</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="reg-home-class">Home ABF class</label>
+          <select id="reg-home-class" class="form-select"><option value="">— Choose —</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -3925,16 +3968,50 @@
   /* ════════════════════════════════════════════════════════
      SELF-REGISTRATION — teacher adds themselves to the database
   ════════════════════════════════════════════════════════════ */
-  function openRegisterModal() {
-    // Reset fields
-    ['reg-name','reg-email','reg-phone','reg-year','reg-other-venues','reg-training']
-      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    document.getElementById('reg-member').checked = false;
+  /* Populate the home-class <select> with all active classes. */
+  function fillHomeClassSelect(selectId, currentId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Choose —</option>';
+    DataStore.listABFClasses().forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name + (c.service ? ' — ' + c.service : '');
+      if (currentId && currentId === c.id) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  /* openRegisterModal: opens the modal in either "add" mode (no teacher
+     argument) or "edit" mode (pass an existing teacher object). */
+  function openRegisterModal(teacher) {
+    const isEdit = !!(teacher && teacher.id);
+    const t = teacher || {};
+    document.getElementById('reg-id').value = t.id || '';
+    document.getElementById('register-title').textContent = isEdit
+      ? 'Edit profile — ' + (t.name || '')
+      : 'Add yourself as a teacher';
+    document.getElementById('register-sub').textContent = isEdit
+      ? 'Update your information so ABF leaders see the latest. Click Save when you\u2019re done.'
+      : 'Tell us about yourself. ABF leaders will see this so they know whether to ask you to teach. You can edit any of it later.';
+    document.getElementById('reg-name').value  = t.name  || '';
+    document.getElementById('reg-email').value = t.email || '';
+    document.getElementById('reg-phone').value = t.phone || '';
+    document.getElementById('reg-year').value  = t.yearStartedAttending || '';
+    document.getElementById('reg-other-venues').value = t.otherVenueNotes || '';
+    document.getElementById('reg-training').value     = t.training || '';
+    const member = document.getElementById('reg-member');
+    member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('reg-member-toggle'));
-    document.getElementById('reg-taught').checked = false;
+    const taught = document.getElementById('reg-taught');
+    taught.checked = !!t.hasTaughtBefore;
     syncToggleVisual(document.getElementById('reg-taught-toggle'));
-    renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', []);
-    renderChipList(document.getElementById('reg-venues'),   'reg-ven', []);
+    renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', t.teachingContexts || []);
+    renderChipList(document.getElementById('reg-venues'),   'reg-ven', t.pastVenues || []);
+    // Stage + home class
+    const statusSel = document.getElementById('reg-status');
+    if (statusSel) statusSel.value = t.status || 'Up & Comer Yr 1';
+    fillHomeClassSelect('reg-home-class', t.homeClassId);
+    document.getElementById('register-save').textContent = isEdit ? 'Save changes' : 'Save and continue';
     document.getElementById('register-status').textContent = '';
     document.getElementById('register-modal').classList.add('visible');
   }
@@ -3955,15 +4032,21 @@
     });
 
     document.getElementById('register-save').addEventListener('click', async () => {
+      const id    = document.getElementById('reg-id').value || null;
+      const isEdit = !!id;
       const name  = document.getElementById('reg-name').value.trim();
       const email = document.getElementById('reg-email').value.trim();
       if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
       if (!email) { toast('error', 'Email required', 'ABF leaders need a way to contact you.'); return; }
-      const newTeacher = {
+      const stageEl = document.getElementById('reg-status');
+      const homeEl  = document.getElementById('reg-home-class');
+      const teacher = {
+        id,
         name,
         email,
         phone:  document.getElementById('reg-phone').value.trim(),
-        status: 'Active',
+        status: stageEl ? stageEl.value : 'Up & Comer Yr 1',
+        homeClassId: homeEl ? homeEl.value : '',
         yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
         lefcMember:      !!document.getElementById('reg-member').checked,
         teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
@@ -3977,22 +4060,129 @@
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving\u2026';
       status.textContent = '';
       try {
-        const created = await DataStore.upsertTeacher(newTeacher);
-        // Auto sign them in as the new teacher
-        Identity.set('teacher', created.id);
+        const saved = await DataStore.upsertTeacher(teacher);
         closeRegisterModal();
-        closeIdentityPicker();
-        toast('success', 'Welcome aboard!', 'You\u2019re signed in as ' + created.name + '.');
+        if (isEdit) {
+          toast('success', 'Profile updated', saved.name + '\u2019s profile is saved.');
+        } else {
+          // Auto sign them in as the new teacher
+          Identity.set('teacher', saved.id);
+          closeIdentityPicker();
+          toast('success', 'Welcome aboard!', 'You\u2019re signed in as ' + saved.name + '.');
+        }
+        // Refresh wherever this teacher is shown
+        if (document.getElementById('tab-teachers').classList.contains('active')) {
+          renderTeachersRoster();
+        }
         if (document.getElementById('tab-scheduling').classList.contains('active')) {
           renderScheduling();
         }
       } catch (e) {
         console.error(e);
-        toast('error', 'Couldn\u2019t save', 'We couldn\u2019t add you. Try again or check your connection.');
+        toast('error', 'Couldn\u2019t save', 'We couldn\u2019t save your profile. Try again or check your connection.');
       } finally {
         btn.disabled = false; btn.textContent = old;
       }
     });
+  }
+
+  /* ════════════════════════════════════════════════════════
+     TEACHERS TAB — dynamic roster, click-to-edit
+  ════════════════════════════════════════════════════════════ */
+  // Order in which Status groups appear, plus their badge color.
+  const TEACHER_STAGE_ORDER = [
+    { status: 'Veteran',           label: 'Veteran',          color: 'var(--olive)',      topicClass: 'teacher-upcomer', topicStyle: 'background:rgba(82,75,48,.12);color:var(--olive);' },
+    { status: 'Active',            label: 'Active',           color: 'var(--terra)',      topicClass: 'teacher-active',  topicStyle: '' },
+    { status: 'Up & Comer Yr 2-3', label: 'Up & Comers',      color: 'var(--steel-blue)', topicClass: 'teacher-upcomer', topicStyle: '', subLabel: 'Year 2–3' },
+    { status: 'Up & Comer Yr 1',   label: 'Up & Comers',      color: 'var(--steel-blue)', topicClass: 'teacher-upcomer', topicStyle: '', subLabel: 'Year 1' },
+  ];
+
+  function renderTeachersRoster() {
+    const wrap = document.getElementById('teachers-roster');
+    const fb   = document.getElementById('teachers-roster-fallback');
+    if (!wrap) return;
+    if (!Airtable._cache) {
+      wrap.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;">Loading teachers\u2026</p>';
+      Airtable.ensureLoaded().then(() => renderTeachersRoster()).catch(() => {
+        // Fall back to the static cards if Airtable is unreachable
+        wrap.innerHTML = '';
+        if (fb) fb.style.display = '';
+      });
+      return;
+    }
+    if (fb) fb.style.display = 'none';
+    wrap.innerHTML = '';
+
+    const teachers = DataStore.listTeachers();
+    if (!teachers.length) {
+      wrap.innerHTML = '<div class="sched-empty"><h3>No teachers yet</h3><p>Be the first \u2014 click \u201cAdd yourself as a teacher\u201d above.</p></div>';
+      return;
+    }
+
+    // Group: combine the two "Up & Comer" sub-stages under a single section
+    // (we still tag each card with its specific year via the topic pill).
+    const buckets = new Map();   // key = display label, value = { meta, list }
+    teachers.forEach(t => {
+      const meta = TEACHER_STAGE_ORDER.find(s => s.status === t.status) || TEACHER_STAGE_ORDER[3];
+      const key  = meta.label;   // "Veteran", "Active", "Up & Comers"
+      if (!buckets.has(key)) buckets.set(key, { meta, list: [] });
+      buckets.get(key).list.push({ teacher: t, meta });
+    });
+
+    // Render in fixed order
+    const orderedLabels = ['Veteran','Active','Up & Comers'];
+    orderedLabels.forEach(label => {
+      const bucket = buckets.get(label);
+      if (!bucket) return;
+      const sec = document.createElement('div');
+      sec.className = 'service-section';
+      sec.innerHTML =
+        '<div class="service-header">' +
+          '<div class="service-badge" style="background:' + bucket.meta.color + ';">' + escapeHtml(label) + '</div>' +
+          '<hr />' +
+        '</div>' +
+        '<div class="teachers-grid"></div>';
+      const grid = sec.querySelector('.teachers-grid');
+
+      bucket.list.sort((a,b) => a.teacher.name.localeCompare(b.teacher.name)).forEach(({ teacher, meta }) => {
+        const cls = DataStore.getABFClass(teacher.homeClassId);
+        const colorVar = meta.color;
+        const initials = teacher.initials || (teacher.name || '?').split(/\s+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'teacher-card teacher-card-clickable';
+        card.dataset.teacherId = teacher.id;
+        card.title = 'Click to view or edit ' + teacher.name + '\u2019s profile';
+        const subPill = meta.subLabel
+          ? '<span class="teacher-topic ' + meta.topicClass + '">' + escapeHtml(meta.subLabel) + '</span>'
+          : '<span class="teacher-topic ' + meta.topicClass + '"' + (meta.topicStyle ? ' style="' + meta.topicStyle + '"' : '') + '>' + escapeHtml(label) + '</span>';
+        card.innerHTML =
+          '<div class="teacher-photo" style="border-bottom-color:' + colorVar + ';">' +
+            '<div class="teacher-avatar" style="background:' + colorVar + ';">' + escapeHtml(initials) + '</div>' +
+          '</div>' +
+          '<div class="teacher-body">' +
+            '<h3>' + escapeHtml(teacher.name) + '</h3>' +
+            '<div class="teacher-role">' + escapeHtml(roleLabel(teacher)) + '</div>' +
+            '<div class="teacher-topics">' +
+              subPill +
+              (cls ? '<span class="teacher-topic teacher-home">' + escapeHtml(cls.name) + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        card.addEventListener('click', () => openRegisterModal(teacher));
+        grid.appendChild(card);
+      });
+
+      wrap.appendChild(sec);
+    });
+  }
+
+  function roleLabel(t) {
+    // Mimic the role descriptors from the static roster
+    if (t.status === 'Veteran') return 'Teacher';
+    if (t.status === 'Active')  return 'Teacher';
+    if (t.status === 'Up & Comer Yr 2-3') return 'Up & Comer (Yrs 2–3)';
+    if (t.status === 'Up & Comer Yr 1')   return 'Up & Comer (Year 1)';
+    return t.status || 'Teacher';
   }
 
   function setupProfileViewModal() {
@@ -4400,17 +4590,29 @@
   setupRegisterForm();
   setupProfileViewModal();
 
-  // Re-render scheduling tab whenever it's shown
+  // Re-render scheduling/teacher tabs whenever they're shown
   const origShowTab = window.showTab;
   window.showTab = function(id) {
     origShowTab(id);
     if (id === 'scheduling') renderScheduling();
+    if (id === 'teachers')   renderTeachersRoster();
   };
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.tab === 'scheduling') renderScheduling();
+      if (btn.dataset.tab === 'teachers')   renderTeachersRoster();
     });
   });
+
+  // "Add yourself as a teacher" button on the Teachers tab
+  document.getElementById('teachers-add-self-btn')?.addEventListener('click', () => {
+    openRegisterModal();
+  });
+
+  // Render teachers roster on initial load if it's the active tab
+  if (document.getElementById('tab-teachers')?.classList.contains('active')) {
+    renderTeachersRoster();
+  }
 
   // Wire identity badge state
   updateIdentityBadge();
