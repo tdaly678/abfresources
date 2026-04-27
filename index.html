@@ -2440,14 +2440,15 @@
               <p class="form-help">Select any that apply. Leaders can filter by these when planning.</p>
             </div>
             <div class="form-row">
-              <label class="form-label" for="prof-series-count">How many series have you taught?</label>
-              <select id="prof-series-count" class="form-input">
+              <label class="form-label" for="prof-weeks-taught">Approximately how many weeks have you taught?</label>
+              <select id="prof-weeks-taught" class="form-input">
                 <option value="">— Select —</option>
                 <option value="0">0</option>
-                <option value="1-3">1-3</option>
-                <option value="4-9">4-9</option>
-                <option value="10+">10+</option>
+                <option value="1-9">1–9</option>
+                <option value="10-24">10–24</option>
+                <option value="25+">25+</option>
               </select>
+              <p class="form-help">A rough estimate is fine — counts every Sunday or session you've taught, here or anywhere else. Your stage (Up &amp; Comer / Active / Veteran) is set automatically from this answer.</p>
             </div>
             <div class="form-row">
               <label class="form-label">In what venues have you taught in the past?</label>
@@ -3085,20 +3086,9 @@
           <input type="number" id="reg-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
         </div>
       </div>
-      <div class="form-row row-2">
-        <div>
-          <label class="form-label" for="reg-status">Stage</label>
-          <select id="reg-status" class="form-select">
-            <option value="Up &amp; Comer Yr 1">Up &amp; Comer (Year 1)</option>
-            <option value="Up &amp; Comer Yr 2-3">Up &amp; Comer (Yrs 2–3)</option>
-            <option value="Active">Active</option>
-            <option value="Veteran">Veteran</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label" for="reg-home-class">Home ABF class</label>
-          <select id="reg-home-class" class="form-select"><option value="">— Choose —</option></select>
-        </div>
+      <div class="form-row">
+        <label class="form-label" for="reg-home-class">Home ABF class</label>
+        <select id="reg-home-class" class="form-select"><option value="">— Choose —</option></select>
       </div>
       <div class="form-row">
         <label class="form-label">Are you a member of LEFC?</label>
@@ -3112,14 +3102,15 @@
         <div class="chip-list" id="reg-contexts"></div>
       </div>
       <div class="form-row">
-        <label class="form-label" for="reg-series-count">How many series have you taught?</label>
-        <select id="reg-series-count" class="form-input">
+        <label class="form-label" for="reg-weeks-taught">Approximately how many weeks have you taught?</label>
+        <select id="reg-weeks-taught" class="form-input">
           <option value="">— Select —</option>
           <option value="0">0</option>
-          <option value="1-3">1-3</option>
-          <option value="4-9">4-9</option>
-          <option value="10+">10+</option>
+          <option value="1-9">1–9</option>
+          <option value="10-24">10–24</option>
+          <option value="25+">25+</option>
         </select>
+        <p class="form-help">A rough estimate is fine — counts every Sunday or session you've taught, here or anywhere else. Your stage (Up &amp; Comer / Active / Veteran) is set automatically from this answer.</p>
       </div>
       <div class="form-row">
         <label class="form-label">In what venues have you taught in the past?</label>
@@ -3659,7 +3650,7 @@
         lefcMember: !!f['LEFC Member'],
         teachingContexts: f['Teaching Contexts'] || [],
         hasTaughtBefore: !!f['Has Taught Before'],
-        seriesTaughtCount: f['Series Taught Count'] || '',
+        weeksTaught: f['Weeks Taught'] || '',
         pastVenues: f['Past Venues'] || [],
         otherVenueNotes: f['Other Venue Notes'] || '',
         training: f.Training || '',
@@ -3950,7 +3941,7 @@
         'LEFC Member':            !!teacher.lefcMember,
         'Teaching Contexts':      teacher.teachingContexts || [],
         'Has Taught Before':      !!teacher.hasTaughtBefore,
-        'Series Taught Count':    teacher.seriesTaughtCount || null,
+        'Weeks Taught':           teacher.weeksTaught || null,
         'Past Venues':            teacher.pastVenues || [],
         'Other Venue Notes':      teacher.otherVenueNotes || '',
         Training:                 teacher.training || '',
@@ -4952,6 +4943,41 @@
     if (trimmed) arr.push(trimmed);
     return arr.join(', ');
   }
+
+  /* Map a Weeks-Taught bucket → the auto-derived Stage label.
+     - 0, 1-9   → Up & Comer
+     - 10-24    → Active
+     - 25+      → Veteran
+     We write 'Up & Comer Yr 1' to the Status field for new auto-derivations
+     because that's the canonical Up & Comer option already in the schema;
+     existing teachers with 'Yr 1' or 'Yr 2-3' values are preserved.        */
+  function deriveStageFromWeeks(weeksBucket) {
+    switch (String(weeksBucket || '')) {
+      case '0':
+      case '1-9':   return 'Up & Comer Yr 1';
+      case '10-24': return 'Active';
+      case '25+':   return 'Veteran';
+      default:      return ''; // unknown — don't auto-set
+    }
+  }
+  /* Derive a Stage but keep the more-specific Up & Comer flavor (Yr 1 / Yr 2-3)
+     if it's already set and the bucket says Up & Comer. */
+  function deriveStageWithRetention(currentStatus, weeksBucket) {
+    const w = String(weeksBucket || '');
+    if (w === '0' || w === '1-9') {
+      if (/^Up & Comer/.test(currentStatus || '')) return currentStatus;
+      return 'Up & Comer Yr 1';
+    }
+    if (w === '10-24') return 'Active';
+    if (w === '25+')   return 'Veteran';
+    return currentStatus || '';
+  }
+  /* Display label that collapses both Up & Comer flavors into one. */
+  function stageDisplayLabel(rawStatus) {
+    if (!rawStatus) return '';
+    if (/^Up & Comer/.test(rawStatus)) return 'Up & Comer';
+    return rawStatus;
+  }
   function syncToggleVisual(label) {
     const input = label.querySelector('input');
     label.classList.toggle('checked', !!input.checked);
@@ -4969,12 +4995,12 @@
     const member = document.getElementById('prof-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('prof-member-toggle'));
-    // Series Taught Count: prefer the new field, but fall back to the legacy
+    // Weeks Taught: prefer the new field, but fall back to the legacy
     // hasTaughtBefore boolean for teachers who haven't been edited since the
-    // field was added (true → '1-3' as a non-judgmental default; false → '0').
-    const profSeries = document.getElementById('prof-series-count');
-    if (profSeries) {
-      profSeries.value = t.seriesTaughtCount || (t.hasTaughtBefore ? '1-3' : (t.hasTaughtBefore === false ? '0' : ''));
+    // field was added (true → '1-9' as a non-judgmental default; false → '0').
+    const profWeeks = document.getElementById('prof-weeks-taught');
+    if (profWeeks) {
+      profWeeks.value = t.weeksTaught || (t.hasTaughtBefore ? '1-9' : (t.hasTaughtBefore === false ? '0' : ''));
     }
     renderChipList(document.getElementById('prof-contexts'), 'prof-ctx', t.teachingContexts);
     renderChipList(document.getElementById('prof-venues'),   'prof-ven', t.pastVenues);
@@ -5015,8 +5041,8 @@
         yearStartedAttending: parseInt(document.getElementById('prof-year').value, 10) || null,
         lefcMember:      !!document.getElementById('prof-member').checked,
         teachingContexts: readChipList(document.getElementById('prof-contexts'), 'prof-ctx'),
-        seriesTaughtCount: document.getElementById('prof-series-count').value || '',
-        hasTaughtBefore: document.getElementById('prof-series-count').value !== '0' && !!document.getElementById('prof-series-count').value,
+        weeksTaught:     document.getElementById('prof-weeks-taught').value || '',
+        hasTaughtBefore: document.getElementById('prof-weeks-taught').value !== '0' && !!document.getElementById('prof-weeks-taught').value,
         pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
         otherVenueNotes: joinChipsAndExtras(
           readChipList(document.getElementById('prof-other-venues'), 'prof-ov'),
@@ -5028,6 +5054,9 @@
         ),
         bio:             document.getElementById('prof-bio').value.trim(),
       };
+      // Auto-derive Stage from the Weeks-Taught bucket. We keep the existing
+      // Up & Comer Yr 1/Yr 2-3 flavor if it was already set.
+      fields.status = deriveStageWithRetention(t.status, fields.weeksTaught);
       const btn    = document.getElementById('profile-form-save');
       const status = document.getElementById('profile-form-status');
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving\u2026';
@@ -5082,9 +5111,9 @@
     const member = document.getElementById('reg-member');
     member.checked = !!t.lefcMember;
     syncToggleVisual(document.getElementById('reg-member-toggle'));
-    const regSeries = document.getElementById('reg-series-count');
-    if (regSeries) {
-      regSeries.value = t.seriesTaughtCount || (t.hasTaughtBefore === true ? '1-3' : (t.hasTaughtBefore === false ? '0' : ''));
+    const regWeeks = document.getElementById('reg-weeks-taught');
+    if (regWeeks) {
+      regWeeks.value = t.weeksTaught || (t.hasTaughtBefore === true ? '1-9' : (t.hasTaughtBefore === false ? '0' : ''));
     }
     renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', t.teachingContexts || []);
     renderChipList(document.getElementById('reg-venues'),   'reg-ven', t.pastVenues || []);
@@ -5094,9 +5123,7 @@
     const regTr = parseChipsAndExtras(t.training, TRAINING_OPTIONS);
     renderChipList(document.getElementById('reg-training'), 'reg-tr', regTr.chips, TRAINING_OPTIONS);
     document.getElementById('reg-training-extra').value = regTr.extras;
-    // Stage + home class
-    const statusSel = document.getElementById('reg-status');
-    if (statusSel) statusSel.value = t.status || 'Up & Comer Yr 1';
+    // Home class (Stage is now auto-derived from Weeks Taught — no UI control)
     fillHomeClassSelect('reg-home-class', t.homeClassId);
     document.getElementById('register-save').textContent = isEdit ? 'Save changes' : 'Save and continue';
     document.getElementById('register-status').textContent = '';
@@ -5131,20 +5158,23 @@
       const email = document.getElementById('reg-email').value.trim();
       if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
       if (!email) { toast('error', 'Email required', 'ABF leaders need a way to contact you.'); return; }
-      const stageEl = document.getElementById('reg-status');
       const homeEl  = document.getElementById('reg-home-class');
+      const weeksVal = document.getElementById('reg-weeks-taught').value || '';
+      const existing = id ? DataStore.getTeacher(id) : null;
       const teacher = {
         id,
         name,
         email,
         phone:  document.getElementById('reg-phone').value.trim(),
-        status: stageEl ? stageEl.value : 'Up & Comer Yr 1',
+        // Stage is auto-derived from Weeks Taught. If editing, retain a more-specific
+        // Up & Comer Yr 1 / Yr 2-3 if it was already assigned.
+        status: deriveStageWithRetention(existing && existing.status, weeksVal) || 'Up & Comer Yr 1',
         homeClassId: homeEl ? homeEl.value : '',
         yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
         lefcMember:      !!document.getElementById('reg-member').checked,
         teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
-        seriesTaughtCount: document.getElementById('reg-series-count').value || '',
-        hasTaughtBefore: document.getElementById('reg-series-count').value !== '0' && !!document.getElementById('reg-series-count').value,
+        weeksTaught:     weeksVal,
+        hasTaughtBefore: weeksVal !== '0' && !!weeksVal,
         pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
         otherVenueNotes: joinChipsAndExtras(
           readChipList(document.getElementById('reg-other-venues'), 'reg-ov'),
@@ -5287,8 +5317,7 @@
     // Mimic the role descriptors from the static roster
     if (t.status === 'Veteran') return 'Teacher';
     if (t.status === 'Active')  return 'Teacher';
-    if (t.status === 'Up & Comer Yr 2-3') return 'Up & Comer (Yrs 2–3)';
-    if (t.status === 'Up & Comer Yr 1')   return 'Up & Comer (Year 1)';
+    if (/^Up & Comer/.test(t.status || '')) return 'Up & Comer';
     return t.status || 'Teacher';
   }
 
@@ -5337,7 +5366,7 @@
       const cls = DataStore.getABFClass(t.homeClassId);
       tr.innerHTML = '<th class="row-teacher">' +
         '<a href="#" class="teacher-name-link" data-teacher-id="' + t.id + '" title="View profile">' + escapeHtml(t.name) + '</a>' +
-        '<div class="row-sub">' + escapeHtml(t.status) + (cls ? ' · ' + cls.name : '') + '</div></th>';
+        '<div class="row-sub">' + escapeHtml(stageDisplayLabel(t.status)) + (cls ? ' · ' + cls.name : '') + '</div></th>';
       sundays.forEach(s => {
         const td = document.createElement('td');
         if (!s.inSession) {
@@ -5385,8 +5414,8 @@
   function renderProfileCardHTML(t, cls) {
     const memberLabel = t.lefcMember ? 'Yes' : '—';
     const yearLabel   = t.yearStartedAttending ? String(t.yearStartedAttending) : '—';
-    const seriesLabel = t.seriesTaughtCount
-      ? t.seriesTaughtCount + (t.seriesTaughtCount === '0' ? ' series' : ' series')
+    const weeksLabel = t.weeksTaught
+      ? '~' + t.weeksTaught + ' weeks'
       : (t.hasTaughtBefore ? 'Some' : '—');
     const homeClass   = cls ? cls.name : '—';
     const tagsList = (arr) => (arr && arr.length)
@@ -5394,13 +5423,13 @@
       : '<p style="font-size:.8rem;color:var(--text-muted);font-style:italic;">None listed.</p>';
     return [
       '<h2>' + escapeHtml(t.name || '—') + '</h2>',
-      '<div class="profile-sub">' + escapeHtml(t.status || '') + (cls ? ' · ' + escapeHtml(cls.name) : '') + '</div>',
+      '<div class="profile-sub">' + escapeHtml(stageDisplayLabel(t.status)) + (cls ? ' · ' + escapeHtml(cls.name) : '') + '</div>',
       '<dl class="profile-meta">',
       '  <div><dt>Email</dt><dd>' + (t.email ? '<a href="mailto:' + escapeHtml(t.email) + '" style="color:var(--steel-blue);">' + escapeHtml(t.email) + '</a>' : '—') + '</dd></div>',
       '  <div><dt>LEFC Member</dt><dd>' + memberLabel + '</dd></div>',
       '  <div><dt>Attending Since</dt><dd>' + yearLabel + '</dd></div>',
       '  <div><dt>Home Class</dt><dd>' + escapeHtml(homeClass) + '</dd></div>',
-      '  <div><dt>Series Taught</dt><dd>' + escapeHtml(seriesLabel) + '</dd></div>',
+      '  <div><dt>Weeks Taught</dt><dd>' + escapeHtml(weeksLabel) + '</dd></div>',
       '</dl>',
       t.bio ? '<div class="profile-section"><h4>Bio</h4><p>' + escapeHtml(t.bio) + '</p></div>' : '',
       '<div class="profile-section"><h4>Wants to teach in</h4>' + tagsList(t.teachingContexts) + '</div>',
@@ -5423,7 +5452,7 @@
     teacherSel.innerHTML = '<option value="">— Choose a teacher —</option>';
     DataStore.listTeachers().forEach(t => {
       const o = document.createElement('option');
-      o.value = t.id; o.textContent = t.name + ' (' + t.status + ')';
+      o.value = t.id; o.textContent = t.name + ' (' + stageDisplayLabel(t.status) + ')';
       teacherSel.appendChild(o);
     });
 
