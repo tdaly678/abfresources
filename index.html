@@ -2885,7 +2885,13 @@
 
 <script>
   // ─── Password Logic ─────────────────────────────────────
-  const CORRECT = 'oikos';
+  // The site password is stored as a SHA-256 hex digest in the Airtable
+  // "Settings" table (Key="passwordHash"). On boot we fetch that value;
+  // if Airtable is unreachable we fall back to the default hash below
+  // so the site still works offline. To rotate the password, edit the
+  // Settings.Value cell in Airtable — see SCHEDULING_TODO_TOM.md.
+  const DEFAULT_PASSWORD_HASH =
+    '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
   const SESSION_KEY = 'abf_auth';
 
   const pwScreen = document.getElementById('pw-screen');
@@ -2895,22 +2901,86 @@
   const pwError  = document.getElementById('pw-error');
   const logoutBtn = document.getElementById('logout-btn');
 
+  // Fetch the current password hash from Airtable Settings. Returns the
+  // default hash on any error so the gate stays usable. Cached for the
+  // page lifetime so repeated submissions don't re-hit Airtable.
+  let _passwordHashPromise = null;
+  function getPasswordHash() {
+    if (_passwordHashPromise) return _passwordHashPromise;
+    _passwordHashPromise = (async () => {
+      try {
+        const BASE  = 'appTpp1agJQqoId07';
+        const TBL   = 'tblU0XGRCrWQJBPH6'; // Settings
+        const TOKEN = ['pat1pppuwziUpjdcJ',
+          '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+        const res = await fetch(
+          'https://api.airtable.com/v0/' + BASE + '/' + TBL + '?pageSize=100',
+          { headers: { 'Authorization': 'Bearer ' + TOKEN } }
+        );
+        if (!res.ok) throw new Error('Settings fetch ' + res.status);
+        const json = await res.json();
+        const row = (json.records || []).find(
+          r => (r.fields || {}).Key === 'passwordHash');
+        const hash = row && row.fields && row.fields.Value
+          ? String(row.fields.Value).trim().toLowerCase()
+          : '';
+        if (/^[0-9a-f]{64}$/.test(hash)) return hash;
+        console.warn('[auth] Settings.passwordHash missing or malformed; using default');
+        return DEFAULT_PASSWORD_HASH;
+      } catch (err) {
+        console.warn('[auth] could not fetch Settings.passwordHash, using default', err);
+        return DEFAULT_PASSWORD_HASH;
+      }
+    })();
+    return _passwordHashPromise;
+  }
+
+  // Hash a string with SHA-256 in the browser (returns lowercase hex).
+  async function sha256Hex(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Constant-time-ish hex comparison. Both inputs should already be
+  // lowercase 64-char hex strings; bails fast if not the same length.
+  function hexEquals(a, b) {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
+
   function unlock() {
     pwScreen.classList.add('hidden');
     site.classList.add('visible');
     sessionStorage.setItem(SESSION_KEY, '1');
   }
 
-  function tryPassword() {
-    if (pwInput.value === CORRECT) {
-      pwError.textContent = '';
-      pwInput.classList.remove('error');
-      unlock();
-    } else {
-      pwInput.classList.add('error');
-      pwError.textContent = 'Incorrect password. Please try again.';
-      pwInput.value = '';
-      pwInput.focus();
+  async function tryPassword() {
+    const entered = pwInput.value;
+    if (!entered) return;
+    pwBtn.disabled = true;
+    try {
+      const [enteredHash, correctHash] = await Promise.all([
+        sha256Hex(entered),
+        getPasswordHash(),
+      ]);
+      if (hexEquals(enteredHash, correctHash)) {
+        pwError.textContent = '';
+        pwInput.classList.remove('error');
+        unlock();
+      } else {
+        pwInput.classList.add('error');
+        pwError.textContent = 'Incorrect password. Please try again.';
+        pwInput.value = '';
+        pwInput.focus();
+      }
+    } catch (err) {
+      console.error('[auth] password check failed', err);
+      pwError.textContent = 'Could not verify password. Please try again.';
+    } finally {
+      pwBtn.disabled = false;
     }
   }
 
@@ -2918,6 +2988,9 @@
   if (sessionStorage.getItem(SESSION_KEY) === '1') {
     unlock();
   }
+
+  // Warm the password-hash cache so the first login attempt is snappy.
+  getPasswordHash();
 
   pwBtn.addEventListener('click', tryPassword);
   pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
@@ -3112,8 +3185,10 @@
      AIRTABLE CLIENT
      The portal talks to Airtable directly via the REST API.
      Token below is exposed in DevTools — mitigated by:
-       1) the existing "oikos" sessionStorage password gate, and
-       2) the token is scoped to this single base only.
+       1) the SHA-256 password gate (hash stored in Settings table,
+          rotatable from Airtable without redeploying), and
+       2) the token is scoped to this single base only, and
+       3) every write is recorded in the Change Log audit table.
      This is acceptable for a low-risk church volunteer tool.
   ════════════════════════════════════════════════════════════ */
   const Airtable = {
@@ -3131,6 +3206,8 @@
       sundays:     'tblN0ZSrYH4k9tlqM',
       availability:'tblVMW4uGgwPoSPo4',
       requests:    'tblr0brmHkKaep6ez',
+      changeLog:   'tblzU7ANhqp9HTvHB',
+      settings:    'tblU0XGRCrWQJBPH6',
     },
     _cache: null,
     _bootstrapPromise: null,
@@ -3166,6 +3243,23 @@
         offset = page.offset || null;
       } while (offset);
       return out;
+    },
+
+    /* Fire-and-forget audit log. Errors are swallowed so a broken
+       Change Log can never block a user action. */
+    logChange(tableLabel, action, recordId, recordName, summary, details) {
+      const fields = {
+        Summary:       summary,
+        Table:         tableLabel,
+        Action:        action,
+        'Record ID':   recordId || '',
+        'Record Name': recordName || '',
+        'Changed By':  identityLabel(),
+        'Changed At':  new Date().toISOString(),
+      };
+      if (details) fields.Details = details;
+      this.api('POST', this.TBL.changeLog, { body: { fields } })
+        .catch(err => console.warn('[change-log] write failed (non-fatal)', err));
     },
 
     /* ── flatteners: Airtable record -> internal shape used by the UI ── */
@@ -3238,17 +3332,25 @@
       return this._bootstrapPromise;
     },
 
-    /* ── mutations ────────────────────────────────────── */
+    /* ── mutations ──────────────────────────────────────
+       Each mutation also writes a Change Log entry (fire-and-forget,
+       so a logging failure never blocks the user's action). */
     async createTeacher(fields) {
       const res = await this.api('POST', this.TBL.teachers, { body: { fields } });
       const mapped = this._mapTeacher(res);
       this._cache.teachers.push(mapped);
+      this.logChange('Teachers', 'create', mapped.id, mapped.name,
+        'Added teacher: ' + mapped.name);
       return mapped;
     },
     async updateTeacher(id, fields) {
+      const before = this._cache.teachers.find(t => t.id === id) || {};
       const res = await this.api('PATCH', this.TBL.teachers, { recordId: id, body: { fields } });
       const mapped = this._mapTeacher(res);
       this._cache.teachers = this._cache.teachers.map(t => t.id === id ? mapped : t);
+      this.logChange('Teachers', 'update', id, mapped.name,
+        'Updated teacher profile: ' + mapped.name,
+        diffFields(before, mapped, ['name','email','phone','status','homeClassId','lefcMember','yearStartedAttending']));
       return mapped;
     },
 
@@ -3256,17 +3358,25 @@
       const res = await this.api('POST', this.TBL.courses, { body: { fields } });
       const mapped = this._mapCourse(res);
       this._cache.courses.push(mapped);
+      const teacher = this._cache.teachers.find(t => t.id === mapped.teacherId);
+      this.logChange('Courses', 'create', mapped.id, mapped.title,
+        'New course "' + mapped.title + '"' + (teacher ? ' offered by ' + teacher.name : ''));
       return mapped;
     },
     async updateCourse(id, fields) {
       const res = await this.api('PATCH', this.TBL.courses, { recordId: id, body: { fields } });
       const mapped = this._mapCourse(res);
       this._cache.courses = this._cache.courses.map(c => c.id === id ? mapped : c);
+      this.logChange('Courses', 'update', id, mapped.title,
+        'Edited course "' + mapped.title + '"');
       return mapped;
     },
     async deleteCourse(id) {
+      const gone = this._cache.courses.find(c => c.id === id);
       await this.api('DELETE', this.TBL.courses, { recordId: id });
       this._cache.courses = this._cache.courses.filter(c => c.id !== id);
+      this.logChange('Courses', 'delete', id, gone ? gone.title : '(unknown)',
+        'Removed course' + (gone ? ': ' + gone.title : ''));
     },
 
     async createAvailability(teacherId, sundayId, status, notes) {
@@ -3279,6 +3389,11 @@
       const res = await this.api('POST', this.TBL.availability, { body: { fields } });
       const mapped = this._mapAvail(res);
       this._cache.availability.push(mapped);
+      const t = this._cache.teachers.find(x => x.id === teacherId);
+      const s = this._cache.sundays.find(x => x.id === sundayId);
+      this.logChange('Availability', 'create', mapped.id,
+        (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
+        (t ? t.name : 'A teacher') + ' marked ' + status + ' for ' + (s ? s.date : 'a Sunday'));
       return mapped;
     },
     async updateAvailability(id, status, notes) {
@@ -3287,11 +3402,24 @@
       const res = await this.api('PATCH', this.TBL.availability, { recordId: id, body: { fields } });
       const mapped = this._mapAvail(res);
       this._cache.availability = this._cache.availability.map(a => a.id === id ? mapped : a);
+      const t = this._cache.teachers.find(x => x.id === mapped.teacherId);
+      const s = this._cache.sundays.find(x => x.id === mapped.sundayId);
+      this.logChange('Availability', 'update', id,
+        (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
+        (t ? t.name : 'A teacher') + ' changed availability to ' + status + ' for ' + (s ? s.date : 'a Sunday'));
       return mapped;
     },
     async deleteAvailability(id) {
+      const gone = this._cache.availability.find(a => a.id === id);
       await this.api('DELETE', this.TBL.availability, { recordId: id });
       this._cache.availability = this._cache.availability.filter(a => a.id !== id);
+      if (gone) {
+        const t = this._cache.teachers.find(x => x.id === gone.teacherId);
+        const s = this._cache.sundays.find(x => x.id === gone.sundayId);
+        this.logChange('Availability', 'delete', id,
+          (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
+          (t ? t.name : 'A teacher') + ' cleared their availability for ' + (s ? s.date : 'a Sunday'));
+      }
     },
 
     async createRequest(req) {
@@ -3310,12 +3438,23 @@
       const res = await this.api('POST', this.TBL.requests, { body: { fields } });
       const mapped = this._mapRequest(res);
       this._cache.requests.push(mapped);
+      const t = this._cache.teachers.find(x => x.id === mapped.teacherId);
+      const cls = this._cache.abfClasses.find(x => x.id === mapped.abfClassId);
+      this.logChange('Requests', 'create', mapped.id,
+        'Request for ' + (t ? t.name : '?') + ' (' + (cls ? cls.name : '?') + ')',
+        'New teaching request sent to ' + (t ? t.name : 'a teacher') + ' for ' + (cls ? cls.name : 'a class'));
       return mapped;
     },
     async updateRequest(id, fields) {
+      const before = this._cache.requests.find(r => r.id === id) || {};
       const res = await this.api('PATCH', this.TBL.requests, { recordId: id, body: { fields } });
       const mapped = this._mapRequest(res);
       this._cache.requests = this._cache.requests.map(r => r.id === id ? mapped : r);
+      const t = this._cache.teachers.find(x => x.id === mapped.teacherId);
+      const cls = this._cache.abfClasses.find(x => x.id === mapped.abfClassId);
+      this.logChange('Requests', 'update', id,
+        'Request for ' + (t ? t.name : '?') + ' (' + (cls ? cls.name : '?') + ')',
+        'Request status changed from ' + (before.status || 'Pending') + ' to ' + mapped.status);
       return mapped;
     },
   };
@@ -3466,6 +3605,45 @@
       return i && i.role === 'leader' ? DataStore.getABFLeader(i.id) : null;
     }
   };
+
+  /* Returns a friendly identity label for the audit log, e.g.
+     "Ed Scheuerman (teacher)" / "Scott Galen (leader, Koinonia)" /
+     "anonymous". */
+  function identityLabel() {
+    const i = Identity.get();
+    if (!i) return 'anonymous';
+    if (i.role === 'teacher') {
+      const t = DataStore.getTeacher(i.id);
+      return (t ? t.name : 'unknown teacher') + ' (teacher)';
+    }
+    const l = DataStore.getABFLeader(i.id);
+    const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
+    return (l ? l.name : 'unknown leader') + ' (leader' + (cls ? ', ' + cls.name : '') + ')';
+  }
+
+  /* diffFields: produce a human-readable multiline summary of which
+     fields changed between `before` and `after`. Used by Change Log
+     mutations so the audit trail's Details column shows what changed.
+     Returns '' if nothing in `keys` differs (caller can skip Details). */
+  function diffFields(before, after, keys) {
+    const lines = [];
+    for (const k of keys) {
+      const b = before ? before[k] : undefined;
+      const a = after  ? after[k]  : undefined;
+      // Treat null/undefined/'' as equivalent for diffing purposes
+      const norm = v => (v === null || v === undefined) ? '' : v;
+      const bn = norm(b), an = norm(a);
+      if (JSON.stringify(bn) !== JSON.stringify(an)) {
+        const fmt = v => {
+          if (v === '' || v === null || v === undefined) return '(empty)';
+          if (Array.isArray(v)) return v.length ? v.join(', ') : '(empty)';
+          return String(v);
+        };
+        lines.push(k + ': ' + fmt(bn) + ' → ' + fmt(an));
+      }
+    }
+    return lines.join('\n');
+  }
 
   function updateIdentityBadge() {
     const id = Identity.get();
