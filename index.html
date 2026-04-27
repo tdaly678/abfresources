@@ -2435,11 +2435,6 @@
               </label>
             </div>
             <div class="form-row">
-              <label class="form-label">In what contexts do you intend to teach?</label>
-              <div class="chip-list" id="prof-contexts"></div>
-              <p class="form-help">Select any that apply. Leaders can filter by these when planning.</p>
-            </div>
-            <div class="form-row">
               <label class="form-label" for="prof-weeks-taught">Approximately how many weeks have you taught?</label>
               <select id="prof-weeks-taught" class="form-input">
                 <option value="">— Select —</option>
@@ -3096,10 +3091,6 @@
           <input type="checkbox" id="reg-member" />
           <span>Yes, I'm a member</span>
         </label>
-      </div>
-      <div class="form-row">
-        <label class="form-label">In what contexts do you intend to teach?</label>
-        <div class="chip-list" id="reg-contexts"></div>
       </div>
       <div class="form-row">
         <label class="form-label" for="reg-weeks-taught">Approximately how many weeks have you taught?</label>
@@ -3939,7 +3930,6 @@
         Bio:     teacher.bio || '',
         'Year Started Attending': teacher.yearStartedAttending || null,
         'LEFC Member':            !!teacher.lefcMember,
-        'Teaching Contexts':      teacher.teachingContexts || [],
         'Has Taught Before':      !!teacher.hasTaughtBefore,
         'Weeks Taught':           teacher.weeksTaught || null,
         'Past Venues':            teacher.pastVenues || [],
@@ -5002,7 +4992,6 @@
     if (profWeeks) {
       profWeeks.value = t.weeksTaught || (t.hasTaughtBefore ? '1-9' : (t.hasTaughtBefore === false ? '0' : ''));
     }
-    renderChipList(document.getElementById('prof-contexts'), 'prof-ctx', t.teachingContexts);
     renderChipList(document.getElementById('prof-venues'),   'prof-ven', t.pastVenues);
     const profOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
     renderChipList(document.getElementById('prof-other-venues'), 'prof-ov', profOv.chips, OTHER_VENUE_OPTIONS);
@@ -5040,7 +5029,6 @@
         phone:  document.getElementById('prof-phone').value.trim(),
         yearStartedAttending: parseInt(document.getElementById('prof-year').value, 10) || null,
         lefcMember:      !!document.getElementById('prof-member').checked,
-        teachingContexts: readChipList(document.getElementById('prof-contexts'), 'prof-ctx'),
         weeksTaught:     document.getElementById('prof-weeks-taught').value || '',
         hasTaughtBefore: document.getElementById('prof-weeks-taught').value !== '0' && !!document.getElementById('prof-weeks-taught').value,
         pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
@@ -5115,7 +5103,6 @@
     if (regWeeks) {
       regWeeks.value = t.weeksTaught || (t.hasTaughtBefore === true ? '1-9' : (t.hasTaughtBefore === false ? '0' : ''));
     }
-    renderChipList(document.getElementById('reg-contexts'), 'reg-ctx', t.teachingContexts || []);
     renderChipList(document.getElementById('reg-venues'),   'reg-ven', t.pastVenues || []);
     const regOv = parseChipsAndExtras(t.otherVenueNotes, OTHER_VENUE_OPTIONS);
     renderChipList(document.getElementById('reg-other-venues'), 'reg-ov', regOv.chips, OTHER_VENUE_OPTIONS);
@@ -5172,7 +5159,6 @@
         homeClassId: homeEl ? homeEl.value : '',
         yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
         lefcMember:      !!document.getElementById('reg-member').checked,
-        teachingContexts: readChipList(document.getElementById('reg-contexts'), 'reg-ctx'),
         weeksTaught:     weeksVal,
         hasTaughtBefore: weeksVal !== '0' && !!weeksVal,
         pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
@@ -5432,7 +5418,6 @@
       '  <div><dt>Weeks Taught</dt><dd>' + escapeHtml(weeksLabel) + '</dd></div>',
       '</dl>',
       t.bio ? '<div class="profile-section"><h4>Bio</h4><p>' + escapeHtml(t.bio) + '</p></div>' : '',
-      '<div class="profile-section"><h4>Wants to teach in</h4>' + tagsList(t.teachingContexts) + '</div>',
       '<div class="profile-section"><h4>Has taught in</h4>' + tagsList(t.pastVenues) +
         (t.otherVenueNotes ? '<p style="margin-top:.4rem;">' + escapeHtml(t.otherVenueNotes) + '</p>' : '') + '</div>',
       t.training ? '<div class="profile-section"><h4>Training</h4><p>' + escapeHtml(t.training) + '</p></div>' : '',
