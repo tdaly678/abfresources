@@ -1277,7 +1277,9 @@
       background: rgba(52,45,37,.55);
       display: none;
       align-items: center; justify-content: center;
-      z-index: 1000;
+      /* Must sit above #id-screen (z-index 9998) so the "Add yourself as a teacher"
+         flow from the identity picker is visible. */
+      z-index: 9999;
       padding: 1rem;
     }
     .sched-modal.visible { display: flex; }
