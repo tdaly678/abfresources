@@ -1707,6 +1707,76 @@
     .fb-agg-pm-same { background: #cfc4a0; color: var(--dark-brown); }
     .fb-agg-pm-more { background: #5a7a3a; }
 
+    /* ─── Browse Templates: cards + preview overlay ──────── */
+    .fb-tpl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .fb-tpl-card {
+      background: #fff; border: 1.5px solid var(--cream-border);
+      border-radius: 12px; padding: 1.1rem 1.2rem;
+      display: flex; flex-direction: column; gap: .55rem;
+      transition: border-color .12s, box-shadow .12s, transform .12s;
+      box-shadow: 0 1px 3px rgba(50,40,30,.05);
+    }
+    .fb-tpl-card:hover {
+      border-color: var(--gold);
+      box-shadow: 0 4px 12px rgba(50,40,30,.1);
+      transform: translateY(-2px);
+    }
+    .fb-tpl-card h3 {
+      font-size: 1rem; font-weight: 800; color: var(--dark-brown);
+      margin: 0; line-height: 1.35;
+    }
+    .fb-tpl-card .fb-tpl-desc {
+      font-size: .82rem; color: var(--text); line-height: 1.5;
+      margin: 0;
+    }
+    .fb-tpl-card .fb-tpl-meta {
+      display: flex; gap: .8rem; flex-wrap: wrap;
+      font-size: .78rem; color: var(--text-muted);
+      padding: .35rem 0;
+      border-top: 1px dashed var(--cream-border);
+      border-bottom: 1px dashed var(--cream-border);
+    }
+    .fb-tpl-card .fb-tpl-meta strong { color: var(--terra); font-weight: 800; }
+    .fb-tpl-card .fb-tpl-typechips {
+      display: flex; flex-wrap: wrap; gap: .3rem;
+    }
+    .fb-tpl-card .fb-tpl-typechip {
+      display: inline-block;
+      padding: .12rem .55rem;
+      background: var(--cream); border: 1px solid var(--cream-border);
+      border-radius: 999px;
+      font-size: .68rem; color: var(--text-muted); font-weight: 600;
+    }
+    .fb-tpl-card .fb-tpl-actions { margin-top: auto; }
+    .fb-tpl-card .btn { width: 100%; }
+
+    /* Preview overlay banner — pinned to top of #public-feedback when previewing */
+    #public-feedback .pf-preview-banner {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: .5rem;
+      background: var(--dark-brown); color: #fff;
+      padding: .65rem 1rem;
+      margin: -2.2rem -1.5rem 1.4rem;
+      border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+    }
+    #public-feedback .pf-preview-close {
+      background: transparent; border: 1.5px solid #fff;
+      color: #fff; padding: .35rem .75rem;
+      border-radius: 6px; font-size: .8rem; font-weight: 700;
+      cursor: pointer; transition: all .12s;
+    }
+    #public-feedback .pf-preview-close:hover { background: #fff; color: var(--dark-brown); }
+    #public-feedback .pf-preview-tag {
+      font-size: .76rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .04em;
+      color: var(--gold);
+    }
+
     /* ─── Public feedback form (no chrome, deep-linkable) ── */
     #public-feedback {
       position: fixed; inset: 0; z-index: 9999;
@@ -3341,12 +3411,17 @@
 
       <div class="sched-subnav" id="fb-subnav">
         <button class="sched-subnav-btn active" data-fb-sub="open">Open Surveys</button>
+        <button class="sched-subnav-btn" data-fb-sub="templates">Browse Templates</button>
         <button class="sched-subnav-btn" data-fb-sub="mine" id="fb-tab-mine" style="display:none;">My Surveys</button>
         <button class="sched-subnav-btn" data-fb-sub="create" id="fb-tab-create" style="display:none;">Create Survey</button>
       </div>
 
       <div class="sched-pane active" id="fb-pane-open">
         <div id="fb-open-list"></div>
+      </div>
+
+      <div class="sched-pane" id="fb-pane-templates">
+        <div id="fb-templates-list"></div>
       </div>
 
       <div class="sched-pane" id="fb-pane-mine">
@@ -6445,9 +6520,139 @@
     });
     const pane = document.getElementById('fb-pane-' + sub);
     if (pane) pane.classList.add('active');
-    if (sub === 'open')   renderFbOpenList();
-    if (sub === 'mine')   renderFbMineList();
-    if (sub === 'create') populateFbCreateSelects();
+    if (sub === 'open')      renderFbOpenList();
+    if (sub === 'templates') renderFbTemplatesList();
+    if (sub === 'mine')      renderFbMineList();
+    if (sub === 'create')    populateFbCreateSelects();
+  }
+
+  /* ── Browse Templates: list + preview overlay ────────────
+     Anyone (signed in or not) can browse the available templates
+     and click Preview to see exactly what respondents would see. */
+  function fbEstimateMinutes(qs) {
+    let sec = 30; // name + email overhead
+    (qs || []).forEach(q => {
+      if (q.type === 'long_text' || q.type === 'textarea') sec += 35;
+      else if (q.type === 'text') sec += 22;
+      else if (q.type === 'plus_minus') sec += 8 * Math.max(1, (q.components || []).length);
+      else if (q.type === 'multi_select') sec += 14;
+      else if (q.type === 'rating' && (q.max || 5) > 5) sec += 10;
+      else sec += 8;
+    });
+    return Math.max(1, Math.round(sec / 60));
+  }
+
+  function renderFbTemplatesList() {
+    const host = document.getElementById('fb-templates-list');
+    if (!host) return;
+    const tpls = (DataStore.listFeedbackTemplates() || []).slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    if (!tpls.length) {
+      host.innerHTML = '<div class="fb-empty">No templates available yet.</div>';
+      return;
+    }
+    host.innerHTML =
+      '<div class="sched-notice">' +
+        '<strong>What does each survey look like?</strong> Click <em>Preview</em> on any template to see the actual form respondents would fill out — same styling, same question types, just no Submit. Helpful for teachers picking a template, and for ABF members curious what kind of feedback they\'d give.' +
+      '</div>' +
+      '<div class="fb-tpl-grid">' +
+      tpls.map(t => {
+        const qCount = (t.questions || []).length;
+        const est = fbEstimateMinutes(t.questions);
+        // Lightweight summary of question types for the card
+        const typeCounts = {};
+        (t.questions || []).forEach(q => { typeCounts[q.type || 'text'] = (typeCounts[q.type || 'text'] || 0) + 1; });
+        const typeChips = Object.entries(typeCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([k, v]) => '<span class="fb-tpl-typechip">' + v + ' ' + escapeHtml(fbTypeLabel(k)) + '</span>')
+          .join('');
+        return '<div class="fb-tpl-card">' +
+          '<h3>' + escapeHtml(t.name) + '</h3>' +
+          (t.description ? '<p class="fb-tpl-desc">' + escapeHtml(t.description) + '</p>' : '') +
+          '<div class="fb-tpl-meta">' +
+            '<span class="fb-tpl-stat"><strong>' + qCount + '</strong> questions</span>' +
+            '<span class="fb-tpl-stat">~<strong>' + est + '</strong> min</span>' +
+          '</div>' +
+          (typeChips ? '<div class="fb-tpl-typechips">' + typeChips + '</div>' : '') +
+          '<div class="fb-tpl-actions">' +
+            '<button type="button" class="btn btn-primary" data-fb-tpl-preview="' + t.id + '">Preview this survey</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+      '</div>';
+    host.querySelectorAll('[data-fb-tpl-preview]').forEach(btn => {
+      btn.onclick = () => openFbTemplatePreview(btn.dataset.fbTplPreview);
+    });
+  }
+
+  function fbTypeLabel(t) {
+    return ({
+      rating:        'rating',
+      single_choice: 'choice',
+      choice:        'choice',
+      multi_select:  'multi-select',
+      plus_minus:    'component dial',
+      long_text:     'long answer',
+      textarea:      'long answer',
+      text:          'short answer',
+      date:          'date',
+    })[t] || t;
+  }
+
+  /* Open a fullscreen preview of a template using the same #public-feedback
+     overlay that real survey takers see. Submission is disabled and a
+     "Close preview" button returns to the portal. */
+  function openFbTemplatePreview(tplId) {
+    const tpl = DataStore.getFeedbackTemplate(tplId);
+    if (!tpl || !Array.isArray(tpl.questions)) return;
+    const pf   = document.getElementById('public-feedback');
+    const host = document.getElementById('public-feedback-content');
+    if (!pf || !host) return;
+
+    const banner =
+      '<div class="pf-preview-banner">' +
+        '<button type="button" class="pf-preview-close" id="pf-preview-close">← Close preview</button>' +
+        '<span class="pf-preview-tag">Template Preview · won\'t be saved</span>' +
+      '</div>';
+
+    const formHtml =
+      '<h1>' + escapeHtml(tpl.name) + '</h1>' +
+      (tpl.description ? '<p class="pf-sub">' + escapeHtml(tpl.description) + '</p>' : '') +
+      '<p class="pf-sub" style="font-style:italic;">This is a preview. ' +
+        tpl.questions.length + ' question' + (tpl.questions.length === 1 ? '' : 's') +
+        ' · No data is saved.</p>' +
+      '<form class="pf-card" autocomplete="off" onsubmit="return false;">' +
+        '<div class="pf-question">' +
+          '<label class="pf-q-label">Your name<span class="pf-q-required">*</span></label>' +
+          '<input type="text" class="pf-input" placeholder="First and last name" disabled />' +
+        '</div>' +
+        '<div class="pf-question">' +
+          '<label class="pf-q-label">Your email<span class="pf-q-required">*</span></label>' +
+          '<input type="email" class="pf-input" placeholder="So your teacher can follow up if helpful" disabled />' +
+        '</div>' +
+        tpl.questions.map(q => '<div class="pf-question">' + pfRenderQuestion(q) + '</div>').join('') +
+        '<div class="pf-submit-row">' +
+          '<button type="button" class="pf-submit-btn" disabled>Submit feedback</button>' +
+          '<span class="pf-status">Preview only — Submit is disabled.</span>' +
+        '</div>' +
+      '</form>';
+
+    host.innerHTML = banner + formHtml;
+    pfWireRatingButtons(host); // Buttons still feel interactive in preview — they just don't submit
+    pf.style.display = '';
+    document.body.style.overflow = 'hidden';
+
+    const close = () => {
+      pf.style.display = 'none';
+      host.innerHTML = '';
+      document.body.style.overflow = '';
+    };
+    document.getElementById('pf-preview-close').onclick = close;
+    // Esc closes preview
+    const onEsc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } };
+    document.addEventListener('keydown', onEsc);
+    // Reset scroll
+    pf.scrollTop = 0;
   }
 
   function setupFbSubnav() {
