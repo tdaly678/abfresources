@@ -18,6 +18,8 @@
       --white:       #FFFFFF;
       --text:        #2a2318;
       --text-muted:  #6b6050;
+      --cream:       #f7eed7;
+      --cream-border:#ddcca5;
       --radius:      10px;
       --shadow:      0 2px 12px rgba(52,45,37,.10);
     }
@@ -1754,20 +1756,22 @@
     .fb-tpl-card .fb-tpl-actions { margin-top: auto; }
     .fb-tpl-card .btn { width: 100%; }
 
-    /* Preview overlay banner — pinned to top of #public-feedback when previewing */
+    /* Preview overlay banner — full-viewport-width bar fixed at the top
+       of #public-feedback when previewing a template. The fixed-bg in
+       #public-feedback (cream) ensures it's fully opaque underneath. */
+    #public-feedback.pf-previewing { padding-top: 3.2rem; }
     #public-feedback .pf-preview-banner {
-      position: sticky; top: 0; z-index: 5;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
       display: flex; justify-content: space-between; align-items: center;
-      gap: .5rem;
+      gap: .8rem;
       background: var(--dark-brown); color: #fff;
-      padding: .65rem 1rem;
-      margin: -2.2rem -1.5rem 1.4rem;
-      border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+      padding: .7rem 1.25rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,.18);
     }
     #public-feedback .pf-preview-close {
       background: transparent; border: 1.5px solid #fff;
-      color: #fff; padding: .35rem .75rem;
-      border-radius: 6px; font-size: .8rem; font-weight: 700;
+      color: #fff; padding: .4rem .85rem;
+      border-radius: 6px; font-size: .82rem; font-weight: 700;
       cursor: pointer; transition: all .12s;
     }
     #public-feedback .pf-preview-close:hover { background: #fff; color: var(--dark-brown); }
@@ -1775,6 +1779,13 @@
       font-size: .76rem; font-weight: 800;
       text-transform: uppercase; letter-spacing: .04em;
       color: var(--gold);
+      white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      #public-feedback.pf-previewing { padding-top: 3.6rem; }
+      #public-feedback .pf-preview-banner { padding: .55rem .75rem; }
+      #public-feedback .pf-preview-close { padding: .3rem .6rem; font-size: .76rem; }
+      #public-feedback .pf-preview-tag { font-size: .68rem; }
     }
 
     /* ─── Public feedback form (no chrome, deep-linkable) ── */
@@ -6640,10 +6651,12 @@
     host.innerHTML = banner + formHtml;
     pfWireRatingButtons(host); // Buttons still feel interactive in preview — they just don't submit
     pf.style.display = '';
+    pf.classList.add('pf-previewing');
     document.body.style.overflow = 'hidden';
 
     const close = () => {
       pf.style.display = 'none';
+      pf.classList.remove('pf-previewing');
       host.innerHTML = '';
       document.body.style.overflow = '';
     };
