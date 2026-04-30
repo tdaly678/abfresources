@@ -1727,69 +1727,112 @@
       font-size: .85rem; color: var(--text-muted); margin-bottom: 1.4rem;
       line-height: 1.55;
     }
+    /* Tokens used only inside the public form to give fields a clearer,
+       more "tappable" definition than the rest of the portal needs. */
+    #public-feedback {
+      --pf-field-bg: #ffffff;
+      --pf-field-border: #c9b89a;        /* darker than --cream-border for clearer field edges */
+      --pf-field-border-strong: #ad9a7a; /* hover/active */
+      --pf-field-shadow: inset 0 1px 2px rgba(50,40,30,.06);
+      --pf-field-focus-ring: 0 0 0 3px rgba(196,158,84,.22);
+      --pf-button-shadow: 0 1px 2px rgba(50,40,30,.08);
+    }
     #public-feedback .pf-card {
       background: #fff; border: 1px solid var(--cream-border);
-      border-radius: 14px; padding: 1.3rem 1.4rem;
-      box-shadow: 0 2px 8px rgba(50,40,30,.06);
+      border-radius: 14px; padding: 1.4rem 1.5rem;
+      box-shadow: 0 2px 10px rgba(50,40,30,.07);
     }
     #public-feedback .pf-question {
-      margin-bottom: 1.15rem;
-      padding-bottom: 1.15rem;
-      border-bottom: 1px solid var(--cream-border);
+      position: relative;
+      margin-bottom: 1.4rem;
+      padding-bottom: 1.4rem;
+      border-bottom: 1px dashed var(--pf-field-border);
     }
     #public-feedback .pf-question:last-child { border-bottom: none; padding-bottom: 0; }
     #public-feedback .pf-q-label {
-      display: block; font-weight: 700; color: var(--dark-brown);
-      font-size: .92rem; margin-bottom: .35rem; line-height: 1.45;
+      display: block; font-weight: 800; color: var(--dark-brown);
+      font-size: .95rem; margin-bottom: .4rem; line-height: 1.45;
     }
     #public-feedback .pf-q-required { color: var(--terra); margin-left: .25rem; }
     #public-feedback .pf-q-help {
       display: block; font-size: .76rem; color: var(--text-muted);
-      margin-bottom: .55rem; line-height: 1.5;
+      margin-bottom: .65rem; line-height: 1.5;
     }
-    #public-feedback .pf-rating-row {
-      display: flex; gap: .35rem; flex-wrap: wrap;
-    }
-    #public-feedback .pf-rating-btn {
-      flex: 1; min-width: 38px; padding: .55rem .3rem;
-      background: var(--cream); border: 1.5px solid var(--cream-border);
-      border-radius: 8px; cursor: pointer; font-weight: 700;
-      color: var(--dark-brown); font-size: .9rem; transition: all .12s;
-    }
-    #public-feedback .pf-rating-btn:hover { border-color: var(--gold); }
-    #public-feedback .pf-rating-btn.selected {
-      background: var(--gold); border-color: var(--gold);
-      color: #fff;
-    }
-    #public-feedback .pf-rating-scale {
-      display: flex; justify-content: space-between;
-      font-size: .68rem; color: var(--text-muted); margin-top: .35rem;
-    }
-    #public-feedback .pf-choice-row { display: flex; flex-direction: column; gap: .5rem; }
-    #public-feedback .pf-choice {
-      display: flex; align-items: center; gap: .55rem;
-      padding: .55rem .8rem;
-      background: var(--cream); border: 1.5px solid var(--cream-border);
-      border-radius: 8px; cursor: pointer; transition: all .12s;
-      font-size: .88rem; color: var(--text);
-    }
-    #public-feedback .pf-choice:hover { border-color: var(--gold); }
-    #public-feedback .pf-choice.selected {
-      background: #fff8e0; border-color: var(--gold);
-      color: var(--dark-brown); font-weight: 600;
-    }
-    #public-feedback .pf-choice input { accent-color: var(--gold); }
+    /* ── Text inputs & textarea: white background, sturdy border, inset depth ── */
     #public-feedback .pf-input,
     #public-feedback .pf-textarea {
-      width: 100%; padding: .65rem .8rem;
-      background: var(--cream); border: 1.5px solid var(--cream-border);
-      border-radius: 8px; font-size: .92rem; color: var(--text);
+      width: 100%; padding: .75rem .9rem;
+      background: var(--pf-field-bg);
+      border: 1.5px solid var(--pf-field-border);
+      border-radius: 8px; font-size: .95rem; color: var(--text);
       font-family: inherit;
+      box-shadow: var(--pf-field-shadow);
+      transition: border-color .12s, box-shadow .12s, background .12s;
     }
-    #public-feedback .pf-textarea { min-height: 110px; resize: vertical; }
+    #public-feedback .pf-input::placeholder,
+    #public-feedback .pf-textarea::placeholder { color: #b09a82; }
+    #public-feedback .pf-input:hover,
+    #public-feedback .pf-textarea:hover {
+      border-color: var(--pf-field-border-strong);
+    }
+    #public-feedback .pf-textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
     #public-feedback .pf-input:focus,
     #public-feedback .pf-textarea:focus {
       outline: none; border-color: var(--gold); background: #fff;
+      box-shadow: var(--pf-field-focus-ring);
+    }
+    /* ── Rating buttons: clear pill row, bigger tap targets ── */
+    #public-feedback .pf-rating-row {
+      display: flex; gap: .4rem; flex-wrap: wrap;
+    }
+    #public-feedback .pf-rating-btn {
+      flex: 1; min-width: 44px; padding: .65rem .3rem;
+      background: var(--pf-field-bg);
+      border: 1.5px solid var(--pf-field-border);
+      border-radius: 9px; cursor: pointer; font-weight: 800;
+      color: var(--dark-brown); font-size: .98rem;
+      transition: all .12s;
+      box-shadow: var(--pf-button-shadow);
+    }
+    #public-feedback .pf-rating-btn:hover {
+      border-color: var(--gold);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(50,40,30,.11);
+    }
+    #public-feedback .pf-rating-btn.selected {
+      background: var(--gold); border-color: var(--gold);
+      color: #fff;
+      box-shadow: 0 2px 5px rgba(196,158,84,.4);
+    }
+    #public-feedback .pf-rating-scale {
+      display: flex; justify-content: space-between;
+      font-size: .72rem; color: var(--text-muted); margin-top: .45rem;
+      font-style: italic;
+    }
+    /* ── Single-choice radios: defined cards ── */
+    #public-feedback .pf-choice-row { display: flex; flex-direction: column; gap: .5rem; }
+    #public-feedback .pf-choice {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .7rem .9rem;
+      background: var(--pf-field-bg);
+      border: 1.5px solid var(--pf-field-border);
+      border-radius: 8px; cursor: pointer; transition: all .12s;
+      font-size: .9rem; color: var(--text);
+      box-shadow: var(--pf-button-shadow);
+    }
+    #public-feedback .pf-choice:hover {
+      border-color: var(--pf-field-border-strong);
+      background: #fffaf0;
+    }
+    #public-feedback .pf-choice.selected {
+      background: #fff5d6; border-color: var(--gold);
+      color: var(--dark-brown); font-weight: 700;
+      box-shadow: 0 2px 5px rgba(196,158,84,.25);
+    }
+    #public-feedback .pf-choice input {
+      accent-color: var(--gold);
+      width: 1.05rem; height: 1.05rem;
+      flex-shrink: 0;
     }
     #public-feedback .pf-submit-row {
       margin-top: 1.5rem;
@@ -1817,62 +1860,82 @@
     }
     #public-feedback .pf-thanks h1 { margin-bottom: .5rem; }
 
-    /* ─── Multi-select chips ─────────────────────────────── */
+    /* ─── Multi-select chips: definite border + check mark ── */
     #public-feedback .pf-multi-row {
-      display: flex; flex-wrap: wrap; gap: .45rem;
+      display: flex; flex-wrap: wrap; gap: .5rem;
     }
     #public-feedback .pf-multi {
       display: inline-flex; align-items: center; gap: .4rem;
-      padding: .45rem .8rem;
-      background: var(--cream); border: 1.5px solid var(--cream-border);
+      padding: .5rem .9rem;
+      background: var(--pf-field-bg);
+      border: 1.5px solid var(--pf-field-border);
       border-radius: 999px; cursor: pointer; transition: all .12s;
-      font-size: .82rem; color: var(--text);
+      font-size: .85rem; color: var(--text);
       user-select: none;
+      box-shadow: var(--pf-button-shadow);
     }
-    #public-feedback .pf-multi:hover { border-color: var(--gold); }
+    #public-feedback .pf-multi:hover {
+      border-color: var(--pf-field-border-strong);
+      background: #fffaf0;
+    }
     #public-feedback .pf-multi input { display: none; }
     #public-feedback .pf-multi.selected {
-      background: #fff8e0; border-color: var(--gold);
-      color: var(--dark-brown); font-weight: 700;
+      background: #fff5d6; border-color: var(--gold);
+      color: var(--dark-brown); font-weight: 800;
+      box-shadow: 0 2px 5px rgba(196,158,84,.25);
     }
     #public-feedback .pf-multi.selected::before {
-      content: "✓"; color: var(--gold); font-weight: 900;
+      content: "✓"; color: var(--gold); font-weight: 900; font-size: .95rem;
     }
 
     /* ─── Plus / minus component dials ───────────────────── */
     #public-feedback .pf-pm-grid {
       display: flex; flex-direction: column; gap: .55rem;
+      border: 1.5px solid var(--pf-field-border);
+      border-radius: 10px;
+      padding: .55rem;
+      background: #fdfaf3;
+      box-shadow: var(--pf-field-shadow);
     }
     #public-feedback .pf-pm-item {
       display: grid;
       grid-template-columns: 1fr auto;
-      align-items: center; gap: .6rem;
-      padding: .5rem .65rem;
-      background: var(--cream); border: 1.5px solid var(--cream-border);
+      align-items: center; gap: .65rem;
+      padding: .55rem .75rem;
+      background: #fff;
+      border: 1px solid var(--cream-border);
       border-radius: 8px;
     }
     #public-feedback .pf-pm-label {
-      font-size: .85rem; color: var(--text); font-weight: 600;
+      font-size: .9rem; color: var(--dark-brown); font-weight: 700;
     }
     #public-feedback .pf-pm-row {
-      display: inline-flex; gap: .25rem;
+      display: inline-flex; gap: .3rem;
     }
     #public-feedback .pf-pm-btn {
-      padding: .35rem .55rem; min-width: 2.2rem;
-      background: #fff; border: 1.5px solid var(--cream-border);
-      border-radius: 6px; cursor: pointer; transition: all .12s;
-      font-size: .72rem; color: var(--text-muted); font-weight: 700;
+      padding: .42rem .7rem; min-width: 3.4rem;
+      background: var(--pf-field-bg);
+      border: 1.5px solid var(--pf-field-border);
+      border-radius: 7px; cursor: pointer; transition: all .12s;
+      font-size: .76rem; color: var(--text); font-weight: 700;
+      box-shadow: var(--pf-button-shadow);
     }
-    #public-feedback .pf-pm-btn:hover { border-color: var(--gold); color: var(--text); }
+    #public-feedback .pf-pm-btn:hover {
+      border-color: var(--pf-field-border-strong);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(50,40,30,.1);
+    }
     #public-feedback .pf-pm-btn.selected {
       background: var(--gold); border-color: var(--gold); color: #fff;
+      box-shadow: 0 2px 5px rgba(196,158,84,.35);
     }
     #public-feedback .pf-pm-btn[data-pm="-"].selected { background: #b46a3a; border-color: #b46a3a; }
     #public-feedback .pf-pm-btn[data-pm="+"].selected { background: #5a7a3a; border-color: #5a7a3a; }
 
     @media (max-width: 480px) {
-      #public-feedback .pf-pm-item { grid-template-columns: 1fr; gap: .35rem; }
-      #public-feedback .pf-pm-row { justify-content: flex-start; }
+      #public-feedback .pf-pm-item { grid-template-columns: 1fr; gap: .4rem; }
+      #public-feedback .pf-pm-row { justify-content: stretch; }
+      #public-feedback .pf-pm-btn { flex: 1; }
     }
 
     /* ─── Responsive ────────────────────────────────────────────── */
