@@ -961,6 +961,36 @@
       background: var(--terra);
       color: #fff;
     }
+    /* Locked subnav tabs (visible-but-disabled when user can't access) */
+    .sched-subnav-btn.locked {
+      color: rgba(82,73,60,.45);
+      cursor: not-allowed;
+    }
+    .sched-subnav-btn.locked:hover { background: rgba(82,73,60,.06); color: rgba(82,73,60,.55); }
+    .sched-subnav-btn.locked::after {
+      content: "🔒";
+      font-size: .68em;
+      margin-left: .3em;
+      opacity: .55;
+      filter: grayscale(1);
+    }
+    .sched-subnav-btn.locked.active {
+      background: rgba(82,73,60,.12);
+      color: rgba(82,73,60,.55);
+    }
+
+    /* Subnav group with role label */
+    .sched-subnav-group {
+      margin-bottom: .9rem;
+    }
+    .sched-subnav-group-label {
+      font-size: .62rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 .15rem .25rem;
+    }
     .sched-pane { display: none; }
     .sched-pane.active { display: block; }
 
@@ -1066,6 +1096,205 @@
       cursor: not-allowed;
     }
     .sunday-cell.no-class .sun-date { color: var(--text-muted); text-decoration: line-through; }
+
+    /* Two-service split layout for Sunday cells */
+    .sundays-grid-2svc {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    .sunday-cell-2svc {
+      display: block;
+      padding: 0;
+      cursor: default;
+    }
+    .sunday-cell-2svc .sunday-cell-head {
+      padding: .55rem .7rem .35rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(52,45,37,.07);
+    }
+    .sunday-cell-2svc .sunday-cell-head .sun-date {
+      font-size: 1.1rem;
+    }
+    .sunday-cell-2svc .sunday-noclass-msg {
+      padding: .65rem .7rem .8rem;
+      font-size: .72rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .sunday-cell-2svc .svc-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: .5rem;
+      align-items: center;
+      padding: .45rem .7rem;
+      background: transparent;
+      border: none;
+      border-top: 1px solid rgba(52,45,37,.07);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      color: var(--text);
+      transition: background .12s;
+    }
+    .sunday-cell-2svc .svc-row:first-of-type { border-top: none; }
+    .sunday-cell-2svc .svc-row:hover { background: rgba(176,68,52,.05); }
+    .sunday-cell-2svc .svc-tag {
+      font-size: .6rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: rgba(52,45,37,.06);
+      border-radius: 4px;
+      padding: .15rem .4rem;
+    }
+    .sunday-cell-2svc .svc-label {
+      font-size: .74rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .sunday-cell-2svc .svc-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(52,45,37,.18);
+      flex-shrink: 0;
+    }
+    .sunday-cell-2svc .svc-row.status-available  { background: rgba(110,141,58,.10); }
+    .sunday-cell-2svc .svc-row.status-available .svc-dot { background: #6e8d3a; }
+    .sunday-cell-2svc .svc-row.status-tentative  { background: rgba(212,168,76,.13); }
+    .sunday-cell-2svc .svc-row.status-tentative .svc-dot { background: var(--gold); }
+    .sunday-cell-2svc .svc-row.status-unavailable{ background: rgba(176,68,52,.10); }
+    .sunday-cell-2svc .svc-row.status-unavailable .svc-dot { background: var(--terra); }
+    .sunday-cell-2svc .svc-row.status-booked     { background: rgba(63,87,101,.12); cursor: not-allowed; }
+    .sunday-cell-2svc .svc-row.status-booked .svc-dot { background: var(--steel-blue); }
+    .sunday-cell-2svc.no-class { background: rgba(52,45,37,.05); }
+    .sunday-cell-2svc.no-class .sun-date {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    /* Leader grid: stacked mini-cells per service inside one td */
+    .avail-grid td.cell-svc-stack {
+      padding: 0 !important;
+    }
+    .avail-grid td.cell-svc-stack .svc-mini {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .25rem;
+      padding: .15rem .3rem;
+      font-size: .58rem;
+      border-top: 1px solid rgba(255,255,255,.55);
+    }
+    .avail-grid td.cell-svc-stack .svc-mini:first-child { border-top: none; }
+    .avail-grid td.cell-svc-stack .svc-mini-tag {
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      opacity: .85;
+    }
+    .avail-grid td.cell-svc-stack .svc-mini-mark {
+      font-weight: 800;
+      font-size: .72rem;
+    }
+    .avail-grid td.cell-svc-stack .svc-mini.cell-no {
+      background: rgba(52,45,37,.04);
+      color: var(--text-muted);
+    }
+
+    /* Bulk-set bar above availability calendar */
+    .bulk-set-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .6rem .9rem;
+      margin-bottom: 1rem;
+      padding: .65rem .85rem;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      border-left: 3px solid var(--gold);
+    }
+    .bulk-set-label {
+      font-size: .74rem;
+      font-weight: 700;
+      color: var(--dark-brown);
+    }
+    .bulk-set-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+    }
+    .btn-bulk {
+      font-size: .72rem !important;
+      padding: .42rem .8rem !important;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-bulk:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+    .btn-bulk-av { background: #6e8d3a; color: #fff; }
+    .btn-bulk-te { background: var(--gold); color: var(--dark-brown); }
+    .btn-bulk-un { background: var(--terra); color: #fff; }
+    .btn-bulk-clear {
+      background: #fff;
+      color: var(--text-muted);
+      border-color: rgba(52,45,37,.2);
+    }
+
+    /* Lightweight scheduling modals */
+    .sched-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(52,45,37,.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+      padding: 1.5rem;
+    }
+    .sched-modal.visible { display: flex; }
+    .sched-modal-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.6rem 1.4rem 1.3rem;
+      box-shadow: 0 18px 40px rgba(0,0,0,.18);
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+    .sched-modal-card-progress { max-width: 320px; }
+    .sched-modal-icon {
+      font-size: 1.9rem;
+      margin-bottom: .4rem;
+    }
+    .sched-modal-card h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--dark-brown);
+      margin-bottom: .4rem;
+    }
+    .sched-modal-card p {
+      font-size: .82rem;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .sched-modal-actions {
+      display: flex;
+      gap: .5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .sched-modal-actions-stack {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sched-modal-actions-stack .btn { width: 100%; }
 
     .availability-legend {
       display: flex; gap: .9rem; flex-wrap: wrap;
@@ -2138,12 +2367,61 @@
       #public-feedback .pf-pm-btn { flex: 1; }
     }
 
+    /* ─── Key Announcements (home) ──────────────────────────────── */
+    .announcements-section { margin-bottom: 2rem; }
+    .announcements-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.2rem;
+    }
+    .announcement-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border-top: 3px solid var(--terra);
+    }
+    .announcement-card.steel { border-top-color: var(--steel-blue); }
+    .announcement-embed {
+      background: var(--dark-brown);
+      aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .announcement-embed iframe {
+      width: 100%; height: 100%;
+      border: none; display: block;
+    }
+    .announcement-body { padding: .85rem 1rem 1rem; }
+    .announcement-eyebrow {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--terra);
+      margin-bottom: .35rem;
+    }
+    .announcement-card.steel .announcement-eyebrow { color: var(--steel-blue); }
+    .announcement-body h3 {
+      font-size: 1rem; font-weight: 700;
+      color: var(--dark-brown);
+      line-height: 1.25;
+      margin-bottom: .3rem;
+    }
+    .announcement-body p {
+      font-size: .8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
       .home-nav-grid { grid-template-columns: repeat(2, 1fr); }
       .course-grid { grid-template-columns: repeat(2, 1fr); }
       .course-video-grid { grid-template-columns: 1fr; }
+      .announcements-grid { grid-template-columns: 1fr; }
       .form-row.row-2 { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
@@ -2272,6 +2550,44 @@
       <div class="welcome-banner">
         <h2>Welcome, <span>ABF Leaders.</span></h2>
         <p>This is your central hub for resources, training, and information to help you lead well. ABFs are a primarily lay-led ministry — this site is here to equip and support you as you serve autonomously and faithfully.</p>
+      </div>
+
+      <!-- ── KEY ANNOUNCEMENTS ──────────────────────────────── -->
+      <div class="announcements-section">
+        <div class="section-title">Key Announcements</div>
+        <div class="announcements-grid">
+
+          <div class="announcement-card">
+            <div class="announcement-embed">
+              <div class="video-placeholder">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video Coming Soon</span>
+              </div>
+              <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+            </div>
+            <div class="announcement-body">
+              <span class="announcement-eyebrow">For ABF Leaders</span>
+              <h3>Scheduling Tutorial — ABF Leaders</h3>
+              <p>A walkthrough of the new in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year. Watch this first before using the Scheduling tab.</p>
+            </div>
+          </div>
+
+          <div class="announcement-card steel">
+            <div class="announcement-embed">
+              <div class="video-placeholder">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                <span>Vimeo Video Coming Soon</span>
+              </div>
+              <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+            </div>
+            <div class="announcement-body">
+              <span class="announcement-eyebrow">For ABF Teachers</span>
+              <h3>Scheduling Tutorial — ABF Teachers</h3>
+              <p>How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders. Quick orientation to your side of the scheduling tool.</p>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       <div class="section-title">Quick Access</div>
@@ -2771,8 +3087,8 @@
         <p class="page-sub" id="sched-page-sub">Sign in as a teacher or ABF leader to manage availability and requests.</p>
       </div>
 
-      <!-- If no identity selected -->
-      <div id="sched-need-identity" class="sched-empty">
+      <!-- If no identity selected — kept for potential reuse but hidden -->
+      <div id="sched-need-identity" class="sched-empty" style="display:none;">
         <div class="icon">🙋</div>
         <h3>Tell us who you are</h3>
         <p>Click your name in the top right (or the prompt below) to sign in as a teacher or ABF leader.</p>
@@ -2780,24 +3096,36 @@
       </div>
 
       <!-- TEACHER VIEW -->
-      <div id="sched-teacher-view" style="display:none;">
-        <div class="sched-subnav">
-          <button class="sched-subnav-btn active" data-sub="t-availability">My Availability</button>
-          <button class="sched-subnav-btn" data-sub="t-requests">Incoming Requests <span id="t-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
-          <button class="sched-subnav-btn" data-sub="t-courses">My Courses</button>
-          <button class="sched-subnav-btn" data-sub="t-profile">My Profile</button>
+      <div id="sched-teacher-view">
+        <div class="sched-subnav-group" data-role="teacher">
+          <div class="sched-subnav-group-label">For Teachers</div>
+          <div class="sched-subnav">
+            <button class="sched-subnav-btn active" data-sub="t-availability" data-role="teacher">My Availability</button>
+            <button class="sched-subnav-btn" data-sub="t-requests" data-role="teacher">Incoming Requests <span id="t-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+            <button class="sched-subnav-btn" data-sub="t-courses" data-role="teacher">My Courses</button>
+            <button class="sched-subnav-btn" data-sub="t-profile" data-role="teacher">My Profile</button>
+          </div>
         </div>
 
         <!-- Teacher: My Availability -->
         <div class="sched-pane active" id="sched-t-availability">
           <div class="sched-notice">
-            <strong>Tip:</strong> Click each Sunday to cycle through Available → Tentative → Unavailable → (no answer). Sundays the church doesn't meet are shaded out.
+            <strong>Tip:</strong> Each Sunday is split into <strong>1st Service</strong> and <strong>2nd Service</strong>. Click either row to cycle Available → Tentative → Unavailable → (no answer). Sundays the church doesn't meet are shaded out.
           </div>
           <div class="availability-legend">
             <span class="leg"><span class="dot av"></span> Available</span>
             <span class="leg"><span class="dot te"></span> Tentative</span>
             <span class="leg"><span class="dot un"></span> Unavailable</span>
             <span class="leg"><span class="dot bk"></span> Booked</span>
+          </div>
+          <div class="bulk-set-bar" id="bulk-set-bar">
+            <div class="bulk-set-label">Set every Sunday (both services):</div>
+            <div class="bulk-set-buttons">
+              <button class="btn btn-bulk btn-bulk-av" type="button" data-bulk="Available">All Available</button>
+              <button class="btn btn-bulk btn-bulk-te" type="button" data-bulk="Tentative">All Tentative</button>
+              <button class="btn btn-bulk btn-bulk-un" type="button" data-bulk="Unavailable">All Unavailable</button>
+              <button class="btn btn-bulk btn-bulk-clear" type="button" data-bulk="clear">Clear all</button>
+            </div>
           </div>
           <div id="t-availability-calendar"></div>
         </div>
@@ -2927,11 +3255,14 @@
       </div>
 
       <!-- LEADER VIEW -->
-      <div id="sched-leader-view" style="display:none;">
-        <div class="sched-subnav">
-          <button class="sched-subnav-btn active" data-sub="l-grid">Teacher Availability</button>
-          <button class="sched-subnav-btn" data-sub="l-new">New Request</button>
-          <button class="sched-subnav-btn" data-sub="l-mine">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+      <div id="sched-leader-view">
+        <div class="sched-subnav-group" data-role="leader">
+          <div class="sched-subnav-group-label">For ABF Leaders</div>
+          <div class="sched-subnav">
+            <button class="sched-subnav-btn" data-sub="l-grid" data-role="leader-readonly">Teacher Availability</button>
+            <button class="sched-subnav-btn" data-sub="l-new" data-role="leader">New Request</button>
+            <button class="sched-subnav-btn" data-sub="l-mine" data-role="leader">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+          </div>
         </div>
 
         <!-- Leader: Availability Grid -->
@@ -2989,6 +3320,43 @@
           <div id="l-requests-list"></div>
         </div>
       </div>
+
+      <!-- ── Locked-tab sign-in prompt modal ────────────────── -->
+      <div class="sched-modal" id="locked-tab-modal">
+        <div class="sched-modal-card">
+          <div class="sched-modal-icon">🔒</div>
+          <h3 id="locked-tab-title">Sign in to use this</h3>
+          <p id="locked-tab-msg">This area is for signed-in teachers. Sign in to manage your availability, courses, and profile.</p>
+          <div class="sched-modal-actions">
+            <button class="btn btn-primary" id="locked-tab-signin">Sign in</button>
+            <button class="btn btn-ghost" id="locked-tab-close">Not now</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── First-time bulk-set prompt ───────────────────────── -->
+      <div class="sched-modal" id="bulk-prompt-modal">
+        <div class="sched-modal-card">
+          <div class="sched-modal-icon">🗓️</div>
+          <h3>Quick start: set your starting availability</h3>
+          <p>Pick a starting point for every Sunday. You can fine-tune individual Sundays after.</p>
+          <div class="sched-modal-actions sched-modal-actions-stack">
+            <button class="btn btn-bulk-av" data-bulk-prompt="Available">All Available</button>
+            <button class="btn btn-bulk-te" data-bulk-prompt="Tentative">All Tentative</button>
+            <button class="btn btn-bulk-un" data-bulk-prompt="Unavailable">All Unavailable</button>
+            <button class="btn btn-ghost" id="bulk-prompt-skip">Skip — I'll mark them individually</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Bulk-set progress overlay ─────────────────────── -->
+      <div class="sched-modal" id="sched-bulk-progress" style="display:none;">
+        <div class="sched-modal-card sched-modal-card-progress">
+          <div class="sched-modal-icon">⏳</div>
+          <h3>Saving your availability…</h3>
+          <p class="bulk-progress-text">Saving 0 / 0…</p>
+        </div>
+      </div>
     </div>
 
     <!-- ── LEFCU ──────────────────────────────────────────── -->
@@ -3008,6 +3376,23 @@
       <div class="lefcu-section" data-lefcu-section="courses" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Bible study series and curriculum with embedded video sessions. Click a course to watch.</p>
         <div class="course-grid">
+
+          <div class="course-card" onclick="showCourse('tutorials')">
+            <div class="course-thumb" style="background: linear-gradient(135deg, var(--terra) 0%, #6b2516 100%);">
+              <span class="course-thumb-title">Tutorials</span>
+              <div class="course-play-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="course-body">
+              <h3>Tutorials</h3>
+              <div class="course-meta">
+                <span class="course-tag ministry">Site Help</span>
+                <span class="course-tag semester">2026</span>
+                <span class="course-tag">2 Sessions</span>
+              </div>
+            </div>
+          </div>
 
           <div class="course-card" onclick="showCourse('joshua')">
             <div class="course-thumb" style="background: linear-gradient(135deg, var(--steel-blue) 0%, #243540 100%);">
@@ -3282,6 +3667,45 @@
           </div>
         </div>
       </div>
+
+      <!-- Tutorials — Scheduling tool walkthroughs -->
+      <div id="course-videos-tutorials" class="course-video-grid" style="display:none;">
+
+        <div class="course-video-card">
+          <div class="course-video-embed" style="display:flex;align-items:center;justify-content:center;">
+            <div class="video-placeholder">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              <span>Vimeo Video Coming Soon</span>
+            </div>
+            <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+          </div>
+          <div class="course-video-body">
+            <h4>Scheduling Tutorial — ABF Leaders</h4>
+            <span class="vid-duration">Coming soon</span>
+            <p style="font-size:.78rem;color:var(--text-muted);margin-top:.4rem;line-height:1.5;">
+              A walkthrough of the new in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year.
+            </p>
+          </div>
+        </div>
+
+        <div class="course-video-card">
+          <div class="course-video-embed" style="display:flex;align-items:center;justify-content:center;">
+            <div class="video-placeholder">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              <span>Vimeo Video Coming Soon</span>
+            </div>
+            <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+          </div>
+          <div class="course-video-body">
+            <h4>Scheduling Tutorial — ABF Teachers</h4>
+            <span class="vid-duration">Coming soon</span>
+            <p style="font-size:.78rem;color:var(--text-muted);margin-top:.4rem;line-height:1.5;">
+              How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders.
+            </p>
+          </div>
+        </div>
+
+      </div><!-- /#course-videos-tutorials -->
 
       <!-- Joshua — WBF Spring 2026 -->
       <div id="course-videos-joshua" class="course-video-grid">
@@ -3859,6 +4283,13 @@
 
   // ─── Course Detail Navigation ────────────────────────────
   const courses = {
+    'tutorials': {
+      title: 'Tutorials',
+      ministry: 'Site Help',
+      semester: '2026',
+      sessions: '2 Sessions',
+      spotify: ''
+    },
     'joshua': {
       title: 'Joshua',
       ministry: 'WBF',
@@ -4135,7 +4566,7 @@
     _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
     _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, available: !!f.Available }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
-    _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', status: f.Status || '', notes: f.Notes || '' }; },
+    _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', service: f.Service || '1st Service', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
     _mapFeedbackTemplate(r) {
       const f = r.fields || {};
@@ -4268,10 +4699,11 @@
         'Removed course' + (gone ? ': ' + gone.title : ''));
     },
 
-    async createAvailability(teacherId, sundayId, status, notes) {
+    async createAvailability(teacherId, sundayId, service, status, notes) {
       const fields = {
         Teacher: [teacherId],
         Sunday: [sundayId],
+        Service: service || '1st Service',
         Status: status,
         Notes: notes || ''
       };
@@ -4281,8 +4713,8 @@
       const t = this._cache.teachers.find(x => x.id === teacherId);
       const s = this._cache.sundays.find(x => x.id === sundayId);
       this.logChange('Availability', 'create', mapped.id,
-        (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
-        (t ? t.name : 'A teacher') + ' marked ' + status + ' for ' + (s ? s.date : 'a Sunday'));
+        (t ? t.name : '?') + ' / ' + (s ? s.date : '?') + ' / ' + (mapped.service || ''),
+        (t ? t.name : 'A teacher') + ' marked ' + status + ' for ' + (s ? s.date : 'a Sunday') + ' (' + (mapped.service || '?') + ')');
       return mapped;
     },
     async updateAvailability(id, status, notes) {
@@ -4294,8 +4726,8 @@
       const t = this._cache.teachers.find(x => x.id === mapped.teacherId);
       const s = this._cache.sundays.find(x => x.id === mapped.sundayId);
       this.logChange('Availability', 'update', id,
-        (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
-        (t ? t.name : 'A teacher') + ' changed availability to ' + status + ' for ' + (s ? s.date : 'a Sunday'));
+        (t ? t.name : '?') + ' / ' + (s ? s.date : '?') + ' / ' + (mapped.service || ''),
+        (t ? t.name : 'A teacher') + ' changed availability to ' + status + ' for ' + (s ? s.date : 'a Sunday') + ' (' + (mapped.service || '?') + ')');
       return mapped;
     },
     async deleteAvailability(id) {
@@ -4478,17 +4910,23 @@
     listSundays() { return getCache().sundays.slice().sort((a, b) => a.date.localeCompare(b.date)); },
     listSundaysInSession() { return this.listSundays().filter(s => s.inSession); },
 
-    getAvailability(teacherId, sundayId) {
-      return getCache().availability.find(a => a.teacherId === teacherId && a.sundayId === sundayId);
+    getAvailability(teacherId, sundayId, service) {
+      // service is required; default to "1st Service" if caller omits
+      const svc = service || '1st Service';
+      return getCache().availability.find(a =>
+        a.teacherId === teacherId && a.sundayId === sundayId && (a.service || '1st Service') === svc);
     },
-    listAvailabilityForTeacher(teacherId) {
-      return getCache().availability.filter(a => a.teacherId === teacherId);
+    listAvailabilityForTeacher(teacherId, service) {
+      const all = getCache().availability.filter(a => a.teacherId === teacherId);
+      if (!service) return all;
+      return all.filter(a => (a.service || '1st Service') === service);
     },
     listAvailabilityAll() {
       return getCache().availability;
     },
-    async setAvailability(teacherId, sundayId, status, notes) {
-      const existing = this.getAvailability(teacherId, sundayId);
+    async setAvailability(teacherId, sundayId, service, status, notes) {
+      const svc = service || '1st Service';
+      const existing = this.getAvailability(teacherId, sundayId, svc);
       if (status === null) {
         if (existing) await Airtable.deleteAvailability(existing.id);
         return;
@@ -4496,7 +4934,7 @@
       if (existing) {
         return Airtable.updateAvailability(existing.id, status, notes);
       }
-      return Airtable.createAvailability(teacherId, sundayId, status, notes);
+      return Airtable.createAvailability(teacherId, sundayId, svc, status, notes);
     },
 
     listRequests(filter = {}) {
@@ -5038,12 +5476,13 @@
     const leaderV  = document.getElementById('sched-leader-view');
     const sub      = document.getElementById('sched-page-sub');
 
+    if (need) need.style.display = 'none';
+    if (teacherV) teacherV.style.display = '';
+    if (leaderV) leaderV.style.display = '';
+
     // Ensure Airtable data is loaded before any render reads from cache.
     if (!Airtable._cache) {
       sub.textContent = 'Loading scheduling data\u2026';
-      need.style.display  = 'none';
-      teacherV.style.display = 'none';
-      leaderV.style.display  = 'none';
       try {
         await Airtable.ensureLoaded();
       } catch (e) {
@@ -5054,82 +5493,108 @@
 
     const adm = Identity.isAdmin();
 
+    // Update sub-line + apply lock state on tabs (always show both subnavs)
     if (!id) {
-      // Anonymous OR admin-without-acting-as. Show a browse-only leader
-      // view (availability grid only) plus a banner explaining how to
-      // gain edit access.
-      need.style.display = 'none';
-      teacherV.style.display = 'none';
-      leaderV.style.display  = '';
       if (adm) {
-        sub.innerHTML = '<strong>Admin override active.</strong> Click your badge in the header to act as a specific teacher or leader, or just browse below.';
+        sub.innerHTML = '<strong>Admin override active.</strong> Click your badge in the header to act as a specific teacher or leader, or just browse the read-only Teacher Availability grid below.';
       } else {
-        sub.innerHTML = 'Browsing read-only. <a href="#" id="sched-sub-signin" style="color:var(--terra);font-weight:700;">Sign in</a> to manage your availability or send requests.';
+        sub.innerHTML = 'Browsing read-only. <a href="#" id="sched-sub-signin" style="color:var(--terra);font-weight:700;">Sign in</a> as a teacher or ABF leader to use the locked tabs.';
         const link = document.getElementById('sched-sub-signin');
         if (link) link.addEventListener('click', (e) => { e.preventDefault(); openIdentityPicker(false); });
       }
-      renderLeaderGrid();
-      // Hide leader-specific sub-tabs that require an identity
-      configureLeaderSubnav();
-      // Don't try to render request form / my requests for anonymous
-      return;
+    } else if (id.role === 'teacher') {
+      const t = DataStore.getTeacher(id.id);
+      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (t ? t.name : 'a teacher') + '. Manage availability, courses, and incoming requests. Leader tools are read-only.';
+    } else {
+      const l = DataStore.getABFLeader(id.id);
+      const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
+      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (l ? l.name : 'an ABF leader') + (cls ? ' for ' + cls.name + ' (' + cls.service + ').' : '.') + ' Teacher tools are read-only.';
     }
 
-    need.style.display = 'none';
-    if (id.role === 'teacher') {
-      const t = DataStore.getTeacher(id.id);
-      teacherV.style.display = '';
-      leaderV.style.display = 'none';
-      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (t ? t.name : 'a teacher') + '. Manage availability, courses, and incoming requests.';
-      configureLeaderSubnav();
+    applyTabLocks();
+
+    // Render every pane's content unconditionally (the panes that the
+    // user can't act on stay locked; viewing read-only is fine).
+    renderLeaderGrid();
+    if (id && id.role === 'teacher') {
       renderTeacherAvailability();
       renderTeacherRequests();
       renderTeacherCourses();
       renderTeacherProfile();
-    } else {
-      const l = DataStore.getABFLeader(id.id);
-      const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
-      teacherV.style.display = 'none';
-      leaderV.style.display = '';
-      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (l ? l.name : 'an ABF leader') + (cls ? ' for ' + cls.name + ' (' + cls.service + ').' : '.');
-      configureLeaderSubnav();
-      renderLeaderGrid();
+    } else if (id && id.role === 'leader') {
       renderLeaderNewRequestForm();
       renderLeaderRequests();
     }
+
+    // Pick a sensible default active pane based on who's signed in.
+    ensureActivePane(id);
   }
 
-  /* Show or hide the Leader sub-tabs that require an identity (New
-     Request, My Requests). Anonymous browsers + admin-without-acting-as
-     only see the Availability grid tab. */
-  function configureLeaderSubnav() {
-    const leaderV = document.getElementById('sched-leader-view');
-    if (!leaderV) return;
-    const id = Identity.get();
-    const showActions = !!(id && id.role === 'leader');
-    leaderV.querySelectorAll('.sched-subnav-btn').forEach(btn => {
-      const sub = btn.dataset.sub;
-      if (sub === 'l-new' || sub === 'l-mine') {
-        btn.style.display = showActions ? '' : 'none';
+  /* Apply the locked/active visual state to all subnav buttons based on
+     the current identity. Locked = visible-but-disabled; clicking pops the
+     sign-in prompt instead of switching panes. */
+  function applyTabLocks() {
+    const id  = Identity.get();
+    const adm = Identity.isAdmin();
+    document.querySelectorAll('#tab-scheduling .sched-subnav-btn[data-role]').forEach(btn => {
+      const role = btn.dataset.role;
+      let unlocked = false;
+      if (role === 'leader-readonly') {
+        // Read-only browsing pane: always unlocked.
+        unlocked = true;
+      } else if (role === 'teacher') {
+        unlocked = adm || (id && id.role === 'teacher');
+      } else if (role === 'leader') {
+        unlocked = adm || (id && id.role === 'leader');
       }
+      btn.classList.toggle('locked', !unlocked);
     });
-    // When only the Availability grid is visible there's nothing to
-    // switch between — hide the whole subnav so the lone red pill
-    // doesn't sit there looking like a meaningless label.
-    const subnav = leaderV.querySelector('.sched-subnav');
-    if (subnav) subnav.style.display = showActions ? '' : 'none';
-    // Make sure the active pane is the grid if actions are hidden
-    if (!showActions) {
-      leaderV.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
-      const gridBtn = leaderV.querySelector('.sched-subnav-btn[data-sub="l-grid"]');
-      if (gridBtn) gridBtn.classList.add('active');
-      leaderV.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
-      const gridPane = document.getElementById('sched-l-grid');
-      if (gridPane) gridPane.classList.add('active');
-    }
   }
 
-  /* ─── Teacher: availability calendar ─── */
+  /* Pick a default active pane appropriate for the current identity.
+     Leaves an existing active pane alone if its tab isn't locked. */
+  function ensureActivePane(id) {
+    const tab = document.getElementById('tab-scheduling');
+    if (!tab) return;
+    const activeBtn = tab.querySelector('.sched-subnav-btn.active:not(.locked)');
+    if (activeBtn) {
+      const target = 'sched-' + activeBtn.dataset.sub;
+      tab.querySelectorAll('.sched-pane').forEach(p => p.classList.toggle('active', p.id === target));
+      return;
+    }
+    // No unlocked active button — pick a default.
+    let defaultSub;
+    if (id && id.role === 'teacher') defaultSub = 't-availability';
+    else if (id && id.role === 'leader') defaultSub = 'l-grid';
+    else defaultSub = 'l-grid'; // anonymous → read-only grid
+
+    tab.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
+    const btn = tab.querySelector('.sched-subnav-btn[data-sub="' + defaultSub + '"]');
+    if (btn) btn.classList.add('active');
+    tab.querySelectorAll('.sched-pane').forEach(p => p.classList.toggle('active', p.id === 'sched-' + defaultSub));
+  }
+
+  /* Legacy stub kept so existing call sites still resolve.
+     The new applyTabLocks() handles everything; this is a no-op. */
+  function configureLeaderSubnav() { /* deprecated — see applyTabLocks() */ }
+
+  /* ─── Teacher: availability calendar (split per service) ─── */
+  const SERVICES = ['1st Service', '2nd Service'];
+  const SERVICE_SHORT = { '1st Service': '1st', '2nd Service': '2nd' };
+
+  function statusClass(status) {
+    if (status === 'Available')   return 'status-available';
+    if (status === 'Unavailable') return 'status-unavailable';
+    if (status === 'Tentative')   return 'status-tentative';
+    return '';
+  }
+  function statusLabel(status) {
+    if (status === 'Available')   return 'Available';
+    if (status === 'Unavailable') return 'Unavailable';
+    if (status === 'Tentative')   return 'Tentative';
+    return 'Tap to set';
+  }
+
   function renderTeacherAvailability() {
     const t = Identity.asTeacher();
     if (!t) return;
@@ -5143,14 +5608,18 @@
       byTerm[s.term].push(s);
     });
 
+    // Build a map keyed by sundayId|service -> status
     const myAvail = DataStore.listAvailabilityForTeacher(t.id);
     const availMap = {};
-    myAvail.forEach(a => availMap[a.sundayId] = a.status);
+    myAvail.forEach(a => { availMap[a.sundayId + '|' + (a.service || '1st Service')] = a.status; });
 
-    // Compute booked Sundays from accepted requests
+    // Booked-by-service from accepted requests (Service is mirrored on the Request)
     const acceptedReqs = DataStore.listRequests({ teacherId: t.id }).filter(r => r.status === 'Accepted');
     const bookedSet = new Set();
-    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSet.add(sid)));
+    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSet.add(sid + '|' + (r.service || '1st Service'))));
+
+    // Show or hide the bulk-prompt "first time" hint
+    maybeShowBulkPrompt(t.id, myAvail.length > 0);
 
     Object.keys(byTerm).forEach(term => {
       const block = document.createElement('div');
@@ -5158,32 +5627,52 @@
       const inSessCount = byTerm[term].filter(s => s.inSession).length;
       block.innerHTML = '<div class="term-header"><h3>' + term + '</h3><span class="term-count">' + inSessCount + ' Sundays</span><hr/></div>';
       const grid = document.createElement('div');
-      grid.className = 'sundays-grid';
+      grid.className = 'sundays-grid sundays-grid-2svc';
       byTerm[term].forEach(s => {
         const cell = document.createElement('div');
-        const status = availMap[s.id] || null;
-        const booked = bookedSet.has(s.id);
-        const cls = ['sunday-cell'];
+        const cls = ['sunday-cell','sunday-cell-2svc'];
         if (!s.inSession) cls.push('no-class');
-        else if (booked) cls.push('status-booked');
-        else if (status === 'Available')   cls.push('status-available');
-        else if (status === 'Unavailable') cls.push('status-unavailable');
-        else if (status === 'Tentative')   cls.push('status-tentative');
         cell.className = cls.join(' ');
-        cell.innerHTML =
-          '<div>' +
-            '<div class="sun-month">' + fmtMonthShort(s.date) + '</div>' +
-            '<div class="sun-date">' + fmtDayNum(s.date) + (booked ? ' · Booked' : '') + '</div>' +
-          '</div>' +
-          '<div class="sun-status-dot"></div>';
-        if (s.inSession && !booked) {
-          cell.title = 'Click to set your availability';
-          cell.addEventListener('click', () => cycleAvailability(t.id, s.id));
-        } else if (!s.inSession) {
+
+        let html = '<div class="sunday-cell-head">' +
+          '<div class="sun-month">' + fmtMonthShort(s.date) + '</div>' +
+          '<div class="sun-date">' + fmtDayNum(s.date) + '</div>' +
+          '</div>';
+
+        if (!s.inSession) {
+          html += '<div class="sunday-noclass-msg">No class</div>';
+          cell.innerHTML = html;
           cell.title = s.notes || 'No class this Sunday';
-        } else if (booked) {
-          cell.title = 'You\u2019re booked to teach this Sunday';
+          grid.appendChild(cell);
+          return;
         }
+
+        SERVICES.forEach(svc => {
+          const status = availMap[s.id + '|' + svc] || null;
+          const booked = bookedSet.has(s.id + '|' + svc);
+          const rowCls = ['svc-row'];
+          if (booked) rowCls.push('status-booked');
+          else if (statusClass(status)) rowCls.push(statusClass(status));
+          html += '<button type="button" class="' + rowCls.join(' ') + '" data-svc="' + svc + '" title="' +
+            (booked ? 'Booked to teach ' + svc : 'Tap to cycle ' + svc + ' availability') + '">' +
+            '<span class="svc-tag">' + SERVICE_SHORT[svc] + '</span>' +
+            '<span class="svc-label">' + (booked ? 'Booked' : statusLabel(status)) + '</span>' +
+            '<span class="svc-dot"></span>' +
+            '</button>';
+        });
+
+        cell.innerHTML = html;
+
+        cell.querySelectorAll('.svc-row').forEach(btn => {
+          const svc = btn.dataset.svc;
+          const isBooked = bookedSet.has(s.id + '|' + svc);
+          if (isBooked) return;
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            cycleAvailability(t.id, s.id, svc);
+          });
+        });
+
         grid.appendChild(cell);
       });
       block.appendChild(grid);
@@ -5191,22 +5680,84 @@
     });
   }
 
-  async function cycleAvailability(teacherId, sundayId) {
+  async function cycleAvailability(teacherId, sundayId, service) {
     if (!Identity.canEditTeacher(teacherId)) {
       toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to change availability.');
       return;
     }
-    const cur = DataStore.getAvailability(teacherId, sundayId);
+    const svc = service || '1st Service';
+    const cur = DataStore.getAvailability(teacherId, sundayId, svc);
     const order = [null, 'Available', 'Tentative', 'Unavailable'];
     const i = order.indexOf(cur ? cur.status : null);
     const next = order[(i + 1) % order.length];
     try {
-      await DataStore.setAvailability(teacherId, sundayId, next);
+      await DataStore.setAvailability(teacherId, sundayId, svc, next);
       renderTeacherAvailability();
     } catch (e) {
       toast('error', 'Couldn\u2019t save', 'Your change wasn\u2019t saved. Try again.');
       console.error(e);
     }
+  }
+
+  /* Bulk-set availability for the signed-in teacher across all in-session
+     Sundays + both services. status: 'Available' | 'Tentative' | 'Unavailable' | null (clear). */
+  async function bulkSetAvailability(status) {
+    const t = Identity.asTeacher();
+    if (!t) return;
+    if (!Identity.canEditTeacher(t.id)) {
+      toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to change availability.');
+      return;
+    }
+    const sundays = DataStore.listSundaysInSession();
+    if (!sundays.length) return;
+
+    const acceptedReqs = DataStore.listRequests({ teacherId: t.id }).filter(r => r.status === 'Accepted');
+    const bookedSet = new Set();
+    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSet.add(sid + '|' + (r.service || '1st Service'))));
+
+    const total = sundays.length * SERVICES.length;
+    const overlay = document.getElementById('sched-bulk-progress');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.querySelector('.bulk-progress-text').textContent = 'Saving 0 / ' + total + '…';
+    }
+
+    let done = 0;
+    try {
+      for (const s of sundays) {
+        for (const svc of SERVICES) {
+          if (!bookedSet.has(s.id + '|' + svc)) {
+            await DataStore.setAvailability(t.id, s.id, svc, status);
+          }
+          done++;
+          if (overlay) overlay.querySelector('.bulk-progress-text').textContent = 'Saving ' + done + ' / ' + total + '…';
+        }
+      }
+      toast('success', 'Updated',
+        status ? 'Marked all Sundays as ' + status + ' (both services).'
+               : 'Cleared availability for all Sundays.');
+      try { localStorage.setItem('abf_sched_bulkset_done_' + t.id, '1'); } catch {}
+      renderTeacherAvailability();
+    } catch (e) {
+      console.error(e);
+      toast('error', 'Couldn\u2019t finish', 'Some changes didn\u2019t save. Refresh and try again.');
+    } finally {
+      if (overlay) overlay.style.display = 'none';
+    }
+  }
+
+  /* First-time bulk-set prompt. Fires when the teacher opens My Availability
+     and has no availability rows yet, unless they've already dismissed/used it. */
+  function maybeShowBulkPrompt(teacherId, hasExisting) {
+    const modal = document.getElementById('bulk-prompt-modal');
+    if (!modal) return;
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('abf_sched_bulkset_done_' + teacherId) === '1'; } catch {}
+    if (hasExisting || dismissed) {
+      modal.classList.remove('visible');
+      return;
+    }
+    modal.classList.add('visible');
   }
 
   /* ─── Teacher: incoming requests ─── */
@@ -5876,7 +6427,7 @@
     });
   }
 
-  /* ─── Leader: availability grid ─── */
+  /* ─── Leader: availability grid (split per service) ─── */
   function renderLeaderGrid() {
     const wrap = document.getElementById('l-availability-grid');
     wrap.innerHTML = '';
@@ -5885,15 +6436,17 @@
     const allAvail = DataStore.listAvailabilityAll();
     const acceptedReqs = DataStore.listRequests().filter(r => r.status === 'Accepted');
 
-    // booking lookup
+    // booked key includes service so 1st/2nd are independent
     const bookedKey = new Set();
-    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedKey.add(r.teacherId + '|' + sid)));
+    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid =>
+      bookedKey.add(r.teacherId + '|' + sid + '|' + (r.service || '1st Service'))));
 
+    // availMap key: teacher|sunday|service
     const availMap = {};
-    allAvail.forEach(a => availMap[a.teacherId + '|' + a.sundayId] = a.status);
+    allAvail.forEach(a => availMap[a.teacherId + '|' + a.sundayId + '|' + (a.service || '1st Service')] = a.status);
 
     const table = document.createElement('table');
-    table.className = 'avail-grid';
+    table.className = 'avail-grid avail-grid-2svc';
 
     // header
     let thead = '<thead><tr><th class="col-name">Teacher</th>';
@@ -5905,6 +6458,21 @@
     });
     thead += '</tr></thead>';
     table.innerHTML = thead;
+
+    function svcChar(status, booked) {
+      if (booked) return 'BK';
+      if (status === 'Available')   return '✓';
+      if (status === 'Unavailable') return '×';
+      if (status === 'Tentative')   return '?';
+      return '–';
+    }
+    function svcCellClass(status, booked) {
+      if (booked) return 'svc-mini cell-bk';
+      if (status === 'Available')   return 'svc-mini cell-av';
+      if (status === 'Unavailable') return 'svc-mini cell-un';
+      if (status === 'Tentative')   return 'svc-mini cell-te';
+      return 'svc-mini cell-no';
+    }
 
     // body
     const tbody = document.createElement('tbody');
@@ -5920,15 +6488,20 @@
           td.className = 'cell-no-class';
           td.textContent = '—';
           td.title = s.notes;
-        } else if (bookedKey.has(t.id + '|' + s.id)) {
-          td.className = 'cell-bk'; td.textContent = 'BK';
-          td.title = 'Booked';
         } else {
-          const status = availMap[t.id + '|' + s.id];
-          if (status === 'Available')   { td.className = 'cell-av'; td.textContent = '✓'; td.title = 'Available'; }
-          else if (status === 'Unavailable') { td.className = 'cell-un'; td.textContent = '×'; td.title = 'Unavailable'; }
-          else if (status === 'Tentative')   { td.className = 'cell-te'; td.textContent = '?'; td.title = 'Tentative'; }
-          else { td.className = 'cell-no'; td.textContent = '–'; td.title = 'No answer yet'; }
+          td.className = 'cell-svc-stack';
+          let inner = '';
+          SERVICES.forEach(svc => {
+            const booked = bookedKey.has(t.id + '|' + s.id + '|' + svc);
+            const status = availMap[t.id + '|' + s.id + '|' + svc];
+            const tip = booked ? 'Booked (' + svc + ')'
+                       : (status ? status + ' (' + svc + ')' : 'No answer (' + svc + ')');
+            inner += '<div class="' + svcCellClass(status, booked) + '" title="' + tip + '">' +
+              '<span class="svc-mini-tag">' + SERVICE_SHORT[svc] + '</span>' +
+              '<span class="svc-mini-mark">' + svcChar(status, booked) + '</span>' +
+              '</div>';
+          });
+          td.innerHTML = inner;
         }
         tr.appendChild(td);
       });
@@ -6055,7 +6628,12 @@
     const wrap = document.getElementById('l-req-sundays');
     wrap.innerHTML = '';
     const sundays = DataStore.listSundaysInSession();
-    const teacherAvail = teacherId ? DataStore.listAvailabilityForTeacher(teacherId) : [];
+    // Filter the teacher's availability to the leader's class service so
+    // unavailable indicators reflect the right service.
+    const l = Identity.asLeader();
+    const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
+    const svc = (cls && cls.service) ? cls.service : '1st Service';
+    const teacherAvail = teacherId ? DataStore.listAvailabilityForTeacher(teacherId, svc) : [];
     const availMap = {};
     teacherAvail.forEach(a => availMap[a.sundayId] = a.status);
 
@@ -6305,17 +6883,104 @@
   function setupSchedSubnav() {
     document.querySelectorAll('.sched-subnav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const subnav = btn.parentElement;
-        subnav.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
+        // Locked tab? Open the sign-in prompt and don't switch.
+        if (btn.classList.contains('locked')) {
+          openLockedTabPrompt(btn.dataset.role);
+          return;
+        }
+        // Outside the scheduling tab (e.g. resources / feedback subnavs that
+        // share the .sched-subnav-btn class) — fall back to the in-subnav-only
+        // swap behavior used previously.
+        const inSched = btn.closest('#tab-scheduling');
+        if (!inSched) {
+          const subnav = btn.parentElement;
+          subnav.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = 'sched-' + btn.dataset.sub;
+          const view = subnav.parentElement;
+          view.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
+          const pane = document.getElementById(target);
+          if (pane) pane.classList.add('active');
+          return;
+        }
+
+        // Inside scheduling tab: clear active across BOTH subnavs and BOTH
+        // panes containers; activate this button + its pane globally.
+        const tab = document.getElementById('tab-scheduling');
+        tab.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const target = 'sched-' + btn.dataset.sub;
-        // Only swap panes within the same view (teacher or leader)
-        const view = subnav.parentElement; // sched-teacher-view or sched-leader-view
-        view.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
+        tab.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
         const pane = document.getElementById(target);
         if (pane) pane.classList.add('active');
       });
     });
+  }
+
+  /* Open the "you need to sign in" prompt with role-appropriate copy. */
+  function openLockedTabPrompt(role) {
+    const modal = document.getElementById('locked-tab-modal');
+    if (!modal) return;
+    const title = document.getElementById('locked-tab-title');
+    const msg   = document.getElementById('locked-tab-msg');
+    if (role === 'teacher') {
+      title.textContent = 'Sign in as a teacher';
+      msg.textContent = 'This area is for teachers — manage your availability, courses, and profile after signing in.';
+    } else if (role === 'leader') {
+      title.textContent = 'Sign in as an ABF leader';
+      msg.textContent = 'This area is for ABF leaders — send teaching requests and review responses after signing in.';
+    } else {
+      title.textContent = 'Sign in to use this';
+      msg.textContent = 'Sign in as a teacher or ABF leader to use this tab.';
+    }
+    modal.classList.add('visible');
+  }
+  function closeLockedTabPrompt() {
+    const modal = document.getElementById('locked-tab-modal');
+    if (modal) modal.classList.remove('visible');
+  }
+  function setupLockedTabModal() {
+    const modal = document.getElementById('locked-tab-modal');
+    if (!modal) return;
+    document.getElementById('locked-tab-close').addEventListener('click', closeLockedTabPrompt);
+    document.getElementById('locked-tab-signin').addEventListener('click', () => {
+      closeLockedTabPrompt();
+      if (typeof openIdentityPicker === 'function') openIdentityPicker(false);
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeLockedTabPrompt();
+    });
+  }
+
+  /* Bulk-set wiring — persistent buttons + first-time modal */
+  function setupBulkSetControls() {
+    // Persistent buttons
+    document.querySelectorAll('#bulk-set-bar [data-bulk]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.bulk;
+        if (!confirmBulkSet(v)) return;
+        bulkSetAvailability(v === 'clear' ? null : v);
+      });
+    });
+    // First-time modal options
+    document.querySelectorAll('#bulk-prompt-modal [data-bulk-prompt]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.bulkPrompt;
+        document.getElementById('bulk-prompt-modal').classList.remove('visible');
+        bulkSetAvailability(v);
+      });
+    });
+    const skip = document.getElementById('bulk-prompt-skip');
+    if (skip) skip.addEventListener('click', () => {
+      const t = Identity.asTeacher();
+      if (t) { try { localStorage.setItem('abf_sched_bulkset_done_' + t.id, '1'); } catch {} }
+      document.getElementById('bulk-prompt-modal').classList.remove('visible');
+    });
+  }
+
+  function confirmBulkSet(v) {
+    if (v === 'clear') return confirm('Clear your availability for every Sunday (both services)? This can’t be undone.');
+    return confirm('Set every Sunday (both services) to ' + v + '? You can fine-tune individual Sundays after.');
   }
 
   /* ════════════════════════════════════════════════════════
@@ -7597,6 +8262,8 @@
 
   setupIdentityPicker();
   setupSchedSubnav();
+  setupLockedTabModal();
+  setupBulkSetControls();
   setupCourseForm();
   setupProfileForm();
   setupRegisterForm();
