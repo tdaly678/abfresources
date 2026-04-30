@@ -2239,7 +2239,7 @@
       </div>
       <div class="header-text">
         <div class="site-name">LEFC <span>ABF Resources</span></div>
-        <div class="site-sub">Adult Bible Fellowship · Leader Hub</div>
+        <div class="site-sub">Leader and Teacher Hub</div>
       </div>
     </div>
     <div class="header-right">
@@ -2257,7 +2257,7 @@
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="classes">ABF Classes</button>
       <button class="tab-btn" data-tab="dates">Key Dates</button>
-      <button class="tab-btn" data-tab="courses">LEFCU</button>
+      <button class="tab-btn" data-tab="courses">Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
       <button class="tab-btn" data-tab="feedback">Feedback</button>
@@ -2288,7 +2288,7 @@
         </div>
         <div class="home-nav-card steel" onclick="showTab('courses')">
           <div class="icon">🎓</div>
-          <h3>LEFCU</h3>
+          <h3>Resources</h3>
           <p>Courses, articles, and training videos &mdash; all the equipping resources for ABF leaders in one place.</p>
         </div>
         <div class="home-nav-card" onclick="showTab('teachers')">
@@ -2994,18 +2994,18 @@
     <!-- ── LEFCU ──────────────────────────────────────────── -->
     <div class="tab-pane" id="tab-courses">
       <div class="page-header">
-        <h2>LEFCU</h2>
+        <h2>Resources</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">Lancaster Evangelical Free Church University &mdash; courses, articles, and training videos for ABF leaders.</p>
+        <p class="page-sub">Training videos, articles, and online courses for ABF leaders.</p>
         <div class="sched-subnav" style="margin-top:1rem;">
-          <button class="sched-subnav-btn active" data-lefcu-sub="courses">Courses</button>
+          <button class="sched-subnav-btn active" data-lefcu-sub="training">Training Videos</button>
           <button class="sched-subnav-btn" data-lefcu-sub="articles">Articles</button>
-          <button class="sched-subnav-btn" data-lefcu-sub="training">Training Videos</button>
+          <button class="sched-subnav-btn" data-lefcu-sub="courses">Online Courses</button>
         </div>
       </div>
 
-      <!-- Courses section -->
-      <div class="lefcu-section" data-lefcu-section="courses">
+      <!-- Online Courses section -->
+      <div class="lefcu-section" data-lefcu-section="courses" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Bible study series and curriculum with embedded video sessions. Click a course to watch.</p>
         <div class="course-grid">
 
@@ -3080,7 +3080,7 @@
       </div>
 
       <!-- Training videos section -->
-      <div class="lefcu-section" data-lefcu-section="training" style="display:none;">
+      <div class="lefcu-section" data-lefcu-section="training">
         <p class="page-sub" style="margin-bottom:1rem;">Video resources for every stage of ABF leadership.</p>
 
         <!-- New Leaders -->
@@ -3264,7 +3264,7 @@
     <div class="tab-pane" id="tab-course-detail">
       <div class="course-detail-top">
         <button class="back-btn" onclick="showTab('courses')">
-          ← LEFCU
+          ← Resources
         </button>
         <div>
           <div class="page-header" style="margin-bottom:0;">
@@ -7630,7 +7630,7 @@
     }
     if (id === 'courses') {
       origShowTab('courses');
-      showLefcuSection('courses');
+      showLefcuSection('training');
       return;
     }
     origShowTab(id);
