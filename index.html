@@ -2541,7 +2541,11 @@
             <div class="form-row">
               <label class="form-label">Course (optional)</label>
               <select id="l-req-course" class="form-select"></select>
-              <p class="form-help">Filtered to courses this teacher offers. Leave blank if you want them to choose, or you're requesting an open topic.</p>
+              <p class="form-help">Filtered to courses this teacher offers. Leave blank if you want them to choose, choose &ldquo;Other&rdquo; to request a custom topic, or you're requesting an open topic.</p>
+              <div id="l-req-course-other-wrap" style="display:none;margin-top:.55rem;">
+                <input id="l-req-course-other" class="form-input" type="text" maxlength="160" placeholder="Describe the course or topic you'd like them to teach&hellip;">
+                <p class="form-help">We'll include this with your message so the teacher knows what you have in mind.</p>
+              </div>
             </div>
 
             <div class="form-row">
@@ -5582,14 +5586,33 @@
   function renderCourseDropdown(teacherId) {
     const sel = document.getElementById('l-req-course');
     sel.innerHTML = '<option value="">— No specific course —</option>';
-    if (!teacherId) return;
-    DataStore.listCourses({ teacherId }).forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.id;
-      const wk = c.minWeeks === c.maxWeeks ? c.minWeeks + ' wk' : c.minWeeks + '\u2013' + c.maxWeeks + ' wks';
-      o.textContent = c.title + ' (' + wk + ')';
-      sel.appendChild(o);
-    });
+    if (teacherId) {
+      DataStore.listCourses({ teacherId }).forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id;
+        const wk = c.minWeeks === c.maxWeeks ? c.minWeeks + ' wk' : c.minWeeks + '\u2013' + c.maxWeeks + ' wks';
+        o.textContent = c.title + ' (' + wk + ')';
+        sel.appendChild(o);
+      });
+    }
+    // Always offer an "Other" option so leaders can request a custom topic
+    // even when the teacher hasn't catalogued the course they want.
+    const other = document.createElement('option');
+    other.value = '__other__';
+    other.textContent = 'Other (describe below)\u2026';
+    sel.appendChild(other);
+
+    // Toggle visibility of the custom-topic input based on selection.
+    const otherWrap = document.getElementById('l-req-course-other-wrap');
+    const otherInp  = document.getElementById('l-req-course-other');
+    sel.onchange = () => {
+      const isOther = sel.value === '__other__';
+      if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
+      if (!isOther && otherInp) otherInp.value = '';
+    };
+    // Reset visibility on every re-render.
+    if (otherWrap) otherWrap.style.display = 'none';
+    if (otherInp)  otherInp.value = '';
   }
 
   let _selectedSundayIds = [];
@@ -5631,8 +5654,23 @@
       return;
     }
     const teacherId = document.getElementById('l-req-teacher').value;
-    const courseId  = document.getElementById('l-req-course').value || null;
-    const message   = document.getElementById('l-req-message').value.trim();
+    let   courseId  = document.getElementById('l-req-course').value || null;
+    let   message   = document.getElementById('l-req-message').value.trim();
+
+    // Handle the "Other (describe below)" course option: don't link a Course
+    // record; instead prepend a marker to the Leader Message that the request
+    // card knows how to render as a custom course title.
+    let otherCourseTitle = '';
+    if (courseId === '__other__') {
+      otherCourseTitle = (document.getElementById('l-req-course-other').value || '').trim();
+      courseId = null;
+      if (!otherCourseTitle) {
+        toast('error', 'Describe the topic', 'Type the course or topic you\u2019d like them to teach.');
+        return;
+      }
+      message = '[Other course: ' + otherCourseTitle + ']' + (message ? '\n\n' + message : '');
+    }
+
     if (!teacherId) { toast('error', 'Choose a teacher', 'Pick someone to send this request to.'); return; }
     if (!_selectedSundayIds.length) { toast('error', 'Pick at least one Sunday', 'Select the Sundays you\u2019d like the teacher.'); return; }
 
@@ -5698,6 +5736,19 @@
     const l = DataStore.getABFLeader(r.requestingLeaderId);
     const cls = DataStore.getABFClass(r.abfClassId);
     const course = r.courseId ? DataStore.listCourses().find(c => c.id === r.courseId) : null;
+
+    // "Other" course support: when the leader picked the Other option in the
+    // request form, the custom topic is stored as a marker prefix on the
+    // Leader Message. Parse it back out so the card shows the topic in the
+    // meta line and the message body stays clean.
+    let otherCourseTitle = '';
+    let displayLeaderMessage = r.leaderMessage || '';
+    const otherMatch = displayLeaderMessage.match(/^\[Other course: ([^\]]+)\]\s*\n?\n?/);
+    if (otherMatch) {
+      otherCourseTitle = otherMatch[1].trim();
+      displayLeaderMessage = displayLeaderMessage.slice(otherMatch[0].length);
+    }
+
     const sundays = DataStore.listSundays();
     const sunMap = {}; sundays.forEach(s => sunMap[s.id] = s);
 
@@ -5731,10 +5782,11 @@
     if (l && role === 'teacher') html += ' · Leader: <strong>' + escapeHtml(l.name) + '</strong>';
     if (t && role === 'leader')  html += ' · Teacher: <strong>' + escapeHtml(t.name) + '</strong>';
     if (course) html += ' · Course: <strong>' + escapeHtml(course.title) + '</strong>';
+    else if (otherCourseTitle) html += ' · Course: <strong>' + escapeHtml(otherCourseTitle) + '</strong> <span style="color:var(--text-muted);font-weight:600;">(custom topic)</span>';
     html += '</div>';
     html += '<div style="font-size:.74rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.3rem;">Requested Sundays</div>';
     html += '<div class="req-sundays">' + sundayPills + '</div>';
-    if (r.leaderMessage) html += '<div class="req-message"><strong>Message:</strong> ' + escapeHtml(r.leaderMessage).replace(/\n/g,'<br>') + '</div>';
+    if (displayLeaderMessage) html += '<div class="req-message"><strong>Message:</strong> ' + escapeHtml(displayLeaderMessage).replace(/\n/g,'<br>') + '</div>';
     if (r.teacherResponse) html += '<div class="req-message" style="background:rgba(63,87,101,.06);"><strong>' + (t ? escapeHtml(t.name) : 'Teacher') + ' replied:</strong> ' + escapeHtml(r.teacherResponse).replace(/\n/g,'<br>') + '</div>';
     if (counterPills) {
       html += '<div style="font-size:.74rem;color:var(--steel-blue);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-top:.45rem;">Counter-proposed Sundays</div>';
