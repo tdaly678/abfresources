@@ -1780,7 +1780,16 @@
       text-transform: uppercase; letter-spacing: .04em;
       color: var(--gold);
       white-space: nowrap;
+      flex: 1; text-align: center;
     }
+    #public-feedback .pf-preview-print {
+      background: var(--terra); border: 1.5px solid var(--terra);
+      color: #fff; padding: .4rem .85rem;
+      border-radius: 6px; font-size: .82rem; font-weight: 700;
+      cursor: pointer; transition: all .12s;
+      white-space: nowrap;
+    }
+    #public-feedback .pf-preview-print:hover { background: #c64a30; border-color: #c64a30; }
     @media (max-width: 480px) {
       #public-feedback.pf-previewing { padding-top: 3.6rem; }
       #public-feedback .pf-preview-banner { padding: .55rem .75rem; }
@@ -6373,10 +6382,21 @@
         (f.description ? '<p class="fb-desc">' + escapeHtml(f.description) + '</p>' : '') +
         '<div class="fb-actions">' +
           '<a class="btn btn-primary" href="?f=' + encodeURIComponent(f.slug) + '" target="_blank" rel="noopener">Fill out survey</a>' +
+          '<button class="btn btn-ghost" data-fb-print="' + f.id + '">Download printable PDF</button>' +
           '<span class="fb-slug-pill">' + escapeHtml(fbShortUrl(f.slug)) + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
+    // Wire print buttons (open list)
+    host.querySelectorAll('[data-fb-print]').forEach(btn => {
+      btn.onclick = () => {
+        const f = DataStore.getFeedbackForm(btn.dataset.fbPrint);
+        if (!f) return;
+        const tpl = DataStore.getFeedbackTemplate(f.templateId);
+        if (!tpl) { alert('Could not load this survey\'s template.'); return; }
+        openFbPrintView({ template: tpl, form: f });
+      };
+    });
   }
 
   function renderFbMineList() {
@@ -6416,11 +6436,23 @@
         '<div class="fb-actions">' +
           '<button class="btn btn-primary" data-fb-view="' + f.id + '">View responses (' + responses.length + ')</button>' +
           '<button class="btn btn-ghost"   data-fb-share="' + f.id + '">Share link</button>' +
+          '<button class="btn btn-ghost"   data-fb-print="' + f.id + '">Download printable PDF</button>' +
           '<button class="btn btn-ghost"   data-fb-delete="' + f.id + '">Delete</button>' +
           '<span class="fb-slug-pill">' + escapeHtml(fbShortUrl(f.slug)) + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
+
+    // Wire print buttons (mine list)
+    host.querySelectorAll('[data-fb-print]').forEach(btn => {
+      btn.onclick = () => {
+        const f = DataStore.getFeedbackForm(btn.dataset.fbPrint);
+        if (!f) return;
+        const tpl = DataStore.getFeedbackTemplate(f.templateId);
+        if (!tpl) { alert('Could not load this survey\'s template.'); return; }
+        openFbPrintView({ template: tpl, form: f });
+      };
+    });
 
     // Wire action buttons
     host.querySelectorAll('[data-fb-view]').forEach(btn => {
@@ -6587,12 +6619,19 @@
           (typeChips ? '<div class="fb-tpl-typechips">' + typeChips + '</div>' : '') +
           '<div class="fb-tpl-actions">' +
             '<button type="button" class="btn btn-primary" data-fb-tpl-preview="' + t.id + '">Preview this survey</button>' +
+            '<button type="button" class="btn btn-ghost"   data-fb-tpl-print="'   + t.id + '">Download printable PDF</button>' +
           '</div>' +
         '</div>';
       }).join('') +
       '</div>';
     host.querySelectorAll('[data-fb-tpl-preview]').forEach(btn => {
       btn.onclick = () => openFbTemplatePreview(btn.dataset.fbTplPreview);
+    });
+    host.querySelectorAll('[data-fb-tpl-print]').forEach(btn => {
+      btn.onclick = () => {
+        const tpl = DataStore.getFeedbackTemplate(btn.dataset.fbTplPrint);
+        if (tpl) openFbPrintView({ template: tpl });
+      };
     });
   }
 
@@ -6624,6 +6663,7 @@
       '<div class="pf-preview-banner">' +
         '<button type="button" class="pf-preview-close" id="pf-preview-close">← Close preview</button>' +
         '<span class="pf-preview-tag">Template Preview · won\'t be saved</span>' +
+        '<button type="button" class="pf-preview-print" id="pf-preview-print">Download printable PDF</button>' +
       '</div>';
 
     const formHtml =
@@ -6661,11 +6701,214 @@
       document.body.style.overflow = '';
     };
     document.getElementById('pf-preview-close').onclick = close;
+    // "Download printable PDF" from preview banner
+    const printBtn = document.getElementById('pf-preview-print');
+    if (printBtn) printBtn.onclick = () => openFbPrintView({ template: tpl });
     // Esc closes preview
     const onEsc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } };
     document.addEventListener('keydown', onEsc);
     // Reset scroll
     pf.scrollTop = 0;
+  }
+
+  /* ── Printable PDF (paper-fillable) ─────────────────────
+     Opens a new tab with a single-page LEFC-branded form rendering.
+     Auto-fires window.print() so the browser's "Save as PDF" or
+     printer dialog is the user's one-click path.
+
+     `opts.template` (required) — the template to render
+     `opts.form`     (optional) — a specific open survey, used to
+                                  pre-fill the unique code + QR so
+                                  paper responses can be matched
+                                  back to the digital survey later. */
+  function openFbPrintView(opts) {
+    const tpl = opts && opts.template;
+    if (!tpl || !Array.isArray(tpl.questions)) return;
+    const form     = opts.form     || null;
+    const teacher  = opts.teacher  || (form ? DataStore.getTeacher(form.teacherId) : null);
+    const abfClass = opts.abfClass || (form ? DataStore.getABFClass(form.abfClassId) : null);
+
+    const w = window.open('', '_blank');
+    if (!w) {
+      alert('Please allow pop-ups for this site so the printable PDF can open in a new tab.');
+      return;
+    }
+
+    const titleText  = (form ? form.title : tpl.name) + ' — Printable Feedback Form';
+    const surveyCode = form ? String(form.slug || '') : '';
+    const surveyUrl  = form ? fbShortUrl(form.slug)  : 'abfresources.com/feedback';
+    const qrTarget   = form ? fbPublicUrl(form.slug) : (location.origin + '/?tab=feedback');
+    const qrSrc      = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(qrTarget);
+    const useTwoCol  = tpl.questions.length > 11;
+
+    const body = tpl.questions.map((q, i) => fbRenderPaperQuestion(q, i + 1)).join('');
+
+    const html =
+      '<!doctype html><html lang="en"><head><meta charset="utf-8" />' +
+      '<title>' + escapeHtml(titleText) + '</title>' +
+      '<style>' + fbPrintCss(useTwoCol) + '</style>' +
+      '</head><body>' +
+      '<div class="page">' +
+        '<header class="hdr">' +
+          '<div class="hdr-row">' +
+            '<div class="lockup">' +
+              '<div class="lockup-mark">LEFC</div>' +
+              '<div class="lockup-text">' +
+                '<div class="ministry">LEFC ADULTS</div>' +
+                '<div class="church">Lancaster Evangelical Free Church</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="codeblock">' +
+              '<div class="code-label">Survey Code</div>' +
+              '<div class="code-value">' + (surveyCode ? escapeHtml(surveyCode) : '<span class="code-blank">_____</span>') + '</div>' +
+              '<img class="qr" src="' + qrSrc + '" alt="QR" />' +
+              '<div class="code-url">' + escapeHtml(surveyUrl) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<h1>' + escapeHtml(form ? form.title : tpl.name) + '</h1>' +
+          '<div class="meta-row">' +
+            (teacher  ? 'Teacher: <b>' + escapeHtml(teacher.name)  + '</b> &nbsp;·&nbsp; ' : '') +
+            (abfClass ? 'Class: <b>'   + escapeHtml(abfClass.name) + '</b> &nbsp;·&nbsp; ' : '') +
+            'Date: <span class="fillin"></span> &nbsp;·&nbsp; Name: <span class="fillin long"></span>' +
+          '</div>' +
+        '</header>' +
+        '<main class="qbody' + (useTwoCol ? ' twocol' : '') + '">' + body + '</main>' +
+        '<footer class="ftr">' +
+          'Lancaster Evangelical Free Church · ABF Adults &nbsp;·&nbsp; ' +
+          'Prefer to fill this out online? Scan the QR or visit ' + escapeHtml(surveyUrl) +
+        '</footer>' +
+      '</div>' +
+      '<script>setTimeout(function(){ try { window.print(); } catch(e){} }, 700);<\/script>' +
+      '</body></html>';
+
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function fbRenderPaperQuestion(q, n) {
+    const labelHtml = '<div class="qlabel"><span class="qnum">' + n + '.</span> ' + escapeHtml(q.label) +
+      (q.required ? ' <span class="req">*</span>' : '') + '</div>';
+    const helpHtml = q.help ? '<div class="qhelp">' + escapeHtml(q.help) + '</div>' : '';
+    if (q.type === 'rating') {
+      const min = q.min || 1, max = q.max || 5;
+      const minLabel = q.minLabel || '';
+      const maxLabel = q.maxLabel || '';
+      let circles = '';
+      for (let i = min; i <= max; i++) {
+        circles += '<span class="r-circle">' + i + '</span>';
+      }
+      return '<div class="q rating">' + labelHtml + helpHtml +
+        '<div class="rscale">' +
+          '<span class="rl">' + (minLabel ? escapeHtml(min + ' = ' + minLabel) : '') + '</span>' +
+          '<span class="rcircles">' + circles + '</span>' +
+          '<span class="rr">' + (maxLabel ? escapeHtml(maxLabel + ' = ' + max) : '') + '</span>' +
+        '</div>' +
+      '</div>';
+    }
+    if (q.type === 'single_choice' || q.type === 'choice') {
+      const opts = (q.options || []).map(o =>
+        '<span class="c-opt"><span class="cbox"></span> ' + escapeHtml(o) + '</span>'
+      ).join('');
+      return '<div class="q choice">' + labelHtml + helpHtml + '<div class="copts">' + opts + '</div></div>';
+    }
+    if (q.type === 'multi_select') {
+      const opts = (q.options || []).map(o =>
+        '<span class="c-opt"><span class="cbox"></span> ' + escapeHtml(o) + '</span>'
+      ).join('');
+      return '<div class="q multi">' + labelHtml +
+        '<div class="qhint">(check all that apply)</div>' +
+        '<div class="copts">' + opts + '</div>' +
+      '</div>';
+    }
+    if (q.type === 'plus_minus') {
+      const rows = (q.components || []).map(c =>
+        '<tr>' +
+          '<td class="pmname">' + escapeHtml(c) + '</td>' +
+          '<td><span class="cbox"></span></td>' +
+          '<td><span class="cbox"></span></td>' +
+          '<td><span class="cbox"></span></td>' +
+        '</tr>'
+      ).join('');
+      return '<div class="q pm">' + labelHtml + helpHtml +
+        '<table class="pmtable">' +
+          '<thead><tr><th></th><th>Less</th><th>About right</th><th>More</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>';
+    }
+    if (q.type === 'long_text' || q.type === 'textarea') {
+      return '<div class="q ltext">' + labelHtml + helpHtml +
+        '<div class="lines">' +
+          '<div class="line"></div><div class="line"></div><div class="line"></div>' +
+        '</div>' +
+      '</div>';
+    }
+    if (q.type === 'date') {
+      return '<div class="q date">' + labelHtml + '<div class="dateline">__________</div></div>';
+    }
+    // text default — short answer
+    return '<div class="q text">' + labelHtml + helpHtml +
+      '<div class="lines"><div class="line"></div></div>' +
+    '</div>';
+  }
+
+  function fbPrintCss(twoCol) {
+    return '' +
+      '@page { size: letter; margin: 0.4in; }' +
+      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+      'html, body { background: #fff; color: #342D25; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+      'body { font-family: "Gotham", "Helvetica Neue", Arial, sans-serif; font-size: 9.5pt; line-height: 1.32; }' +
+      '.page { max-width: 7.7in; margin: 0 auto; padding: 0; }' +
+      '.hdr { border-bottom: 2px solid #BCA944; padding-bottom: 6pt; margin-bottom: 8pt; }' +
+      '.hdr-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12pt; }' +
+      '.lockup { display: flex; align-items: center; gap: 8pt; }' +
+      '.lockup-mark { font-weight: 900; font-size: 18pt; color: #342D25; letter-spacing: -.02em;' +
+        ' background: #BCA944; color: #fff; padding: 4pt 8pt; border-radius: 4pt; }' +
+      '.ministry { font-weight: 800; font-size: 9pt; color: #AA3B24; letter-spacing: .08em; text-transform: uppercase; }' +
+      '.church { font-size: 8pt; color: #6b6050; margin-top: 1pt; }' +
+      '.codeblock { text-align: center; min-width: 90pt; }' +
+      '.code-label { font-size: 6.5pt; color: #AA3B24; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }' +
+      '.code-value { font-family: "Courier New", monospace; font-weight: 800; font-size: 16pt; color: #342D25; line-height: 1; padding: 1pt 0 3pt; }' +
+      '.code-blank { color: #AA3B24; letter-spacing: .12em; }' +
+      '.qr { display: block; width: 70pt; height: 70pt; margin: 0 auto; }' +
+      '.code-url { font-size: 6.5pt; color: #6b6050; margin-top: 2pt; font-family: "Courier New", monospace; }' +
+      'h1 { font-size: 15pt; font-weight: 900; color: #342D25; margin-top: 6pt; line-height: 1.15; }' +
+      '.meta-row { font-size: 8.5pt; color: #2a2318; margin-top: 4pt; }' +
+      '.fillin { display: inline-block; border-bottom: 1pt solid #342D25; min-width: 60pt; height: 11pt; vertical-align: bottom; }' +
+      '.fillin.long { min-width: 140pt; }' +
+      // Question body
+      '.qbody { padding-top: 4pt; }' +
+      (twoCol ? '.qbody.twocol { column-count: 2; column-gap: 14pt; column-rule: 1pt dashed #ddcca5; }' : '') +
+      '.q { break-inside: avoid; page-break-inside: avoid; margin-bottom: 6pt; }' +
+      '.qlabel { font-weight: 700; font-size: 9pt; color: #342D25; line-height: 1.3; margin-bottom: 1.5pt; }' +
+      '.qnum { color: #AA3B24; font-weight: 900; margin-right: 2pt; }' +
+      '.req { color: #AA3B24; font-weight: 900; }' +
+      '.qhelp { font-size: 7.5pt; color: #6b6050; font-style: italic; margin-bottom: 2pt; line-height: 1.3; }' +
+      '.qhint { font-size: 7pt; color: #6b6050; font-style: italic; margin-bottom: 2pt; }' +
+      // Rating
+      '.rscale { display: flex; align-items: center; justify-content: space-between; gap: 4pt; font-size: 7.5pt; color: #6b6050; margin-top: 2pt; }' +
+      '.rl, .rr { flex: 1; }' +
+      '.rl { text-align: left; }' +
+      '.rr { text-align: right; }' +
+      '.rcircles { display: inline-flex; gap: 4pt; flex-shrink: 0; }' +
+      '.r-circle { display: inline-flex; align-items: center; justify-content: center; width: 14pt; height: 14pt; border: 1pt solid #342D25; border-radius: 50%; font-size: 8pt; font-weight: 700; color: #342D25; }' +
+      // Choice / Multi
+      '.copts { display: flex; flex-wrap: wrap; gap: 4pt 10pt; font-size: 8.5pt; }' +
+      '.c-opt { display: inline-flex; align-items: center; gap: 3pt; }' +
+      '.cbox { display: inline-block; width: 9pt; height: 9pt; border: 1pt solid #342D25; border-radius: 1.5pt; }' +
+      // Plus / minus
+      '.pmtable { width: 100%; border-collapse: collapse; font-size: 8pt; margin-top: 2pt; }' +
+      '.pmtable th { background: #f7eed7; color: #342D25; font-weight: 800; padding: 2pt 4pt; border: 1pt solid #ddcca5; text-align: center; font-size: 7.5pt; }' +
+      '.pmtable td { padding: 2pt 4pt; border: 1pt solid #ddcca5; text-align: center; }' +
+      '.pmtable td.pmname { text-align: left; font-weight: 600; }' +
+      '.pmtable td .cbox { width: 11pt; height: 11pt; }' +
+      // Text fields
+      '.lines { margin-top: 1.5pt; }' +
+      '.line { border-bottom: 1pt solid #ad9a7a; height: 14pt; }' +
+      '.dateline { font-family: "Courier New", monospace; font-size: 9pt; }' +
+      // Footer
+      '.ftr { border-top: 1pt solid #ddcca5; margin-top: 8pt; padding-top: 4pt; font-size: 7pt; color: #6b6050; text-align: center; font-style: italic; }';
   }
 
   function setupFbSubnav() {
