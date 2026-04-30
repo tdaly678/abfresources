@@ -2559,11 +2559,7 @@
 
           <div class="announcement-card">
             <div class="announcement-embed">
-              <div class="video-placeholder">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                <span>Vimeo Video Coming Soon</span>
-              </div>
-              <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+              <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
             </div>
             <div class="announcement-body">
               <span class="announcement-eyebrow">For ABF Leaders</span>
@@ -2574,11 +2570,7 @@
 
           <div class="announcement-card steel">
             <div class="announcement-embed">
-              <div class="video-placeholder">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                <span>Vimeo Video Coming Soon</span>
-              </div>
-              <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+              <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
             </div>
             <div class="announcement-body">
               <span class="announcement-eyebrow">For ABF Teachers</span>
@@ -3672,12 +3664,8 @@
       <div id="course-videos-tutorials" class="course-video-grid" style="display:none;">
 
         <div class="course-video-card">
-          <div class="course-video-embed" style="display:flex;align-items:center;justify-content:center;">
-            <div class="video-placeholder">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-              <span>Vimeo Video Coming Soon</span>
-            </div>
-            <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
           </div>
           <div class="course-video-body">
             <h4>Scheduling Tutorial — ABF Leaders</h4>
@@ -3689,12 +3677,8 @@
         </div>
 
         <div class="course-video-card">
-          <div class="course-video-embed" style="display:flex;align-items:center;justify-content:center;">
-            <div class="video-placeholder">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-              <span>Vimeo Video Coming Soon</span>
-            </div>
-            <!-- Replace with: <iframe src="https://player.vimeo.com/video/VIMEO_ID?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe> -->
+          <div class="course-video-embed">
+            <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
           </div>
           <div class="course-video-body">
             <h4>Scheduling Tutorial — ABF Teachers</h4>
@@ -5552,14 +5536,20 @@
   }
 
   /* Pick a default active pane appropriate for the current identity.
-     Leaves an existing active pane alone if its tab isn't locked. */
+     Leaves an existing active pane alone if its tab isn't locked.
+     For anonymous users we activate the pane but skip the red "active"
+     pill on the button — there's nothing else to switch to, so the
+     highlight is just visual noise. */
   function ensureActivePane(id) {
     const tab = document.getElementById('tab-scheduling');
     if (!tab) return;
+    const isAnonymous = !id && !Identity.isAdmin();
+
     const activeBtn = tab.querySelector('.sched-subnav-btn.active:not(.locked)');
     if (activeBtn) {
       const target = 'sched-' + activeBtn.dataset.sub;
       tab.querySelectorAll('.sched-pane').forEach(p => p.classList.toggle('active', p.id === target));
+      if (isAnonymous) activeBtn.classList.remove('active');
       return;
     }
     // No unlocked active button — pick a default.
@@ -5569,8 +5559,10 @@
     else defaultSub = 'l-grid'; // anonymous → read-only grid
 
     tab.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
-    const btn = tab.querySelector('.sched-subnav-btn[data-sub="' + defaultSub + '"]');
-    if (btn) btn.classList.add('active');
+    if (!isAnonymous) {
+      const btn = tab.querySelector('.sched-subnav-btn[data-sub="' + defaultSub + '"]');
+      if (btn) btn.classList.add('active');
+    }
     tab.querySelectorAll('.sched-pane').forEach(p => p.classList.toggle('active', p.id === 'sched-' + defaultSub));
   }
 
@@ -6906,9 +6898,12 @@
 
         // Inside scheduling tab: clear active across BOTH subnavs and BOTH
         // panes containers; activate this button + its pane globally.
+        // For anonymous browsers the "active" red pill is suppressed —
+        // there's only one unlocked tab so the highlight is just noise.
         const tab = document.getElementById('tab-scheduling');
+        const isAnonymous = !Identity.get() && !Identity.isAdmin();
         tab.querySelectorAll('.sched-subnav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        if (!isAnonymous) btn.classList.add('active');
         const target = 'sched-' + btn.dataset.sub;
         tab.querySelectorAll('.sched-pane').forEach(p => p.classList.remove('active'));
         const pane = document.getElementById(target);
