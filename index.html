@@ -1804,10 +1804,44 @@
       color: #fff;
       box-shadow: 0 2px 5px rgba(196,158,84,.4);
     }
+    /* Rating anchors — the "1 = X / 5 = Y" callout above the buttons.
+       Number sits in a chip pinned next to its end of the row, so the
+       meaning is unmistakable BEFORE the user clicks. */
+    #public-feedback .pf-rating-anchors {
+      display: flex; justify-content: space-between; align-items: stretch;
+      gap: .8rem; margin-bottom: .55rem;
+    }
+    #public-feedback .pf-rating-anchor {
+      display: inline-flex; align-items: center; gap: .45rem;
+      max-width: 48%;
+      font-size: .82rem; color: var(--dark-brown);
+      font-weight: 600; line-height: 1.35;
+    }
+    #public-feedback .pf-rating-anchor-left  { text-align: left;  }
+    #public-feedback .pf-rating-anchor-right { text-align: right; flex-direction: row; justify-content: flex-end; }
+    #public-feedback .pf-rating-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      width: 1.7rem; height: 1.7rem;
+      background: var(--gold); color: #fff;
+      border-radius: 6px;
+      font-weight: 900; font-size: .9rem;
+      box-shadow: 0 1px 3px rgba(196,158,84,.35);
+    }
+    #public-feedback .pf-rating-text {
+      flex: 1;
+    }
+    @media (max-width: 480px) {
+      #public-feedback .pf-rating-anchors { gap: .5rem; }
+      #public-feedback .pf-rating-anchor { font-size: .76rem; }
+      #public-feedback .pf-rating-num { width: 1.5rem; height: 1.5rem; font-size: .8rem; }
+    }
+    /* Legacy .pf-rating-scale (kept for any cached forms; new render uses
+       .pf-rating-anchors above the buttons instead) */
     #public-feedback .pf-rating-scale {
       display: flex; justify-content: space-between;
-      font-size: .72rem; color: var(--text-muted); margin-top: .45rem;
-      font-style: italic;
+      font-size: .78rem; color: var(--dark-brown); margin-top: .5rem;
+      font-weight: 600;
     }
     /* ── Single-choice radios: defined cards ── */
     #public-feedback .pf-choice-row { display: flex; flex-direction: column; gap: .5rem; }
@@ -6712,15 +6746,28 @@
     }
     if (q.type === 'rating') {
       const min = q.min || 1, max = q.max || 5;
-      const minLabel = q.minLabel || ('' + min);
-      const maxLabel = q.maxLabel || ('' + max);
+      const minLabel = q.minLabel || 'Lower';
+      const maxLabel = q.maxLabel || 'Higher';
       let buttons = '';
       for (let i = min; i <= max; i++) {
         buttons += '<button type="button" class="pf-rating-btn" data-rating="' + i + '">' + i + '</button>';
       }
-      return label +
+      // Anchors above the buttons so respondents see what 1 and N mean
+      // BEFORE clicking. Number is shown as a chip pinned to the side
+      // closest to its anchor button.
+      const anchors =
+        '<div class="pf-rating-anchors">' +
+          '<span class="pf-rating-anchor pf-rating-anchor-left">' +
+            '<span class="pf-rating-num">' + min + '</span>' +
+            '<span class="pf-rating-text">' + escapeHtml(minLabel) + '</span>' +
+          '</span>' +
+          '<span class="pf-rating-anchor pf-rating-anchor-right">' +
+            '<span class="pf-rating-text">' + escapeHtml(maxLabel) + '</span>' +
+            '<span class="pf-rating-num">' + max + '</span>' +
+          '</span>' +
+        '</div>';
+      return label + anchors +
         '<div class="pf-rating-row" data-qid="' + q.id + '" data-qtype="rating">' + buttons + '</div>' +
-        '<div class="pf-rating-scale"><span>' + escapeHtml(minLabel) + '</span><span>' + escapeHtml(maxLabel) + '</span></div>' +
         '<input type="hidden" data-rating-value="' + q.id + '" ' + (q.required ? 'required' : '') + ' />';
     }
     if (q.type === 'choice' || q.type === 'single_choice') {
