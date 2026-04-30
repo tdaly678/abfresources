@@ -1727,6 +1727,82 @@
       font-size: .85rem; color: var(--text-muted); margin-bottom: 1.4rem;
       line-height: 1.55;
     }
+
+    /* ─── Auto-share banner at top of public form ─────────── */
+    #public-feedback .pf-share-banner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1.2rem;
+      align-items: center;
+      background: #fff;
+      border: 1.5px solid var(--cream-border);
+      border-radius: 14px;
+      padding: 1.1rem 1.3rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(50,40,30,.07);
+    }
+    #public-feedback .pf-share-banner-info {
+      min-width: 0;
+    }
+    #public-feedback .pf-share-banner-title {
+      font-size: .82rem; font-weight: 800; color: var(--terra);
+      text-transform: uppercase; letter-spacing: .04em;
+      margin-bottom: .35rem;
+    }
+    #public-feedback .pf-share-banner-sub {
+      font-size: .85rem; color: var(--text); line-height: 1.5;
+      margin-bottom: .6rem;
+    }
+    #public-feedback .pf-share-banner-url {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: .85rem; font-weight: 700; color: var(--dark-brown);
+      background: var(--cream); border: 1px solid var(--cream-border);
+      padding: .4rem .7rem; border-radius: 7px;
+      display: inline-block; margin-bottom: .65rem;
+      word-break: break-all;
+    }
+    #public-feedback .pf-share-banner-actions {
+      display: flex; flex-wrap: wrap; gap: .4rem;
+    }
+    #public-feedback .pf-share-banner-btn {
+      display: inline-block;
+      background: var(--terra); color: #fff;
+      padding: .5rem .9rem; border: none; border-radius: 7px;
+      font-size: .82rem; font-weight: 800; cursor: pointer;
+      text-decoration: none;
+      transition: background .12s, transform .12s;
+    }
+    #public-feedback .pf-share-banner-btn:hover {
+      background: #a85533; transform: translateY(-1px);
+    }
+    #public-feedback .pf-share-banner-qr {
+      display: block;
+      width: 150px; height: 150px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1.5px solid var(--cream-border);
+      border-radius: 10px;
+      padding: .35rem;
+      box-shadow: 0 1px 4px rgba(50,40,30,.08);
+      transition: transform .12s, box-shadow .12s;
+    }
+    #public-feedback .pf-share-banner-qr:hover {
+      transform: scale(1.03);
+      box-shadow: 0 3px 10px rgba(50,40,30,.14);
+    }
+    #public-feedback .pf-share-banner-qr img {
+      display: block; width: 100%; height: 100%;
+    }
+    @media (max-width: 560px) {
+      #public-feedback .pf-share-banner {
+        grid-template-columns: 1fr;
+        text-align: left;
+      }
+      #public-feedback .pf-share-banner-qr {
+        width: 180px; height: 180px;
+        margin: 0 auto;
+      }
+    }
     /* Tokens used only inside the public form to give fields a clearer,
        more "tappable" definition than the rest of the portal needs. */
     #public-feedback {
@@ -6936,7 +7012,31 @@
     const teacher = DataStore.getTeacher(form.teacherId);
     const cls     = DataStore.getABFClass(form.abfClassId);
 
+    // Auto-generated QR code for this survey, sized to be screenshot- /
+    // copy-friendly. Lives at the top of the page so teachers can pull it
+    // up on a laptop or phone and immediately share into slides/texts.
+    const shareShort = fbShortUrl(form.slug);
+    const shareFull  = fbPublicUrl(form.slug);
+    const qrSrc      = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=12&format=png&data=' + encodeURIComponent(shareShort);
+
+    const shareBanner =
+      '<div class="pf-share-banner">' +
+        '<div class="pf-share-banner-info">' +
+          '<div class="pf-share-banner-title">Share this survey</div>' +
+          '<div class="pf-share-banner-sub">Project on a screen, screenshot, or right-click the QR to save it for slides, texts, or emails.</div>' +
+          '<div class="pf-share-banner-url">' + escapeHtml(shareShort) + '</div>' +
+          '<div class="pf-share-banner-actions">' +
+            '<a class="pf-share-banner-btn" href="' + qrSrc + '" download="abf-survey-' + escapeHtml(String(form.slug || 'qr')) + '.png">Download QR</a>' +
+            '<button type="button" class="pf-share-banner-btn" id="pf-share-copy">Copy link</button>' +
+          '</div>' +
+        '</div>' +
+        '<a class="pf-share-banner-qr" href="' + qrSrc + '" target="_blank" rel="noopener" title="Open full-size QR">' +
+          '<img src="' + qrSrc + '" alt="QR code for this survey — scan to open" />' +
+        '</a>' +
+      '</div>';
+
     const html =
+      shareBanner +
       '<h1>' + escapeHtml(form.title) + '</h1>' +
       '<p class="pf-sub">' +
         (teacher ? 'Feedback for <strong>' + escapeHtml(teacher.name) + '</strong>' : '') +
@@ -6961,6 +7061,22 @@
       '</form>';
     host.innerHTML = html;
     pfWireRatingButtons(host);
+
+    // Wire the "Copy link" button on the share banner
+    const copyBtn = document.getElementById('pf-share-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(shareShort);
+          const orig = copyBtn.textContent;
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = orig; }, 1800);
+        } catch {
+          // Fallback for older browsers — show URL in prompt
+          window.prompt('Copy this survey link:', shareShort);
+        }
+      });
+    }
 
     document.getElementById('pf-form').addEventListener('submit', async (e) => {
       e.preventDefault();
