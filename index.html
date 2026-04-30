@@ -1606,6 +1606,106 @@
     .fb-response-card .fb-r-when { font-size: .72rem; color: var(--text-muted); }
     .fb-response-card .fb-r-q { font-size: .76rem; color: var(--text-muted); margin-top: .45rem; font-weight: 700; }
     .fb-response-card .fb-r-a { font-size: .85rem; color: var(--text); white-space: pre-wrap; line-height: 1.45; }
+    .fb-response-card .fb-r-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
+    .fb-response-card .fb-r-chip {
+      display: inline-block; padding: .15rem .55rem;
+      background: #fff8e0; border: 1px solid var(--gold); border-radius: 999px;
+      font-size: .75rem; color: var(--dark-brown); font-weight: 600;
+    }
+    .fb-response-card .fb-r-pmlist { display: flex; flex-direction: column; gap: .25rem; margin-top: .15rem; }
+    .fb-response-card .fb-r-pmrow {
+      display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+      padding: .25rem .5rem; background: var(--cream); border-radius: 5px;
+    }
+    .fb-response-card .fb-r-pmkey { font-size: .8rem; color: var(--text); font-weight: 600; }
+    .fb-response-card .fb-r-pmval {
+      font-size: .7rem; font-weight: 800; padding: .12rem .5rem; border-radius: 999px;
+    }
+    .fb-response-card .fb-r-pm-more { background: #5a7a3a; color: #fff; }
+    .fb-response-card .fb-r-pm-less { background: #b46a3a; color: #fff; }
+    .fb-response-card .fb-r-pm-same { background: var(--cream-border); color: var(--text); }
+
+    /* Responses modal: toolbar (summary / individual / export) */
+    .fb-r-toolbar {
+      display: flex; flex-wrap: wrap; gap: .4rem; align-items: center;
+      padding: .25rem 0 .85rem; border-bottom: 1px solid var(--cream-border); margin-bottom: .85rem;
+    }
+    .fb-r-tab {
+      background: transparent; border: 1.5px solid var(--cream-border);
+      color: var(--text-muted); padding: .35rem .75rem; border-radius: 6px;
+      font-size: .78rem; font-weight: 700; cursor: pointer; transition: all .12s;
+    }
+    .fb-r-tab.active { background: var(--gold); border-color: var(--gold); color: #fff; }
+    .fb-r-tab:hover:not(.active) { border-color: var(--gold); color: var(--text); }
+    .fb-r-export {
+      margin-left: auto;
+      background: transparent; border: 1.5px solid var(--steel-blue);
+      color: var(--steel-blue); padding: .35rem .75rem; border-radius: 6px;
+      font-size: .76rem; font-weight: 700; cursor: pointer; transition: all .12s;
+    }
+    .fb-r-export:hover { background: var(--steel-blue); color: #fff; }
+    .fb-r-export + .fb-r-export { margin-left: .35rem; }
+
+    /* Aggregate summary blocks */
+    .fb-agg-list { display: flex; flex-direction: column; gap: 1.1rem; }
+    .fb-agg-q {
+      font-size: .85rem; font-weight: 800; color: var(--dark-brown);
+      display: flex; justify-content: space-between; align-items: baseline; gap: .5rem;
+      padding-bottom: .35rem; border-bottom: 1px solid var(--cream-border);
+    }
+    .fb-agg-n { font-size: .7rem; color: var(--text-muted); font-weight: 600; }
+    .fb-agg-mean {
+      font-size: .8rem; color: var(--text); margin: .35rem 0 .25rem;
+    }
+    .fb-agg-mean strong { color: var(--terra); font-size: 1.1rem; }
+    .fb-agg-bars { display: flex; flex-direction: column; gap: .25rem; margin-top: .35rem; }
+    .fb-agg-bar-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      align-items: center; gap: .5rem;
+      font-size: .78rem;
+    }
+    .fb-agg-bar-label { color: var(--text); font-weight: 600; min-width: 1.5em; }
+    .fb-agg-bar {
+      display: block; background: var(--cream); height: 14px; border-radius: 4px; overflow: hidden;
+    }
+    .fb-agg-bar-fill {
+      display: block; height: 100%; background: var(--gold);
+    }
+    .fb-agg-bar-count { color: var(--text-muted); font-size: .72rem; min-width: 3.5em; text-align: right; }
+    .fb-agg-empty { font-size: .78rem; color: var(--text-muted); font-style: italic; padding: .25rem 0; }
+    .fb-agg-textlist {
+      margin: .35rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .35rem;
+    }
+    .fb-agg-textlist li { font-size: .82rem; color: var(--text); line-height: 1.4; }
+
+    /* Plus/minus aggregate stacked bar */
+    .fb-agg-pm-legend {
+      font-size: .7rem; color: var(--text-muted); margin: .35rem 0 .35rem;
+      display: flex; flex-wrap: wrap; gap: .25rem; align-items: center;
+    }
+    .fb-agg-pm-legend .dot {
+      display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: .15rem;
+    }
+    .fb-agg-pm-legend .dot.less { background: #b46a3a; }
+    .fb-agg-pm-legend .dot.same { background: var(--cream-border); }
+    .fb-agg-pm-legend .dot.more { background: #5a7a3a; }
+    .fb-agg-pm-grid { display: flex; flex-direction: column; gap: .35rem; }
+    .fb-agg-pm-row {
+      display: grid; grid-template-columns: minmax(8em, 11em) 1fr; gap: .5rem; align-items: center;
+    }
+    .fb-agg-pm-name { font-size: .78rem; color: var(--text); font-weight: 600; }
+    .fb-agg-pm-empty { font-size: .75rem; color: var(--text-muted); font-style: italic; }
+    .fb-agg-pm-stack {
+      display: flex; height: 18px; border-radius: 4px; overflow: hidden;
+      background: var(--cream); border: 1px solid var(--cream-border);
+    }
+    .fb-agg-pm-seg {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .65rem; color: #fff; font-weight: 800; min-width: 0;
+    }
+    .fb-agg-pm-less { background: #b46a3a; }
+    .fb-agg-pm-same { background: #cfc4a0; color: var(--dark-brown); }
+    .fb-agg-pm-more { background: #5a7a3a; }
 
     /* ─── Public feedback form (no chrome, deep-linkable) ── */
     #public-feedback {
@@ -1716,6 +1816,64 @@
       font-size: 3rem; margin-bottom: .8rem;
     }
     #public-feedback .pf-thanks h1 { margin-bottom: .5rem; }
+
+    /* ─── Multi-select chips ─────────────────────────────── */
+    #public-feedback .pf-multi-row {
+      display: flex; flex-wrap: wrap; gap: .45rem;
+    }
+    #public-feedback .pf-multi {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .45rem .8rem;
+      background: var(--cream); border: 1.5px solid var(--cream-border);
+      border-radius: 999px; cursor: pointer; transition: all .12s;
+      font-size: .82rem; color: var(--text);
+      user-select: none;
+    }
+    #public-feedback .pf-multi:hover { border-color: var(--gold); }
+    #public-feedback .pf-multi input { display: none; }
+    #public-feedback .pf-multi.selected {
+      background: #fff8e0; border-color: var(--gold);
+      color: var(--dark-brown); font-weight: 700;
+    }
+    #public-feedback .pf-multi.selected::before {
+      content: "✓"; color: var(--gold); font-weight: 900;
+    }
+
+    /* ─── Plus / minus component dials ───────────────────── */
+    #public-feedback .pf-pm-grid {
+      display: flex; flex-direction: column; gap: .55rem;
+    }
+    #public-feedback .pf-pm-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center; gap: .6rem;
+      padding: .5rem .65rem;
+      background: var(--cream); border: 1.5px solid var(--cream-border);
+      border-radius: 8px;
+    }
+    #public-feedback .pf-pm-label {
+      font-size: .85rem; color: var(--text); font-weight: 600;
+    }
+    #public-feedback .pf-pm-row {
+      display: inline-flex; gap: .25rem;
+    }
+    #public-feedback .pf-pm-btn {
+      padding: .35rem .55rem; min-width: 2.2rem;
+      background: #fff; border: 1.5px solid var(--cream-border);
+      border-radius: 6px; cursor: pointer; transition: all .12s;
+      font-size: .72rem; color: var(--text-muted); font-weight: 700;
+    }
+    #public-feedback .pf-pm-btn:hover { border-color: var(--gold); color: var(--text); }
+    #public-feedback .pf-pm-btn.selected {
+      background: var(--gold); border-color: var(--gold); color: #fff;
+    }
+    #public-feedback .pf-pm-btn[data-pm="-"].selected { background: #b46a3a; border-color: #b46a3a; }
+    #public-feedback .pf-pm-btn[data-pm="+"].selected { background: #5a7a3a; border-color: #5a7a3a; }
+
+    @media (max-width: 480px) {
+      #public-feedback .pf-pm-item { grid-template-columns: 1fr; gap: .35rem; }
+      #public-feedback .pf-pm-row { justify-content: flex-start; }
+    }
 
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
@@ -3202,6 +3360,14 @@
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
       <button type="button" class="btn btn-primary" id="fb-share-copy">Copy short link</button>
       <button type="button" class="btn btn-ghost" id="fb-share-open">Open survey</button>
+      <button type="button" class="btn btn-ghost" id="fb-share-qr">Show QR code</button>
+    </div>
+    <div id="fb-share-qr-wrap" style="display:none;margin-top:1rem;text-align:center;">
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.5rem;">Scan or screenshot to drop into a slide for your class.</p>
+      <img id="fb-share-qr-img" alt="Survey QR code" style="width:240px;height:240px;border:1px solid var(--cream-border);border-radius:8px;background:#fff;padding:.5rem;" />
+      <div style="margin-top:.5rem;">
+        <a id="fb-share-qr-dl" download="abf-survey-qr.png" class="btn btn-ghost" style="font-size:.78rem;">Download PNG</a>
+      </div>
     </div>
   </div>
 </div>
@@ -6157,6 +6323,212 @@
       }
     };
     openBtn.onclick = () => window.open(fbPublicUrl(form.slug), '_blank');
+    // QR code
+    const qrBtn = document.getElementById('fb-share-qr');
+    const qrWrap = document.getElementById('fb-share-qr-wrap');
+    const qrImg = document.getElementById('fb-share-qr-img');
+    const qrDl  = document.getElementById('fb-share-qr-dl');
+    if (qrBtn && qrWrap && qrImg) {
+      qrWrap.style.display = 'none';
+      qrBtn.textContent = 'Show QR code';
+      qrBtn.onclick = () => {
+        const visible = qrWrap.style.display !== 'none';
+        if (visible) {
+          qrWrap.style.display = 'none';
+          qrBtn.textContent = 'Show QR code';
+        } else {
+          const url = fbShortUrl(form.slug);
+          // qrserver.com is a free public QR generator — same one many church communicators use.
+          const src = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=12&format=png&data=' + encodeURIComponent(url);
+          qrImg.src = src;
+          if (qrDl) qrDl.href = src;
+          qrWrap.style.display = '';
+          qrBtn.textContent = 'Hide QR code';
+        }
+      };
+    }
+  }
+
+  /* ── Feedback aggregation helpers ────────────────────────
+     Roll up responses by question type for the Summary view. */
+  function fbAggregateSummary(qOrder, qById, responses) {
+    if (!qOrder.length) return '<div class="fb-empty">Template has no questions.</div>';
+    const N = responses.length;
+    const blocks = qOrder.map(qid => {
+      const q = qById[qid];
+      if (!q) return '';
+      const values = responses.map(r => (r.answers || {})[qid]).filter(v => v !== undefined && v !== null && v !== '');
+      const answered = values.length;
+      const pctAnswered = N ? Math.round((answered / N) * 100) : 0;
+      const head = '<div class="fb-agg-q">' + escapeHtml(q.label) +
+                   '<span class="fb-agg-n">' + answered + '/' + N + ' answered</span></div>';
+      if (q.type === 'rating') {
+        const nums = values.map(v => parseInt(v, 10)).filter(n => !isNaN(n));
+        if (!nums.length) return head + '<div class="fb-agg-empty">No ratings yet.</div>';
+        const min = q.min || 1, max = q.max || 5;
+        const mean = nums.reduce((a,b) => a+b, 0) / nums.length;
+        const buckets = {};
+        for (let i = min; i <= max; i++) buckets[i] = 0;
+        nums.forEach(n => { if (buckets[n] !== undefined) buckets[n]++; });
+        const maxCount = Math.max(...Object.values(buckets));
+        const bars = Object.entries(buckets).map(([k, c]) => {
+          const w = maxCount ? Math.round((c / maxCount) * 100) : 0;
+          return '<div class="fb-agg-bar-row">' +
+            '<span class="fb-agg-bar-label">' + escapeHtml(k) + '</span>' +
+            '<span class="fb-agg-bar"><span class="fb-agg-bar-fill" style="width:' + w + '%;"></span></span>' +
+            '<span class="fb-agg-bar-count">' + c + '</span></div>';
+        }).join('');
+        return head +
+          '<div class="fb-agg-mean">Avg <strong>' + mean.toFixed(2) + '</strong> / ' + max + '</div>' +
+          '<div class="fb-agg-bars">' + bars + '</div>';
+      }
+      if (q.type === 'choice' || q.type === 'single_choice') {
+        const counts = {};
+        (q.options || []).forEach(o => { counts[o] = 0; });
+        values.forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+        const maxC = Math.max(...Object.values(counts), 1);
+        const bars = Object.entries(counts).map(([k, c]) => {
+          const w = Math.round((c / maxC) * 100);
+          return '<div class="fb-agg-bar-row">' +
+            '<span class="fb-agg-bar-label" style="min-width:7em;">' + escapeHtml(k) + '</span>' +
+            '<span class="fb-agg-bar"><span class="fb-agg-bar-fill" style="width:' + w + '%;"></span></span>' +
+            '<span class="fb-agg-bar-count">' + c + '</span></div>';
+        }).join('');
+        return head + '<div class="fb-agg-bars">' + bars + '</div>';
+      }
+      if (q.type === 'multi_select') {
+        const counts = {};
+        (q.options || []).forEach(o => { counts[o] = 0; });
+        values.forEach(arr => {
+          if (Array.isArray(arr)) arr.forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+        });
+        const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+        const maxC = Math.max(...sorted.map(e => e[1]), 1);
+        const bars = sorted.map(([k, c]) => {
+          const w = Math.round((c / maxC) * 100);
+          const pct = answered ? Math.round((c / answered) * 100) : 0;
+          return '<div class="fb-agg-bar-row">' +
+            '<span class="fb-agg-bar-label" style="min-width:9em;">' + escapeHtml(k) + '</span>' +
+            '<span class="fb-agg-bar"><span class="fb-agg-bar-fill" style="width:' + w + '%;"></span></span>' +
+            '<span class="fb-agg-bar-count">' + c + ' · ' + pct + '%</span></div>';
+        }).join('');
+        return head + '<div class="fb-agg-bars">' + bars + '</div>';
+      }
+      if (q.type === 'plus_minus') {
+        const comps = q.components || [];
+        const tally = {};
+        comps.forEach(c => { tally[c] = { '-': 0, '=': 0, '+': 0 }; });
+        values.forEach(obj => {
+          if (obj && typeof obj === 'object') {
+            Object.entries(obj).forEach(([c, v]) => {
+              if (tally[c] && tally[c][v] !== undefined) tally[c][v]++;
+            });
+          }
+        });
+        const rows = comps.map(c => {
+          const t = tally[c];
+          const total = t['-'] + t['='] + t['+'];
+          if (!total) {
+            return '<div class="fb-agg-pm-row"><span class="fb-agg-pm-name">' + escapeHtml(c) + '</span><span class="fb-agg-pm-empty">—</span></div>';
+          }
+          const wL = Math.round((t['-'] / total) * 100);
+          const wE = Math.round((t['='] / total) * 100);
+          const wM = Math.round((t['+'] / total) * 100);
+          return '<div class="fb-agg-pm-row">' +
+            '<span class="fb-agg-pm-name">' + escapeHtml(c) + '</span>' +
+            '<span class="fb-agg-pm-stack">' +
+              '<span class="fb-agg-pm-seg fb-agg-pm-less"  style="width:' + wL + '%;" title="Less: ' + t['-'] + '">' + (t['-'] || '') + '</span>' +
+              '<span class="fb-agg-pm-seg fb-agg-pm-same"  style="width:' + wE + '%;" title="About right: ' + t['='] + '">' + (t['='] || '') + '</span>' +
+              '<span class="fb-agg-pm-seg fb-agg-pm-more"  style="width:' + wM + '%;" title="More: ' + t['+'] + '">' + (t['+'] || '') + '</span>' +
+            '</span></div>';
+        }).join('');
+        return head +
+          '<div class="fb-agg-pm-legend"><span class="dot less"></span>Less &nbsp; <span class="dot same"></span>About right &nbsp; <span class="dot more"></span>More</div>' +
+          '<div class="fb-agg-pm-grid">' + rows + '</div>';
+      }
+      if (q.type === 'long_text' || q.type === 'textarea' || q.type === 'text' || !q.type) {
+        if (!values.length) return head + '<div class="fb-agg-empty">No responses yet.</div>';
+        const items = values.map(v => '<li>' + escapeHtml(String(v)) + '</li>').join('');
+        return head + '<ul class="fb-agg-textlist">' + items + '</ul>';
+      }
+      if (q.type === 'date') {
+        return head + '<div class="fb-agg-empty">' + answered + ' date answers (' + pctAnswered + '%)</div>';
+      }
+      return head;
+    });
+    return '<div class="fb-agg-list">' + blocks.filter(Boolean).join('') + '</div>';
+  }
+
+  /* CSV export — one row per response, one column per question */
+  function fbExportResponsesCsv(form, tpl, responses) {
+    const qs = (tpl && Array.isArray(tpl.questions)) ? tpl.questions : [];
+    const headers = ['Submitted At', 'Name', 'Email', ...qs.map(q => q.label)];
+    const rows = responses.map(r => {
+      const ans = r.answers || {};
+      const cols = [r.submittedAt || '', r.submitterName || '', r.submitterEmail || ''];
+      qs.forEach(q => {
+        const v = ans[q.id];
+        if (v === undefined || v === null) cols.push('');
+        else if (Array.isArray(v)) cols.push(v.join('; '));
+        else if (typeof v === 'object') {
+          cols.push(Object.entries(v).map(([k, val]) => k + ': ' + val).join('; '));
+        } else cols.push(String(v));
+      });
+      return cols;
+    });
+    const csv = [headers, ...rows].map(row =>
+      row.map(cell => {
+        const s = String(cell == null ? '' : cell);
+        return /[,"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',')
+    ).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (form.title || 'feedback').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-responses.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* Report bundle: structured JSON copied to clipboard for paste-into-Claude
+     synthesis. Includes form metadata, the template, and all responses. */
+  async function fbCopyReportBundle(form, tpl, responses, btn) {
+    const teacher = DataStore.getTeacher(form.teacherId);
+    const cls     = DataStore.getABFClass(form.abfClassId);
+    const bundle = {
+      form: {
+        title:       form.title,
+        description: form.description,
+        teacher:     teacher ? teacher.name : null,
+        abfClass:    cls ? cls.name : null,
+        opensAt:     form.opensAt,
+        closesAt:    form.closesAt,
+        slug:        form.slug,
+      },
+      template: tpl ? { name: tpl.name, description: tpl.description, questions: tpl.questions } : null,
+      responseCount: responses.length,
+      responses: responses.map(r => ({
+        submittedAt:    r.submittedAt,
+        submitterName:  r.submitterName,
+        submitterEmail: r.submitterEmail,
+        answers:        r.answers,
+      })),
+      generatedAt: new Date().toISOString(),
+    };
+    const text = JSON.stringify(bundle, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = btn.textContent;
+      btn.textContent = 'Copied! Paste into Claude →';
+      setTimeout(() => { btn.textContent = original; }, 2200);
+    } catch {
+      // Fallback: open as data: URL
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
   }
 
   function openFbResponsesModal(formId) {
@@ -6181,7 +6553,18 @@
       if (tpl && Array.isArray(tpl.questions)) {
         tpl.questions.forEach(q => { qById[q.id] = q; qOrder.push(q.id); });
       }
-      list.innerHTML = responses.map(r => {
+      const aggregateHtml = fbAggregateSummary(qOrder, qById, responses);
+      const togglesHtml =
+        '<div class="fb-r-toolbar">' +
+          '<button type="button" class="fb-r-tab active" data-fb-rview="summary">Summary</button>' +
+          '<button type="button" class="fb-r-tab" data-fb-rview="responses">Individual responses (' + responses.length + ')</button>' +
+          '<button type="button" class="fb-r-export" id="fb-r-export-csv">Export CSV</button>' +
+          '<button type="button" class="fb-r-export" id="fb-r-export-bundle" title="Copy structured JSON for AI report synthesis">Copy report bundle</button>' +
+        '</div>';
+      list.innerHTML = togglesHtml +
+        '<div class="fb-r-section" data-fb-rsection="summary">' + aggregateHtml + '</div>' +
+        '<div class="fb-r-section" data-fb-rsection="responses" style="display:none;">' +
+        responses.map(r => {
         const ans = r.answers || {};
         const ids = qOrder.length ? qOrder : Object.keys(ans);
         return '<div class="fb-response-card">' +
@@ -6194,11 +6577,48 @@
             const q = qById[qid] || { label: qid, type: 'text' };
             const v = ans[qid];
             if (v === undefined || v === null || v === '') return '';
-            return '<div class="fb-r-q">' + escapeHtml(q.label) + '</div>' +
-                   '<div class="fb-r-a">' + escapeHtml(String(v)) + '</div>';
+            let display;
+            if (Array.isArray(v)) {
+              if (!v.length) return '';
+              display = '<div class="fb-r-chips">' +
+                v.map(x => '<span class="fb-r-chip">' + escapeHtml(String(x)) + '</span>').join('') +
+                '</div>';
+            } else if (v && typeof v === 'object') {
+              const entries = Object.entries(v);
+              if (!entries.length) return '';
+              display = '<div class="fb-r-pmlist">' +
+                entries.map(([k, val]) => {
+                  const cls = val === '+' ? 'fb-r-pm-more' : val === '-' ? 'fb-r-pm-less' : 'fb-r-pm-same';
+                  const lbl = val === '+' ? 'More' : val === '-' ? 'Less' : 'About right';
+                  return '<div class="fb-r-pmrow"><span class="fb-r-pmkey">' + escapeHtml(k) + '</span>' +
+                         '<span class="fb-r-pmval ' + cls + '">' + lbl + '</span></div>';
+                }).join('') +
+                '</div>';
+            } else {
+              display = '<div class="fb-r-a">' + escapeHtml(String(v)) + '</div>';
+            }
+            return '<div class="fb-r-q">' + escapeHtml(q.label) + '</div>' + display;
           }).join('') +
         '</div>';
-      }).join('');
+      }).join('') +
+        '</div>';  // close fb-r-section[responses]
+
+      // Toggle wiring
+      list.querySelectorAll('[data-fb-rview]').forEach(btn => {
+        btn.onclick = () => {
+          const view = btn.dataset.fbRview;
+          list.querySelectorAll('[data-fb-rview]').forEach(b => b.classList.toggle('active', b === btn));
+          list.querySelectorAll('[data-fb-rsection]').forEach(s => {
+            s.style.display = (s.dataset.fbRsection === view) ? '' : 'none';
+          });
+        };
+      });
+      // CSV export
+      const csvBtn = document.getElementById('fb-r-export-csv');
+      if (csvBtn) csvBtn.onclick = () => fbExportResponsesCsv(form, tpl, responses);
+      // Report bundle (JSON for AI synthesis)
+      const bundleBtn = document.getElementById('fb-r-export-bundle');
+      if (bundleBtn) bundleBtn.onclick = () => fbCopyReportBundle(form, tpl, responses, bundleBtn);
     }
     modal.classList.add('visible');
     closeBtn.onclick = () => modal.classList.remove('visible');
@@ -6249,6 +6669,29 @@
       return label +
         '<div class="pf-choice-row" data-qid="' + q.id + '" data-qtype="choice">' + opts + '</div>';
     }
+    if (q.type === 'multi_select') {
+      const opts = (q.options || []).map((opt) =>
+        '<label class="pf-multi"><input type="checkbox" name="pf-q-' + q.id + '" value="' + escapeHtml(opt) + '" />' +
+        '<span>' + escapeHtml(opt) + '</span></label>'
+      ).join('');
+      return label +
+        '<div class="pf-multi-row" data-qid="' + q.id + '" data-qtype="multi_select">' + opts + '</div>';
+    }
+    if (q.type === 'plus_minus') {
+      // Three-button less / about right / more for each component listed in q.components
+      const items = (q.components || []).map(c =>
+        '<div class="pf-pm-item">' +
+          '<span class="pf-pm-label">' + escapeHtml(c) + '</span>' +
+          '<div class="pf-pm-row" data-component="' + escapeHtml(c) + '">' +
+            '<button type="button" class="pf-pm-btn" data-pm="-" title="Less of this">Less</button>' +
+            '<button type="button" class="pf-pm-btn" data-pm="=" title="About right">About right</button>' +
+            '<button type="button" class="pf-pm-btn" data-pm="+" title="More of this">More</button>' +
+          '</div>' +
+        '</div>'
+      ).join('');
+      return label +
+        '<div class="pf-pm-grid" data-qid="' + q.id + '" data-qtype="plus_minus">' + items + '</div>';
+    }
     if (q.type === 'long_text' || q.type === 'textarea') {
       return label +
         '<textarea id="pf-q-' + q.id + '" data-qid="' + q.id + '" data-qtype="long_text" class="pf-textarea" ' +
@@ -6283,6 +6726,28 @@
         });
       });
     });
+    // Wire multi-select chip styling (independent toggles)
+    host.querySelectorAll('[data-qtype="multi_select"]').forEach(group => {
+      group.querySelectorAll('.pf-multi').forEach(label => {
+        const input = label.querySelector('input');
+        if (!input) return;
+        input.addEventListener('change', () => {
+          label.classList.toggle('selected', input.checked);
+        });
+      });
+    });
+    // Wire plus_minus dials: each component-row tracks its own pick
+    host.querySelectorAll('[data-qtype="plus_minus"]').forEach(grid => {
+      grid.querySelectorAll('.pf-pm-row').forEach(row => {
+        row.querySelectorAll('.pf-pm-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            row.querySelectorAll('.pf-pm-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            row.dataset.value = btn.dataset.pm;
+          });
+        });
+      });
+    });
   }
 
   function pfCollectAnswers(host, questions) {
@@ -6296,14 +6761,33 @@
       } else if (q.type === 'choice' || q.type === 'single_choice') {
         const checked = host.querySelector('input[name="pf-q-' + q.id + '"]:checked');
         value = checked ? checked.value : '';
+      } else if (q.type === 'multi_select') {
+        const checked = host.querySelectorAll('input[name="pf-q-' + q.id + '"]:checked');
+        const values = Array.from(checked).map(el => el.value);
+        value = values.length ? values : '';
+      } else if (q.type === 'plus_minus') {
+        const grid = host.querySelector('[data-qid="' + q.id + '"][data-qtype="plus_minus"]');
+        if (grid) {
+          const result = {};
+          grid.querySelectorAll('.pf-pm-row').forEach(row => {
+            const comp = row.getAttribute('data-component');
+            const v = row.dataset.value || '';
+            if (v && comp) result[comp] = v;
+          });
+          value = Object.keys(result).length ? result : '';
+        }
       } else {
         const el = host.querySelector('[data-qid="' + q.id + '"]');
         if (el) value = (el.value || '').trim();
       }
-      if (q.required && !value) {
+      // For arrays/objects, "missing" means empty
+      const isEmpty = (value === '' || value === null || value === undefined ||
+                       (Array.isArray(value) && value.length === 0) ||
+                       (typeof value === 'object' && !Array.isArray(value) && Object.keys(value || {}).length === 0));
+      if (q.required && isEmpty) {
         if (!firstMissing) firstMissing = q;
       }
-      if (value !== '') answers[q.id] = value;
+      if (!isEmpty) answers[q.id] = value;
     }
     return { answers, firstMissing };
   }
@@ -6356,8 +6840,8 @@
           '<input type="text" id="pf-name" class="pf-input" required placeholder="First and last name" />' +
         '</div>' +
         '<div class="pf-question">' +
-          '<label class="pf-q-label" for="pf-email">Your email <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>' +
-          '<input type="email" id="pf-email" class="pf-input" placeholder="So your teacher can follow up if helpful" />' +
+          '<label class="pf-q-label" for="pf-email">Your email<span class="pf-q-required">*</span></label>' +
+          '<input type="email" id="pf-email" class="pf-input" required placeholder="So your teacher can follow up if helpful" />' +
         '</div>' +
         tpl.questions.map(q => '<div class="pf-question">' + pfRenderQuestion(q) + '</div>').join('') +
         '<div class="pf-submit-row">' +
@@ -6375,6 +6859,11 @@
       const name  = (document.getElementById('pf-name').value  || '').trim();
       const email = (document.getElementById('pf-email').value || '').trim();
       if (!name) { statusEl.innerHTML = '<span class="pf-error">Please enter your name.</span>'; return; }
+      if (!email) { statusEl.innerHTML = '<span class="pf-error">Please enter your email.</span>'; return; }
+      // Lightweight email shape check — full validation happens via the input[type=email]
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        statusEl.innerHTML = '<span class="pf-error">Please enter a valid email.</span>'; return;
+      }
       const { answers, firstMissing } = pfCollectAnswers(host, tpl.questions);
       if (firstMissing) {
         statusEl.innerHTML = '<span class="pf-error">Please answer: "' + escapeHtml(firstMissing.label) + '"</span>';
