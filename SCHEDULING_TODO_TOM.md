@@ -2,27 +2,16 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
-## NEW (2026-05-01) — Course Topic Tags + filterable catalog
+## What changed on 2026-05-01 — Course Topic Tags + filterable catalog
 
-The Available Courses tab now has sort, teacher filter, weeks filter (1–12), and topic-tag filter chips. Teachers see a 2–3 tag picker on the My Courses form. **Two things you have to do** before this lights up in Airtable:
+The Available Courses tab now has sort, teacher filter, weeks filter (1–12), and topic-tag filter chips. Teachers see a 2–3 tag picker on the My Courses form. **Both setup steps are already done** — no action required from you for the rollout itself:
 
-1. **Add a `Tags` field to the Courses table.** Open the base in Airtable → Courses table → add a new field: type **Multiple select**, name **Tags**, options (paste in this order so the colors stay sane):
-   - Old Testament
-   - New Testament
-   - Theology & Doctrine
-   - Apologetics
-   - Discipleship
-   - Spiritual Formation
-   - Marriage & Family
-   - Church Life
-   - Mission & Evangelism
-   - Cultural Engagement
+- **Tags multi-select field** was created on the Courses table via API with all 10 options in the right colors (Old Testament, New Testament, Theology & Doctrine, Apologetics, Discipleship, Spiritual Formation, Marriage & Family, Church Life, Mission & Evangelism, Cultural Engagement).
+- **All 23 existing courses backfilled** with 2–3 tags each. Open Airtable → Courses → Tags column to spot-check or edit.
 
-   The field name **must be exactly `Tags`** and the options **must match the labels above exactly** (case + ampersand). The site reads/writes through this field name; mismatches will silently drop tags on save.
+If you want to revise any tags, edit them directly in Airtable; changes propagate to the site on next page load. The retroactive workflow doc in `walkthroughs/retroactive_course_tags.md` is still a good reference for how the process worked, in case you onboard a similar batch later.
 
-2. **Backfill tags on existing courses.** Use `walkthroughs/retroactive_course_tags.md` — it walks you through pulling the current courses, having Claude propose 2–3 tags per course (with reasoning), reviewing the proposals, and pasting them back into Airtable. Should take about 30 minutes for the whole catalog.
-
-Until the field exists in Airtable, the form will warn teachers if they don't pick 2–3 tags but the saved record will not persist them. Add the field first, then backfill.
+**Adding/renaming a tag in the future:** three places must agree exactly — `COURSE_TAG_OPTIONS` and `COURSE_TAG_TONE` in `index.html`, the Airtable Courses → Tags multi-select option list, and the doc above.
 
 ## What changed on 2026-04-27 (heads-up before you log in)
 
