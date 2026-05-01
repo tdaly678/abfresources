@@ -3252,6 +3252,7 @@
           <div class="sched-subnav-group-label">For ABF Leaders</div>
           <div class="sched-subnav">
             <button class="sched-subnav-btn" data-sub="l-grid" data-role="leader-readonly">Teacher Availability</button>
+            <button class="sched-subnav-btn" data-sub="l-courses" data-role="leader-readonly">Available Courses</button>
             <button class="sched-subnav-btn" data-sub="l-new" data-role="leader">New Request</button>
             <button class="sched-subnav-btn" data-sub="l-mine" data-role="leader">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
           </div>
@@ -3277,6 +3278,14 @@
             <span class="leg"><span class="dot bk"></span> Booked</span>
           </div>
           <div id="l-availability-grid" class="grid-wrap"></div>
+        </div>
+
+        <!-- Leader: Available Courses (read-only catalog) -->
+        <div class="sched-pane" id="sched-l-courses">
+          <div class="sched-notice">
+            <strong>Browse courses your teachers are willing to teach.</strong> Each card shows what the teacher is offering, a short description, and how many weeks they’d ideally spend on it. Use this to plan your year before sending a request.
+          </div>
+          <div id="l-courses-list" class="course-list"></div>
         </div>
 
         <!-- Leader: New Request -->
@@ -5508,6 +5517,7 @@
     // Render every pane's content unconditionally (the panes that the
     // user can't act on stay locked; viewing read-only is fine).
     renderLeaderGrid();
+    renderAvailableCoursesGrid();
     if (id && id.role === 'teacher') {
       renderTeacherAvailability();
       renderTeacherRequests();
@@ -6538,6 +6548,61 @@
 
     // Wire teacher-name links → open profile modal
     wrap.querySelectorAll('.teacher-name-link').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        openTeacherProfileModal(a.dataset.teacherId);
+      });
+    });
+  }
+
+  /* ─── Leader: available courses (read-only catalog) ───
+     Card view of every course teachers are willing to teach. Open to
+     anyone past the password gate (no sign-in required) so leaders can
+     plan a year before deciding who to request. */
+  function renderAvailableCoursesGrid() {
+    const list = document.getElementById('l-courses-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    // listCourses() already filters to Available; sort alphabetically.
+    const courses = DataStore.listCourses()
+      .slice()
+      .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+    if (!courses.length) {
+      list.innerHTML = '<div class="sched-empty" style="grid-column:1/-1;">' +
+        '<div class="icon">📚</div>' +
+        '<h3>No courses listed yet</h3>' +
+        '<p>As teachers add courses to their profiles, they’ll show up here.</p>' +
+        '</div>';
+      return;
+    }
+
+    courses.forEach(c => {
+      const teacher = c.teacherId ? DataStore.getTeacher(c.teacherId) : null;
+      const teacherName = teacher ? teacher.name : 'Unknown teacher';
+      const wkLabel = (c.minWeeks || c.maxWeeks)
+        ? (c.minWeeks === c.maxWeeks
+            ? c.minWeeks + ' weeks'
+            : (c.minWeeks || '?') + '–' + (c.maxWeeks || '?') + ' weeks')
+        : 'Weeks flexible';
+      const item = document.createElement('div');
+      item.className = 'course-item';
+      item.innerHTML =
+        '<h4>' + escapeHtml(c.title || '(untitled course)') + '</h4>' +
+        '<div class="course-weeks">' + escapeHtml(wkLabel) + '</div>' +
+        '<div style="font-size:.78rem;color:var(--steel-blue);font-weight:700;margin-bottom:.45rem;">' +
+          'Taught by ' +
+          (teacher
+            ? '<a href="#" class="course-teacher-link" data-teacher-id="' + teacher.id + '" style="color:var(--steel-blue);">' + escapeHtml(teacher.name) + '</a>'
+            : escapeHtml(teacherName)) +
+        '</div>' +
+        '<div class="course-desc">' + escapeHtml(c.description || 'No description provided.') + '</div>';
+      list.appendChild(item);
+    });
+
+    // Wire teacher-name links → open the same read-only profile modal the grid uses.
+    list.querySelectorAll('.course-teacher-link').forEach(a => {
       a.addEventListener('click', e => {
         e.preventDefault();
         openTeacherProfileModal(a.dataset.teacherId);
