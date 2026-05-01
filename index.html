@@ -3262,6 +3262,14 @@
           <div class="sched-notice">
             <strong>Reading the grid:</strong> rows are teachers, columns are Sundays. Green = available, gold = tentative, red = unavailable, blue = already booked. Diagonal-stripe columns are no-class Sundays.
           </div>
+          <div class="leader-grid-filter" style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem;padding:.65rem .85rem;background:#fff;border-radius:8px;box-shadow:var(--shadow);border-left:3px solid var(--steel-blue);">
+            <label for="l-grid-service" style="font-size:.74rem;font-weight:700;color:var(--dark-brown);margin:0;">Showing:</label>
+            <select id="l-grid-service" class="form-select" style="max-width:200px;">
+              <option value="1st Service">1st Service</option>
+              <option value="2nd Service">2nd Service</option>
+            </select>
+            <span style="font-size:.7rem;color:var(--text-muted);">Most leaders only need to see the service their class meets in.</span>
+          </div>
           <div class="availability-legend">
             <span class="leg"><span class="dot av"></span> Available</span>
             <span class="leg"><span class="dot te"></span> Tentative</span>
@@ -6419,26 +6427,59 @@
     });
   }
 
-  /* ─── Leader: availability grid (split per service) ─── */
+  /* ─── Leader: availability grid (filtered to one service at a time) ───
+     Most leaders only care about the service their class meets in, so the
+     grid shows one service at a time. The dropdown defaults to the signed-in
+     leader's class service and remembers the last choice in localStorage. */
+  const LEADER_GRID_SVC_KEY = 'abf.leaderGrid.service';
+
+  function getLeaderGridService() {
+    // 1. last explicit selection
+    let saved = null;
+    try { saved = localStorage.getItem(LEADER_GRID_SVC_KEY); } catch (e) {}
+    if (saved === '1st Service' || saved === '2nd Service') return saved;
+    // 2. signed-in leader's class service
+    const l = Identity.asLeader();
+    if (l) {
+      const cls = DataStore.getABFClass(l.abfClassId);
+      if (cls && (cls.service === '1st Service' || cls.service === '2nd Service')) {
+        return cls.service;
+      }
+    }
+    // 3. fallback
+    return '1st Service';
+  }
+
   function renderLeaderGrid() {
     const wrap = document.getElementById('l-availability-grid');
     wrap.innerHTML = '';
+
+    // Sync the dropdown to the current selection on every render.
+    const sel = document.getElementById('l-grid-service');
+    const activeSvc = getLeaderGridService();
+    if (sel && sel.value !== activeSvc) sel.value = activeSvc;
+
     const sundays = DataStore.listSundays();
     const teachers = DataStore.listTeachers();
     const allAvail = DataStore.listAvailabilityAll();
     const acceptedReqs = DataStore.listRequests().filter(r => r.status === 'Accepted');
 
-    // booked key includes service so 1st/2nd are independent
+    // booked key for the active service only
     const bookedKey = new Set();
-    acceptedReqs.forEach(r => (r.requestedSundayIds || []).forEach(sid =>
-      bookedKey.add(r.teacherId + '|' + sid + '|' + (r.service || '1st Service'))));
+    acceptedReqs.forEach(r => {
+      if ((r.service || '1st Service') !== activeSvc) return;
+      (r.requestedSundayIds || []).forEach(sid => bookedKey.add(r.teacherId + '|' + sid));
+    });
 
-    // availMap key: teacher|sunday|service
+    // availMap for the active service only: teacher|sunday -> status
     const availMap = {};
-    allAvail.forEach(a => availMap[a.teacherId + '|' + a.sundayId + '|' + (a.service || '1st Service')] = a.status);
+    allAvail.forEach(a => {
+      if ((a.service || '1st Service') !== activeSvc) return;
+      availMap[a.teacherId + '|' + a.sundayId] = a.status;
+    });
 
     const table = document.createElement('table');
-    table.className = 'avail-grid avail-grid-2svc';
+    table.className = 'avail-grid';
 
     // header
     let thead = '<thead><tr><th class="col-name">Teacher</th>';
@@ -6451,19 +6492,19 @@
     thead += '</tr></thead>';
     table.innerHTML = thead;
 
-    function svcChar(status, booked) {
+    function cellChar(status, booked) {
       if (booked) return 'BK';
       if (status === 'Available')   return '✓';
       if (status === 'Unavailable') return '×';
       if (status === 'Tentative')   return '?';
       return '–';
     }
-    function svcCellClass(status, booked) {
-      if (booked) return 'svc-mini cell-bk';
-      if (status === 'Available')   return 'svc-mini cell-av';
-      if (status === 'Unavailable') return 'svc-mini cell-un';
-      if (status === 'Tentative')   return 'svc-mini cell-te';
-      return 'svc-mini cell-no';
+    function cellClass(status, booked) {
+      if (booked) return 'cell-bk';
+      if (status === 'Available')   return 'cell-av';
+      if (status === 'Unavailable') return 'cell-un';
+      if (status === 'Tentative')   return 'cell-te';
+      return 'cell-no';
     }
 
     // body
@@ -6481,19 +6522,12 @@
           td.textContent = '—';
           td.title = s.notes;
         } else {
-          td.className = 'cell-svc-stack';
-          let inner = '';
-          SERVICES.forEach(svc => {
-            const booked = bookedKey.has(t.id + '|' + s.id + '|' + svc);
-            const status = availMap[t.id + '|' + s.id + '|' + svc];
-            const tip = booked ? 'Booked (' + svc + ')'
-                       : (status ? status + ' (' + svc + ')' : 'No answer (' + svc + ')');
-            inner += '<div class="' + svcCellClass(status, booked) + '" title="' + tip + '">' +
-              '<span class="svc-mini-tag">' + SERVICE_SHORT[svc] + '</span>' +
-              '<span class="svc-mini-mark">' + svcChar(status, booked) + '</span>' +
-              '</div>';
-          });
-          td.innerHTML = inner;
+          const booked = bookedKey.has(t.id + '|' + s.id);
+          const status = availMap[t.id + '|' + s.id];
+          td.className = cellClass(status, booked);
+          td.textContent = cellChar(status, booked);
+          td.title = booked ? 'Booked (' + activeSvc + ')'
+                    : (status ? status + ' (' + activeSvc + ')' : 'No answer (' + activeSvc + ')');
         }
         tr.appendChild(td);
       });
@@ -6976,6 +7010,17 @@
   function confirmBulkSet(v) {
     if (v === 'clear') return confirm('Clear your availability for every Sunday (both services)? This can’t be undone.');
     return confirm('Set every Sunday (both services) to ' + v + '? You can fine-tune individual Sundays after.');
+  }
+
+  /* Wire the Leader Availability Grid service-filter dropdown. */
+  function setupLeaderGridFilter() {
+    const sel = document.getElementById('l-grid-service');
+    if (!sel) return;
+    sel.value = getLeaderGridService();
+    sel.addEventListener('change', () => {
+      try { localStorage.setItem(LEADER_GRID_SVC_KEY, sel.value); } catch (e) {}
+      renderLeaderGrid();
+    });
   }
 
   /* ════════════════════════════════════════════════════════
@@ -8259,6 +8304,7 @@
   setupSchedSubnav();
   setupLockedTabModal();
   setupBulkSetControls();
+  setupLeaderGridFilter();
   setupCourseForm();
   setupProfileForm();
   setupRegisterForm();
