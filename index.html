@@ -1389,6 +1389,15 @@
       box-shadow: 0 0 0 2px var(--gold) inset;
       border-color: var(--gold);
     }
+    /* Tag chip disabled when the currently-selected teacher doesn't
+       offer any course with this tag. Faded, unclickable, but still
+       visible so the leader sees the full taxonomy. */
+    .course-topic-tag.tag-toggle.disabled {
+      opacity: .35;
+      cursor: not-allowed;
+      filter: grayscale(.7);
+    }
+    .course-topic-tag.tag-toggle.disabled:hover { border-color: transparent; }
 
     /* Filter bar above the leader-side Available Courses catalog. */
     .course-filter-bar {
@@ -6890,14 +6899,30 @@
       });
     teacherSel.value = prevTeacherVal || '';
 
+    // When a specific teacher is selected, gray out tag chips for topics
+    // that teacher doesn't offer in any of their courses. availableTags
+    // is null when no teacher is selected (every chip is fully active).
+    let availableTags = null;
+    if (leaderCoursesFilter.teacherId) {
+      availableTags = new Set();
+      DataStore.listCourses({ teacherId: leaderCoursesFilter.teacherId })
+        .forEach(c => (c.tags || []).forEach(tg => availableTags.add(tg)));
+    }
+
     // Refresh tag chips
     tagHost.innerHTML = '';
     COURSE_TAG_OPTIONS.forEach(tag => {
       const tone = COURSE_TAG_TONE[tag] || '';
       const btn = document.createElement('button');
       btn.type = 'button';
+      const disabled = availableTags && !availableTags.has(tag);
       btn.className = 'course-topic-tag tag-toggle' + (tone ? ' tone-' + tone : '');
       if (leaderCoursesFilter.tags.indexOf(tag) !== -1) btn.classList.add('active');
+      if (disabled) {
+        btn.classList.add('disabled');
+        btn.title = 'This teacher hasn’t offered any course tagged ' + tag + '.';
+        btn.setAttribute('aria-disabled', 'true');
+      }
       btn.textContent = tag;
       btn.dataset.tag = tag;
       tagHost.appendChild(btn);
@@ -6918,6 +6943,15 @@
     });
     teacherSel.addEventListener('change', () => {
       leaderCoursesFilter.teacherId = teacherSel.value;
+      // Prune any active tag filters that the newly-selected teacher
+      // doesn't actually offer — otherwise a leader switching teachers
+      // hits a confusing empty result set.
+      if (leaderCoursesFilter.teacherId && leaderCoursesFilter.tags.length) {
+        const tset = new Set();
+        DataStore.listCourses({ teacherId: leaderCoursesFilter.teacherId })
+          .forEach(c => (c.tags || []).forEach(tg => tset.add(tg)));
+        leaderCoursesFilter.tags = leaderCoursesFilter.tags.filter(t => tset.has(t));
+      }
       renderAvailableCoursesGrid();
     });
     weeksRange.addEventListener('input', () => {
@@ -6927,7 +6961,7 @@
     });
     tagHost.addEventListener('click', e => {
       const btn = e.target.closest('.tag-toggle');
-      if (!btn) return;
+      if (!btn || btn.classList.contains('disabled')) return;
       const tag = btn.dataset.tag;
       const idx = leaderCoursesFilter.tags.indexOf(tag);
       if (idx === -1) leaderCoursesFilter.tags.push(tag);
