@@ -73,6 +73,7 @@ The courses a teacher is willing to teach (e.g., "Genesis — 8 weeks min, 12 we
 | Description       | Long text           | What the course covers.                            |
 | Min Weeks         | Number (integer)    | Smallest number of Sundays the course can run.     |
 | Max Weeks         | Number (integer)    | Largest. Same as Min if it's a fixed length.       |
+| Tags              | Multiple select     | Topic tags for the leader-side catalog filter. Options must match the list in the site code (`COURSE_TAG_OPTIONS`): Old Testament, New Testament, Theology & Doctrine, Apologetics, Discipleship, Spiritual Formation, Marriage & Family, Church Life, Mission & Evangelism, Cultural Engagement. Teachers pick 2–3 per course. |
 | Available         | Checkbox            | Default: checked. Uncheck to retire a course.      |
 
 ### Table 5: `Sundays`

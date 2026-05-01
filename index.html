@@ -1353,6 +1353,101 @@
       border-top: 1px solid var(--light-gray);
     }
 
+    /* Topic-tag pills shown on each course card and as togglable filter
+       chips above the leader-side catalog. The .tone-* modifiers tint
+       a tag by topic family (Scripture / Doctrine / Christian living /
+       Church & mission) so the catalog reads visually at a glance. */
+    .course-tag-row {
+      display: flex; flex-wrap: wrap;
+      gap: .3rem;
+      margin-bottom: .55rem;
+    }
+    .course-topic-tag {
+      display: inline-flex; align-items: center;
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: .04em;
+      padding: .22em .65em;
+      border-radius: 999px;
+      background: var(--light-gray);
+      color: var(--text-muted);
+      border: 1.5px solid transparent;
+      white-space: nowrap;
+    }
+    .course-topic-tag.tone-ot       { background: rgba(151,118,68,.15);  color: #6e4d23; }
+    .course-topic-tag.tone-nt       { background: rgba(63,87,101,.13);   color: var(--steel-blue); }
+    .course-topic-tag.tone-doctrine { background: rgba(141,52,32,.12);   color: var(--terra); }
+    .course-topic-tag.tone-living   { background: rgba(120,140,80,.18);  color: #54652f; }
+    .course-topic-tag.tone-church   { background: rgba(188,169,68,.22);  color: #6e5d12; }
+
+    .course-topic-tag.tag-toggle {
+      cursor: pointer;
+      user-select: none;
+      transition: transform .1s, box-shadow .15s, border-color .15s;
+    }
+    .course-topic-tag.tag-toggle:hover { border-color: var(--gold); }
+    .course-topic-tag.tag-toggle.active {
+      box-shadow: 0 0 0 2px var(--gold) inset;
+      border-color: var(--gold);
+    }
+
+    /* Filter bar above the leader-side Available Courses catalog. */
+    .course-filter-bar {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border-left: 3px solid var(--steel-blue);
+      padding: .85rem 1rem;
+      margin-bottom: 1rem;
+      display: flex; flex-direction: column;
+      gap: .7rem;
+    }
+    .course-filter-bar .filter-row {
+      display: flex; flex-wrap: wrap;
+      align-items: center;
+      gap: .85rem;
+    }
+    .course-filter-bar .filter-row-tags {
+      align-items: flex-start;
+      padding-top: .4rem;
+      border-top: 1px dashed var(--light-gray);
+    }
+    .course-filter-bar .filter-field {
+      display: flex; flex-direction: column;
+      gap: .2rem;
+      min-width: 0;
+    }
+    .course-filter-bar .filter-label {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--dark-brown);
+    }
+    .course-filter-bar select.form-select { max-width: 220px; }
+    .course-filter-bar input[type="range"] {
+      width: 160px;
+      accent-color: var(--terra);
+    }
+    .course-filter-bar .course-tag-filter {
+      display: flex; flex-wrap: wrap;
+      gap: .35rem;
+      flex: 1;
+    }
+    .course-filter-bar .course-tag-filter .tag-toggle {
+      border: 1.5px solid transparent;
+      background-clip: padding-box;
+    }
+    .course-filter-bar .filter-summary {
+      font-size: .72rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .course-filter-bar .btn-sm {
+      align-self: flex-end;
+      padding: .35rem .8rem;
+      font-size: .72rem;
+    }
+
     /* Forms */
     .sched-form {
       background: #fff;
@@ -3155,6 +3250,11 @@
                 <input type="number" id="course-form-max" class="form-input" min="1" max="40" placeholder="12" />
               </div>
             </div>
+            <div class="form-row">
+              <label class="form-label">Topic tags <span style="font-weight:400;color:var(--text-muted);">(pick 2&ndash;3)</span></label>
+              <div class="chip-list" id="course-form-tags"></div>
+              <p class="form-help">Tags help leaders filter the course catalog. Pick the 2&ndash;3 that fit best.</p>
+            </div>
             <div style="display:flex;gap:.5rem;">
               <button class="btn btn-primary" id="course-form-save">Save course</button>
               <button class="btn btn-ghost" id="course-form-cancel" style="display:none;">Cancel edit</button>
@@ -3284,6 +3384,35 @@
         <div class="sched-pane" id="sched-l-courses">
           <div class="sched-notice">
             <strong>Browse courses your teachers are willing to teach.</strong> Each card shows what the teacher is offering, a short description, and how many weeks they’d ideally spend on it. Use this to plan your year before sending a request.
+          </div>
+          <div class="course-filter-bar" id="l-courses-filter">
+            <div class="filter-row filter-row-controls">
+              <div class="filter-field">
+                <label class="filter-label" for="l-courses-sort">Sort</label>
+                <select id="l-courses-sort" class="form-select">
+                  <option value="title-asc">Title (A&ndash;Z)</option>
+                  <option value="teacher-asc">Teacher (A&ndash;Z)</option>
+                  <option value="weeks-asc">Weeks (shortest first)</option>
+                  <option value="weeks-desc">Weeks (longest first)</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label class="filter-label" for="l-courses-teacher">Teacher</label>
+                <select id="l-courses-teacher" class="form-select">
+                  <option value="">All teachers</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label class="filter-label" for="l-courses-weeks">Fits in <span id="l-courses-weeks-val">12+</span> weeks</label>
+                <input type="range" id="l-courses-weeks" min="1" max="12" value="12" />
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="l-courses-reset">Reset</button>
+            </div>
+            <div class="filter-row filter-row-tags">
+              <div class="filter-label" style="white-space:nowrap;">Topics</div>
+              <div class="course-tag-filter" id="l-courses-tag-filter"></div>
+            </div>
+            <div class="filter-summary" id="l-courses-summary"></div>
           </div>
           <div id="l-courses-list" class="course-list"></div>
         </div>
@@ -4565,7 +4694,7 @@
       };
     },
     _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
-    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, available: !!f.Available }; },
+    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', service: f.Service || '1st Service', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
@@ -4896,6 +5025,7 @@
         Description:   course.description || '',
         'Min Weeks':   course.minWeeks || null,
         'Max Weeks':   course.maxWeeks || null,
+        Tags:          Array.isArray(course.tags) ? course.tags.slice() : [],
         Available:     true,
       };
       if (course.teacherId) fields.Teacher = [course.teacherId];
@@ -5791,6 +5921,49 @@
     list.appendChild(wrap);
   }
 
+  /* Course topic tags. Used for filtering the leader-side Available
+     Courses catalog and for the chip-list on each course in My Courses.
+     Keep this list short (8–10) so the filter bar stays usable; the
+     same values must exist as options on the Airtable Courses → Tags
+     multi-select field. */
+  const COURSE_TAG_OPTIONS = [
+    'Old Testament',
+    'New Testament',
+    'Theology & Doctrine',
+    'Apologetics',
+    'Discipleship',
+    'Spiritual Formation',
+    'Marriage & Family',
+    'Church Life',
+    'Mission & Evangelism',
+    'Cultural Engagement',
+  ];
+  /* CSS color hint per tag, so chips are visually distinct without
+     looking like a rainbow explosion. Anything not listed falls back
+     to the neutral pill style. */
+  const COURSE_TAG_TONE = {
+    'Old Testament':        'ot',
+    'New Testament':        'nt',
+    'Theology & Doctrine':  'doctrine',
+    'Apologetics':          'doctrine',
+    'Discipleship':         'living',
+    'Spiritual Formation':  'living',
+    'Marriage & Family':    'living',
+    'Church Life':          'church',
+    'Mission & Evangelism': 'church',
+    'Cultural Engagement':  'church',
+  };
+  function renderCourseTagPills(tags) {
+    if (!Array.isArray(tags) || !tags.length) return '';
+    return '<div class="course-tag-row">' +
+      tags.map(tag => {
+        const tone = COURSE_TAG_TONE[tag] || '';
+        return '<span class="course-topic-tag' + (tone ? ' tone-' + tone : '') + '">' +
+          escapeHtml(tag) + '</span>';
+      }).join('') +
+    '</div>';
+  }
+
   /* ─── Teacher: my courses ─── */
   function renderTeacherCourses() {
     const t = Identity.asTeacher();
@@ -5808,6 +5981,7 @@
         item.innerHTML =
           '<h4>' + escapeHtml(c.title) + '</h4>' +
           '<div class="course-weeks">' + wkLabel + '</div>' +
+          renderCourseTagPills(c.tags) +
           '<div class="course-desc">' + escapeHtml(c.description || '') + '</div>' +
           '<div class="course-actions">' +
             '<button class="btn btn-secondary btn-sm" data-edit="' + c.id + '">Edit</button>' +
@@ -5840,6 +6014,7 @@
     const idField = document.getElementById('course-form-id');
     const cancelBtn = document.getElementById('course-form-cancel');
     const saveBtn = document.getElementById('course-form-save');
+    const tagsHost = document.getElementById('course-form-tags');
     if (mode === 'edit' && course) {
       title.textContent = 'Edit course';
       idField.value = course.id;
@@ -5847,6 +6022,7 @@
       document.getElementById('course-form-desc').value = course.description || '';
       document.getElementById('course-form-min').value = course.minWeeks;
       document.getElementById('course-form-max').value = course.maxWeeks;
+      if (tagsHost) renderChipList(tagsHost, 'course-tag', course.tags || [], COURSE_TAG_OPTIONS);
       cancelBtn.style.display = '';
       saveBtn.textContent = 'Save changes';
     } else {
@@ -5856,6 +6032,7 @@
       document.getElementById('course-form-desc').value = '';
       document.getElementById('course-form-min').value = '';
       document.getElementById('course-form-max').value = '';
+      if (tagsHost) renderChipList(tagsHost, 'course-tag', [], COURSE_TAG_OPTIONS);
       cancelBtn.style.display = 'none';
       saveBtn.textContent = 'Save course';
     }
@@ -5880,12 +6057,14 @@
       const desc  = document.getElementById('course-form-desc').value.trim();
       const minW  = parseInt(document.getElementById('course-form-min').value, 10);
       const maxW  = parseInt(document.getElementById('course-form-max').value, 10);
+      const tags  = readChipList(document.getElementById('course-form-tags'), 'course-tag');
       if (!title) { toast('error', 'Missing title', 'Please give your course a title.'); return; }
       if (!minW || !maxW || minW > maxW) { toast('error', 'Check the weeks', 'Min weeks must be \u2264 max weeks, and both must be at least 1.'); return; }
+      if (tags.length < 2 || tags.length > 3) { toast('error', 'Pick 2\u20133 tags', 'Choose between 2 and 3 topic tags so leaders can find this course in the catalog.'); return; }
       const saveBtn = document.getElementById('course-form-save');
       saveBtn.disabled = true; const oldText = saveBtn.textContent; saveBtn.textContent = 'Saving\u2026';
       try {
-        await DataStore.upsertCourse({ id, title, description: desc, minWeeks: minW, maxWeeks: maxW, teacherId: t.id });
+        await DataStore.upsertCourse({ id, title, description: desc, minWeeks: minW, maxWeeks: maxW, tags, teacherId: t.id });
         toast('success', id ? 'Course updated' : 'Course added', title + ' is ' + (id ? 'updated' : 'on your list') + '.');
         renderTeacherCourses();
       } catch (e) {
@@ -6558,22 +6737,94 @@
   /* ─── Leader: available courses (read-only catalog) ───
      Card view of every course teachers are willing to teach. Open to
      anyone past the password gate (no sign-in required) so leaders can
-     plan a year before deciding who to request. */
+     plan a year before deciding who to request.
+
+     Filter/sort state lives on the function object so it survives
+     re-renders (data refresh, tab switch) without needing a wider
+     module-level variable. Selected tags use AND semantics — pick
+     "Old Testament" + "Discipleship" and you get courses tagged
+     with BOTH. */
+  const LEADER_COURSES_DEFAULT_FILTER = {
+    sort: 'title-asc',
+    teacherId: '',
+    weeks: 12,
+    tags: [],
+  };
+  let leaderCoursesFilter = Object.assign({}, LEADER_COURSES_DEFAULT_FILTER, { tags: [] });
+
   function renderAvailableCoursesGrid() {
     const list = document.getElementById('l-courses-list');
     if (!list) return;
+
+    // Build the filter bar (idempotent — we re-bind each render so DataStore
+    // refreshes pick up new teachers in the dropdown).
+    setupLeaderCoursesFilterBar();
+
     list.innerHTML = '';
 
-    // listCourses() already filters to Available; sort alphabetically.
-    const courses = DataStore.listCourses()
-      .slice()
-      .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    let courses = DataStore.listCourses().slice();
+    const totalCount = courses.length;
 
-    if (!courses.length) {
+    // Apply teacher filter
+    if (leaderCoursesFilter.teacherId) {
+      courses = courses.filter(c => c.teacherId === leaderCoursesFilter.teacherId);
+    }
+    // Apply weeks filter — "fits in N weeks" means course min ≤ N (we can
+    // squeeze the series in). A course with no minWeeks is always shown.
+    const wkCap = parseInt(leaderCoursesFilter.weeks, 10) || 12;
+    if (wkCap < 12) {
+      courses = courses.filter(c => !c.minWeeks || c.minWeeks <= wkCap);
+    }
+    // Apply tag filter (AND across selected tags)
+    if (leaderCoursesFilter.tags.length) {
+      courses = courses.filter(c => {
+        const ct = c.tags || [];
+        return leaderCoursesFilter.tags.every(t => ct.indexOf(t) !== -1);
+      });
+    }
+    // Sort
+    courses.sort((a, b) => {
+      switch (leaderCoursesFilter.sort) {
+        case 'teacher-asc': {
+          const ta = (DataStore.getTeacher(a.teacherId) || {}).name || '';
+          const tb = (DataStore.getTeacher(b.teacherId) || {}).name || '';
+          return ta.localeCompare(tb) || (a.title || '').localeCompare(b.title || '');
+        }
+        case 'weeks-asc':
+          return (a.minWeeks || 99) - (b.minWeeks || 99) || (a.title || '').localeCompare(b.title || '');
+        case 'weeks-desc':
+          return (b.maxWeeks || 0) - (a.maxWeeks || 0) || (a.title || '').localeCompare(b.title || '');
+        case 'title-asc':
+        default:
+          return (a.title || '').localeCompare(b.title || '');
+      }
+    });
+
+    // Update result-count summary
+    const summary = document.getElementById('l-courses-summary');
+    if (summary) {
+      if (!totalCount) {
+        summary.textContent = '';
+      } else if (courses.length === totalCount) {
+        summary.textContent = 'Showing all ' + totalCount + ' course' + (totalCount === 1 ? '' : 's') + '.';
+      } else {
+        summary.textContent = 'Showing ' + courses.length + ' of ' + totalCount + ' courses.';
+      }
+    }
+
+    if (!totalCount) {
       list.innerHTML = '<div class="sched-empty" style="grid-column:1/-1;">' +
         '<div class="icon">📚</div>' +
         '<h3>No courses listed yet</h3>' +
         '<p>As teachers add courses to their profiles, they’ll show up here.</p>' +
+        '</div>';
+      return;
+    }
+    if (!courses.length) {
+      list.innerHTML = '<div class="sched-empty" style="grid-column:1/-1;">' +
+        '<div class="icon">🔍</div>' +
+        '<h3>No courses match those filters</h3>' +
+        '<p>Try removing a tag or widening the weeks filter.</p>' +
         '</div>';
       return;
     }
@@ -6591,6 +6842,7 @@
       item.innerHTML =
         '<h4>' + escapeHtml(c.title || '(untitled course)') + '</h4>' +
         '<div class="course-weeks">' + escapeHtml(wkLabel) + '</div>' +
+        renderCourseTagPills(c.tags) +
         '<div style="font-size:.78rem;color:var(--steel-blue);font-weight:700;margin-bottom:.45rem;">' +
           'Taught by ' +
           (teacher
@@ -6607,6 +6859,84 @@
         e.preventDefault();
         openTeacherProfileModal(a.dataset.teacherId);
       });
+    });
+  }
+
+  /* Build (or refresh) the controls above the catalog list. Safe to
+     call repeatedly — we set a flag so listeners are only bound once,
+     but we always re-populate the teacher dropdown from current data. */
+  function setupLeaderCoursesFilterBar() {
+    const bar = document.getElementById('l-courses-filter');
+    if (!bar) return;
+    const teacherSel = document.getElementById('l-courses-teacher');
+    const sortSel    = document.getElementById('l-courses-sort');
+    const weeksRange = document.getElementById('l-courses-weeks');
+    const weeksVal   = document.getElementById('l-courses-weeks-val');
+    const tagHost    = document.getElementById('l-courses-tag-filter');
+    const resetBtn   = document.getElementById('l-courses-reset');
+    if (!teacherSel || !sortSel || !weeksRange || !tagHost || !resetBtn) return;
+
+    // Refresh teacher dropdown (in case teachers list changed)
+    const prevTeacherVal = leaderCoursesFilter.teacherId;
+    teacherSel.innerHTML = '<option value="">All teachers</option>';
+    DataStore.listTeachers()
+      .slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      .forEach(t => {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name;
+        teacherSel.appendChild(o);
+      });
+    teacherSel.value = prevTeacherVal || '';
+
+    // Refresh tag chips
+    tagHost.innerHTML = '';
+    COURSE_TAG_OPTIONS.forEach(tag => {
+      const tone = COURSE_TAG_TONE[tag] || '';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'course-topic-tag tag-toggle' + (tone ? ' tone-' + tone : '');
+      if (leaderCoursesFilter.tags.indexOf(tag) !== -1) btn.classList.add('active');
+      btn.textContent = tag;
+      btn.dataset.tag = tag;
+      tagHost.appendChild(btn);
+    });
+
+    // Sync existing controls to current state
+    sortSel.value = leaderCoursesFilter.sort;
+    weeksRange.value = leaderCoursesFilter.weeks;
+    if (weeksVal) weeksVal.textContent = leaderCoursesFilter.weeks == 12 ? '12+' : String(leaderCoursesFilter.weeks);
+
+    // Bind listeners exactly once
+    if (bar.dataset.bound === '1') return;
+    bar.dataset.bound = '1';
+
+    sortSel.addEventListener('change', () => {
+      leaderCoursesFilter.sort = sortSel.value;
+      renderAvailableCoursesGrid();
+    });
+    teacherSel.addEventListener('change', () => {
+      leaderCoursesFilter.teacherId = teacherSel.value;
+      renderAvailableCoursesGrid();
+    });
+    weeksRange.addEventListener('input', () => {
+      leaderCoursesFilter.weeks = parseInt(weeksRange.value, 10) || 12;
+      if (weeksVal) weeksVal.textContent = leaderCoursesFilter.weeks == 12 ? '12+' : String(leaderCoursesFilter.weeks);
+      renderAvailableCoursesGrid();
+    });
+    tagHost.addEventListener('click', e => {
+      const btn = e.target.closest('.tag-toggle');
+      if (!btn) return;
+      const tag = btn.dataset.tag;
+      const idx = leaderCoursesFilter.tags.indexOf(tag);
+      if (idx === -1) leaderCoursesFilter.tags.push(tag);
+      else leaderCoursesFilter.tags.splice(idx, 1);
+      renderAvailableCoursesGrid();
+    });
+    resetBtn.addEventListener('click', () => {
+      leaderCoursesFilter = Object.assign({}, LEADER_COURSES_DEFAULT_FILTER, { tags: [] });
+      renderAvailableCoursesGrid();
     });
   }
 

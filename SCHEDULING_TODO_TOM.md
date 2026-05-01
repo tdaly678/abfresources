@@ -2,6 +2,28 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## NEW (2026-05-01) — Course Topic Tags + filterable catalog
+
+The Available Courses tab now has sort, teacher filter, weeks filter (1–12), and topic-tag filter chips. Teachers see a 2–3 tag picker on the My Courses form. **Two things you have to do** before this lights up in Airtable:
+
+1. **Add a `Tags` field to the Courses table.** Open the base in Airtable → Courses table → add a new field: type **Multiple select**, name **Tags**, options (paste in this order so the colors stay sane):
+   - Old Testament
+   - New Testament
+   - Theology & Doctrine
+   - Apologetics
+   - Discipleship
+   - Spiritual Formation
+   - Marriage & Family
+   - Church Life
+   - Mission & Evangelism
+   - Cultural Engagement
+
+   The field name **must be exactly `Tags`** and the options **must match the labels above exactly** (case + ampersand). The site reads/writes through this field name; mismatches will silently drop tags on save.
+
+2. **Backfill tags on existing courses.** Use `walkthroughs/retroactive_course_tags.md` — it walks you through pulling the current courses, having Claude propose 2–3 tags per course (with reasoning), reviewing the proposals, and pasting them back into Airtable. Should take about 30 minutes for the whole catalog.
+
+Until the field exists in Airtable, the form will warn teachers if they don't pick 2–3 tags but the saved record will not persist them. Add the field first, then backfill.
+
 ## What changed on 2026-04-27 (heads-up before you log in)
 
 A handful of profile-related changes shipped together — the profile/registration form and teacher cards will look a little different from what you may remember:
