@@ -7517,6 +7517,10 @@
         '<div class="fb-actions">' +
           '<a class="btn btn-primary" href="?f=' + encodeURIComponent(f.slug) + '" target="_blank" rel="noopener">Fill out survey</a>' +
           '<button class="btn btn-ghost" data-fb-print="' + f.id + '">Download printable PDF</button>' +
+          // One-off: surface the AI-generated report for the Baileys' "Rich Towards God" series
+          // to that teacher. Static page lives at /30334report/index.html. Remove this conditional
+          // when the on-demand report system (see feedback/REPORT_DESIGN.md) goes live.
+          (f.slug === '30334' ? '<a class="btn btn-ghost" href="/30334report" target="_blank" rel="noopener">View final report</a>' : '') +
           '<span class="fb-slug-pill">' + escapeHtml(fbShortUrl(f.slug)) + '</span>' +
         '</div>' +
       '</div>';
