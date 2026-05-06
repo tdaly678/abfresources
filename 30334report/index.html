@@ -174,7 +174,9 @@
     display: grid; grid-template-columns: 1.05fr 1fr; gap: 2rem;
     align-items: center;
   }
-  .radial-svg-wrap { display: flex; justify-content: center; }
+  .radial-svg-wrap { display: flex; justify-content: center; max-width: 100%; }
+  .radial-svg-wrap svg { max-width: 100%; height: auto; }
+  .key-shape svg { max-width: 100%; height: auto; }
   .radial-readings { display: flex; flex-direction: column; gap: .5rem; }
   .reading-row {
     display: grid; grid-template-columns: 1.4fr 50px 1fr;
@@ -413,12 +415,78 @@
   }
   .rpt-footer a { color: var(--gold); text-decoration: none; }
 
-  @media (max-width: 760px) {
-    .glance { grid-template-columns: 1fr; }
-    .glance-score { border-right: none; padding-right: 0; border-bottom: 1px solid var(--cream-border); padding-bottom: 1rem; }
-    .radial-wrap { grid-template-columns: 1fr; }
-    .deepened { grid-template-columns: 1fr; }
+  /* ============================================================
+     Responsive — tablet (≤900px), mobile (≤760px), narrow (≤480px)
+     ============================================================ */
+
+  @media (max-width: 900px) {
     .key-shapes { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 760px) {
+    body { padding: 1rem .75rem 2.5rem; }
+    .mockup-banner {
+      flex-direction: column; gap: .25rem;
+      padding: .55rem .85rem; font-size: .78rem;
+    }
+    .rpt-header {
+      flex-direction: column; align-items: flex-start;
+      padding: 1.25rem 1.25rem; gap: .85rem;
+    }
+    .rpt-title { font-size: 1.3rem; }
+    .rpt-meta { text-align: left; }
+    section.rpt-section { padding: 1.25rem 1.25rem; }
+    .glance {
+      grid-template-columns: 1fr; gap: 1rem;
+      padding: 1.25rem;
+    }
+    .glance-score {
+      border-right: none; padding-right: 0;
+      border-bottom: 1px solid var(--cream-border); padding-bottom: 1rem;
+    }
+    .rpt-section-head {
+      flex-direction: column; align-items: flex-start; gap: .35rem;
+    }
+    .radial-wrap { grid-template-columns: 1fr; gap: 1.25rem; }
+    .deepened { grid-template-columns: 1fr; gap: 1rem; }
+    .dial-row {
+      grid-template-columns: 1fr;
+      gap: .35rem; padding: .65rem 0;
+    }
+    .dial-tag { text-align: left; }
+    .dial-legend {
+      justify-content: flex-start; flex-wrap: wrap; gap: .65rem;
+    }
+    .narrative-block { padding: .9rem 1rem; }
+    .narrative { padding: 1rem 1.1rem; }
+    .alignment-indicator { padding: .7rem .85rem; }
+    .rpt-footer {
+      flex-direction: column; gap: .35rem;
+      padding: 1rem 1.25rem;
+      text-align: left;
+    }
+  }
+
+  @media (max-width: 480px) {
+    html { font-size: 15px; }
+    body { padding: .65rem .5rem 2rem; }
+    .rpt-header { padding: 1rem 1rem; }
+    .rpt-title { font-size: 1.15rem; }
+    section.rpt-section { padding: 1.1rem 1rem; }
+    .glance { padding: 1.1rem 1rem; }
+    .glance-score-value { font-size: 2.4rem; }
+    .key-shapes { grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .key-shape { padding: .55rem .35rem; }
+    .key-shape-desc { font-size: .68rem; }
+    .reading-row {
+      grid-template-columns: 1fr auto;
+      column-gap: .75rem; row-gap: .35rem;
+      padding: .45rem .15rem;
+    }
+    .reading-bar { grid-column: 1 / -1; }
+    .theme { padding: .65rem .75rem; }
+    .themes { grid-template-columns: 1fr; }
+    .rpt-footer { padding: .85rem 1rem; font-size: .72rem; }
   }
 </style>
 </head>
