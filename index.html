@@ -2927,7 +2927,11 @@
       <div class="page-header">
         <h2>ABF Leaders</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">The volunteer team that leads each ABF. <strong>Click your card</strong> when you're signed in to update your name or email.</p>
+        <p class="page-sub">The volunteer team that leads each ABF. <strong>Click your card</strong> when you're signed in to update your name, email, phone, or ABF.</p>
+        <div style="margin-top:.85rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" id="leaders-add-self-btn" type="button">+ Add yourself as a leader</button>
+          <span style="font-size:.75rem;color:var(--text-muted);">New to leading an ABF? Get yourself on the roster.</span>
+        </div>
       </div>
       <div id="leaders-roster"></div>
     </div>
@@ -4225,12 +4229,12 @@
   </div>
 </div>
 
-<!-- Leader edit modal -->
+<!-- Leader add/edit modal -->
 <div id="leader-edit-modal" class="sched-modal">
-  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:480px;">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:520px;">
     <button type="button" class="sched-modal-close" id="leader-edit-close" aria-label="Close">&times;</button>
     <h2 id="leader-edit-title" style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Edit your profile</h2>
-    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Teachers and other ABF leaders see this name + email on requests and notifications.</p>
+    <p id="leader-edit-sub" style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Teachers and other ABF leaders see this name + email on requests and notifications.</p>
     <form class="sched-form" id="leader-edit-form" autocomplete="off" style="padding:0;">
       <input type="hidden" id="ledit-id" />
       <div class="form-row row-2">
@@ -4243,8 +4247,16 @@
           <input type="email" id="ledit-email" class="form-input" required />
         </div>
       </div>
-      <div class="form-row" style="font-size:.78rem;color:var(--text-muted);">
-        <strong style="color:var(--dark-brown);">ABF:</strong> <span id="ledit-class-name">—</span>
+      <div class="form-row row-2">
+        <div>
+          <label class="form-label" for="ledit-phone">Phone</label>
+          <input type="tel" id="ledit-phone" class="form-input" placeholder="717-555-1234" />
+          <p class="form-help">Used for sign-in (last 4 digits). Format doesn't matter.</p>
+        </div>
+        <div>
+          <label class="form-label" for="ledit-class">Your ABF</label>
+          <select id="ledit-class" class="form-input"></select>
+        </div>
       </div>
       <div style="display:flex;gap:.5rem;align-items:center;">
         <button type="button" class="btn btn-primary" id="leader-edit-save">Save</button>
@@ -4916,7 +4928,15 @@
       this._cache.abfLeaders = this._cache.abfLeaders.map(l => l.id === id ? mapped : l);
       this.logChange('ABF Leaders', 'update', id, mapped.name,
         'Updated leader profile: ' + mapped.name,
-        diffFields(before, mapped, ['name','email','phone']));
+        diffFields(before, mapped, ['name','email','phone','abfClassId']));
+      return mapped;
+    },
+    async createABFLeader(fields) {
+      const res = await this.api('POST', this.TBL.abfLeaders, { body: { fields } });
+      const mapped = this._mapLeader(res);
+      this._cache.abfLeaders.push(mapped);
+      this.logChange('ABF Leaders', 'create', mapped.id, mapped.name,
+        'Added leader: ' + mapped.name);
       return mapped;
     },
 
@@ -5136,11 +5156,13 @@
         Email: leader.email,
       };
       if (leader.phone !== undefined) fields.Phone = leader.phone;
+      if (leader.abfClassId) fields['ABF Class'] = [leader.abfClassId];
       if (leader.id) {
         return Airtable.updateABFLeader(leader.id, fields);
       }
-      // Creation flow not exposed yet — leaders are added by admin via Airtable UI.
-      throw new Error('Leader creation not supported in-portal');
+      // Create new leader (used by the "+ Add yourself as a leader" flow)
+      fields.Active = true;
+      return Airtable.createABFLeader(fields);
     },
 
     listCourses(filter = {}) {
@@ -7206,20 +7228,44 @@
     });
   }
 
-  function openLeaderEditModal(leaderId) {
-    const l = DataStore.getABFLeader(leaderId);
-    if (!l) return;
-    if (!Identity.canEditLeader(l.id)) {
+  /* Populate the leader-modal Class dropdown with all active ABF classes. */
+  function fillLeaderClassSelect(currentId) {
+    const sel = document.getElementById('ledit-class');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Choose —</option>';
+    DataStore.listABFClasses().forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.name + (c.service ? ' — ' + c.service : '');
+      if (currentId && currentId === c.id) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  /* openLeaderEditModal(leaderOrId) — pass an existing leader (or its id) to
+     edit, or pass null/undefined to open in "add yourself" mode. */
+  function openLeaderEditModal(leaderOrId) {
+    let l = null;
+    if (leaderOrId) {
+      l = (typeof leaderOrId === 'string') ? DataStore.getABFLeader(leaderOrId) : leaderOrId;
+    }
+    const isEdit = !!(l && l.id);
+    if (isEdit && !Identity.canEditLeader(l.id)) {
       toast('error', 'Read-only', 'Sign in as this leader (or an admin) to edit this profile.');
       return;
     }
-    document.getElementById('ledit-id').value    = l.id;
-    document.getElementById('ledit-name').value  = l.name || '';
-    document.getElementById('ledit-email').value = l.email || '';
-    const cls = DataStore.getABFClass(l.abfClassId);
-    document.getElementById('ledit-class-name').textContent = cls
-      ? cls.name + (cls.service ? ' — ' + cls.service : '')
-      : '(not assigned)';
+    document.getElementById('leader-edit-title').textContent = isEdit
+      ? 'Edit profile — ' + (l.name || '')
+      : 'Add yourself as a leader';
+    document.getElementById('leader-edit-sub').textContent = isEdit
+      ? 'Teachers and other ABF leaders see this name + email on requests and notifications.'
+      : 'Add yourself to your ABF’s leader roster. Phone is needed for sign-in (last 4 digits).';
+    document.getElementById('ledit-id').value    = isEdit ? l.id : '';
+    document.getElementById('ledit-name').value  = isEdit ? (l.name  || '') : '';
+    document.getElementById('ledit-email').value = isEdit ? (l.email || '') : '';
+    document.getElementById('ledit-phone').value = isEdit ? (l.phone || '') : '';
+    fillLeaderClassSelect(isEdit ? l.abfClassId : '');
+    document.getElementById('leader-edit-save').textContent = isEdit ? 'Save' : 'Add leader';
     document.getElementById('leader-edit-status').textContent = '';
     document.getElementById('leader-edit-modal').classList.add('visible');
   }
@@ -7236,26 +7282,31 @@
       const id    = document.getElementById('ledit-id').value;
       const name  = document.getElementById('ledit-name').value.trim();
       const email = document.getElementById('ledit-email').value.trim();
-      if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
-      if (!email) { toast('error', 'Email required', 'Teachers and other leaders need a way to contact you.'); return; }
-      if (!Identity.canEditLeader(id)) {
+      const phone = document.getElementById('ledit-phone').value.trim();
+      const abfClassId = document.getElementById('ledit-class').value;
+      const isEdit = !!id;
+      if (!name)  { toast('error', 'Name required', 'Please enter the leader’s name.'); return; }
+      if (!email) { toast('error', 'Email required', 'Teachers and other leaders need a way to contact this person.'); return; }
+      if (!abfClassId) { toast('error', 'ABF required', 'Pick which ABF this leader belongs to.'); return; }
+      if (isEdit && !Identity.canEditLeader(id)) {
         toast('error', 'Read-only', 'Sign in as this leader (or an admin) to edit this profile.');
         return;
       }
       const status  = document.getElementById('leader-edit-status');
       const saveBtn = document.getElementById('leader-edit-save');
       status.textContent = '';
-      saveBtn.disabled = true; const old = saveBtn.textContent; saveBtn.textContent = 'Saving…';
+      saveBtn.disabled = true; const old = saveBtn.textContent; saveBtn.textContent = isEdit ? 'Saving…' : 'Adding…';
       try {
-        await DataStore.upsertABFLeader({ id, name, email });
+        const saved = await DataStore.upsertABFLeader({ id: id || undefined, name, email, phone, abfClassId });
         status.textContent = 'Saved.';
-        toast('success', 'Profile saved', 'Your profile is up to date.');
+        toast('success', isEdit ? 'Profile saved' : 'Leader added',
+          isEdit ? 'Your profile is up to date.' : (saved.name + ' is now in the leader roster.'));
         renderLeadersRoster();
         updateIdentityBadge();
         setTimeout(closeLeaderEditModal, 600);
       } catch (e) {
         console.error(e);
-        toast('error', 'Couldn’t save', 'Your profile wasn’t saved. Try again.');
+        toast('error', 'Couldn’t save', 'Your changes weren’t saved. Try again.');
       } finally {
         saveBtn.disabled = false; saveBtn.textContent = old;
       }
@@ -9127,6 +9178,12 @@
   // "Add yourself as a teacher" button on the Teachers tab
   document.getElementById('teachers-add-self-btn')?.addEventListener('click', () => {
     openRegisterModal();
+  });
+
+  // "Add yourself as a leader" button on the Leaders tab
+  document.getElementById('leaders-add-self-btn')?.addEventListener('click', () => {
+    bindLeaderEditModal();   // ensure modal handlers are wired
+    openLeaderEditModal();   // no leader → "add" mode
   });
 
   // Render teachers roster on initial load if it's the active tab
