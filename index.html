@@ -3364,6 +3364,7 @@
             <button class="sched-subnav-btn" data-sub="l-courses" data-role="leader-readonly">Available Courses</button>
             <button class="sched-subnav-btn" data-sub="l-new" data-role="leader">New Request</button>
             <button class="sched-subnav-btn" data-sub="l-mine" data-role="leader">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
+            <button class="sched-subnav-btn" data-sub="l-profile" data-role="leader">My Profile</button>
           </div>
         </div>
 
@@ -3465,6 +3466,32 @@
         <!-- Leader: My Requests -->
         <div class="sched-pane" id="sched-l-mine">
           <div id="l-requests-list"></div>
+        </div>
+
+        <!-- Leader: My Profile -->
+        <div class="sched-pane" id="sched-l-profile">
+          <div class="sched-notice">
+            <strong>Why this matters:</strong> teachers and other ABF leaders see this name + email on requests and notifications. Keep it current so messages reach the right inbox.
+          </div>
+          <form class="sched-form" id="leader-profile-form" autocomplete="off">
+            <div class="form-row row-2">
+              <div>
+                <label class="form-label" for="lprof-name">Your name</label>
+                <input type="text" id="lprof-name" class="form-input" required />
+              </div>
+              <div>
+                <label class="form-label" for="lprof-email">Email</label>
+                <input type="email" id="lprof-email" class="form-input" required />
+              </div>
+            </div>
+            <div class="form-row" id="lprof-class-row" style="font-size:.78rem;color:var(--text-muted);">
+              <strong style="color:var(--dark-brown);">Your ABF:</strong> <span id="lprof-class-name">—</span>
+            </div>
+            <div class="form-row" style="display:flex;align-items:center;gap:.75rem;">
+              <button type="button" class="btn btn-primary" id="leader-profile-save">Save profile</button>
+              <span id="leader-profile-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -4813,6 +4840,17 @@
       return mapped;
     },
 
+    async updateABFLeader(id, fields) {
+      const before = this._cache.abfLeaders.find(l => l.id === id) || {};
+      const res = await this.api('PATCH', this.TBL.abfLeaders, { recordId: id, body: { fields } });
+      const mapped = this._mapLeader(res);
+      this._cache.abfLeaders = this._cache.abfLeaders.map(l => l.id === id ? mapped : l);
+      this.logChange('ABF Leaders', 'update', id, mapped.name,
+        'Updated leader profile: ' + mapped.name,
+        diffFields(before, mapped, ['name','email','phone']));
+      return mapped;
+    },
+
     async createCourse(fields) {
       const res = await this.api('POST', this.TBL.courses, { body: { fields } });
       const mapped = this._mapCourse(res);
@@ -5022,6 +5060,19 @@
 
     listABFLeaders() { return getCache().abfLeaders.filter(x => x.active); },
     getABFLeader(id) { return getCache().abfLeaders.find(x => x.id === id); },
+
+    async upsertABFLeader(leader) {
+      const fields = {
+        Name:  leader.name,
+        Email: leader.email,
+      };
+      if (leader.phone !== undefined) fields.Phone = leader.phone;
+      if (leader.id) {
+        return Airtable.updateABFLeader(leader.id, fields);
+      }
+      // Creation flow not exposed yet — leaders are added by admin via Airtable UI.
+      throw new Error('Leader creation not supported in-portal');
+    },
 
     listCourses(filter = {}) {
       const all = getCache().courses.filter(x => x.available);
@@ -5665,6 +5716,8 @@
     } else if (id && id.role === 'leader') {
       renderLeaderNewRequestForm();
       renderLeaderRequests();
+      renderLeaderProfile();
+      bindLeaderProfileForm();
     }
 
     // Pick a sensible default active pane based on who's signed in.
@@ -7175,6 +7228,55 @@
     renderSundayPicker('');
     renderLeaderRequests();
     renderLeaderGrid();
+  }
+
+  /* ─── Leader: My Profile ─── */
+  function renderLeaderProfile() {
+    const l = Identity.asLeader();
+    if (!l) return;
+    document.getElementById('lprof-name').value  = l.name  || '';
+    document.getElementById('lprof-email').value = l.email || '';
+    const cls = DataStore.getABFClass(l.abfClassId);
+    document.getElementById('lprof-class-name').textContent = cls
+      ? cls.name + (cls.service ? ' — ' + cls.service : '')
+      : '(not assigned)';
+    document.getElementById('leader-profile-status').textContent = '';
+  }
+
+  function bindLeaderProfileForm() {
+    const saveBtn = document.getElementById('leader-profile-save');
+    if (!saveBtn || saveBtn.dataset._wired) return;
+    saveBtn.dataset._wired = '1';
+    saveBtn.addEventListener('click', async () => {
+      const l = Identity.asLeader();
+      if (!l) return;
+      if (!Identity.canEditLeader(l.id)) {
+        toast('error', 'Read-only', 'Sign in as this leader (or an admin) to edit this profile.');
+        return;
+      }
+      const name  = document.getElementById('lprof-name').value.trim();
+      const email = document.getElementById('lprof-email').value.trim();
+      if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
+      if (!email) { toast('error', 'Email required', 'Teachers and other leaders need a way to contact you.'); return; }
+
+      const status = document.getElementById('leader-profile-status');
+      status.textContent = '';
+      saveBtn.disabled = true;
+      const old = saveBtn.textContent;
+      saveBtn.textContent = 'Saving…';
+      try {
+        await DataStore.upsertABFLeader({ id: l.id, name, email });
+        status.textContent = 'Saved.';
+        toast('success', 'Profile saved', 'Your profile is up to date.');
+        updateIdentityBadge();
+      } catch (e) {
+        console.error(e);
+        toast('error', 'Couldn’t save', 'Your profile wasn’t saved. Try again.');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = old;
+      }
+    });
   }
 
   /* ─── Leader: My Requests ─── */
