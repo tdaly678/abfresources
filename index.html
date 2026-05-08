@@ -555,6 +555,57 @@
     }
     .article-link:hover { text-decoration: underline; }
 
+    /* ─── LEADERS ───────────────────────────────────────────────── */
+    .class-group { margin-top: 1rem; padding: .75rem 1rem 1rem; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--gold); }
+    .class-group + .class-group { margin-top: 1rem; }
+    .class-group-head {
+      display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap;
+      margin-bottom: .65rem; padding-bottom: .5rem;
+      border-bottom: 1px dashed var(--cream-border);
+    }
+    .class-group-name { font-size: 1.05rem; font-weight: 800; color: var(--dark-brown); letter-spacing: -.005em; }
+    .class-group-room { font-size: .72rem; color: var(--text-muted); font-weight: 600; }
+    .leaders-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .55rem; }
+    .leader-card {
+      background: var(--cream);
+      border: 1px solid var(--cream-border);
+      border-radius: 8px;
+      padding: .55rem .7rem;
+      display: flex; align-items: center; gap: .55rem;
+      text-align: left;
+      cursor: default;
+      font-family: inherit;
+    }
+    .leader-card.editable {
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .leader-card.editable:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(52,45,37,.12); border-color: var(--terra); }
+    .leader-card.editable:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .leader-avatar {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--olive); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 800;
+      letter-spacing: .03em;
+    }
+    .leader-meta { min-width: 0; flex: 1; }
+    .leader-name {
+      font-size: .82rem; font-weight: 700; color: var(--dark-brown);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .leader-email {
+      font-size: .68rem; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .leader-edit-hint { font-size: .58rem; color: var(--terra); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .leader-pending { color: var(--terra); font-style: italic; font-size: .7rem; }
+
+    /* Service-section is already styled for Teachers; we reuse it here for the
+       1st Service / 2nd Service split in the Leaders tab. */
+
     /* ─── TEACHERS ──────────────────────────────────────────────── */
     .teachers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
     .teacher-card {
@@ -2637,7 +2688,7 @@
   <nav>
     <div class="nav-inner">
       <button class="tab-btn active" data-tab="home">Home</button>
-      <button class="tab-btn" data-tab="classes">ABF Classes</button>
+      <button class="tab-btn" data-tab="leaders">Leaders</button>
       <button class="tab-btn" data-tab="dates">Key Dates</button>
       <button class="tab-btn" data-tab="courses">Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
@@ -2869,6 +2920,16 @@
 
         </div>
       </div>
+    </div>
+
+    <!-- ── LEADERS ──────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-leaders">
+      <div class="page-header">
+        <h2>ABF Leaders</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">The volunteer team that leads each ABF. <strong>Click your card</strong> when you're signed in to update your name or email.</p>
+      </div>
+      <div id="leaders-roster"></div>
     </div>
 
     <!-- ── KEY DATES ────────────────────────────────────── -->
@@ -3364,7 +3425,6 @@
             <button class="sched-subnav-btn" data-sub="l-courses" data-role="leader-readonly">Available Courses</button>
             <button class="sched-subnav-btn" data-sub="l-new" data-role="leader">New Request</button>
             <button class="sched-subnav-btn" data-sub="l-mine" data-role="leader">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
-            <button class="sched-subnav-btn" data-sub="l-profile" data-role="leader">My Profile</button>
           </div>
         </div>
 
@@ -3466,32 +3526,6 @@
         <!-- Leader: My Requests -->
         <div class="sched-pane" id="sched-l-mine">
           <div id="l-requests-list"></div>
-        </div>
-
-        <!-- Leader: My Profile -->
-        <div class="sched-pane" id="sched-l-profile">
-          <div class="sched-notice">
-            <strong>Why this matters:</strong> teachers and other ABF leaders see this name + email on requests and notifications. Keep it current so messages reach the right inbox.
-          </div>
-          <form class="sched-form" id="leader-profile-form" autocomplete="off">
-            <div class="form-row row-2">
-              <div>
-                <label class="form-label" for="lprof-name">Your name</label>
-                <input type="text" id="lprof-name" class="form-input" required />
-              </div>
-              <div>
-                <label class="form-label" for="lprof-email">Email</label>
-                <input type="email" id="lprof-email" class="form-input" required />
-              </div>
-            </div>
-            <div class="form-row" id="lprof-class-row" style="font-size:.78rem;color:var(--text-muted);">
-              <strong style="color:var(--dark-brown);">Your ABF:</strong> <span id="lprof-class-name">—</span>
-            </div>
-            <div class="form-row" style="display:flex;align-items:center;gap:.75rem;">
-              <button type="button" class="btn btn-primary" id="leader-profile-save">Save profile</button>
-              <span id="leader-profile-status" style="font-size:.78rem;color:var(--text-muted);"></span>
-            </div>
-          </form>
         </div>
       </div>
 
@@ -4191,6 +4225,35 @@
   </div>
 </div>
 
+<!-- Leader edit modal -->
+<div id="leader-edit-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:480px;">
+    <button type="button" class="sched-modal-close" id="leader-edit-close" aria-label="Close">&times;</button>
+    <h2 id="leader-edit-title" style="font-size:1.1rem;font-weight:800;color:var(--dark-brown);margin-bottom:.25rem;">Edit your profile</h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Teachers and other ABF leaders see this name + email on requests and notifications.</p>
+    <form class="sched-form" id="leader-edit-form" autocomplete="off" style="padding:0;">
+      <input type="hidden" id="ledit-id" />
+      <div class="form-row row-2">
+        <div>
+          <label class="form-label" for="ledit-name">Your name</label>
+          <input type="text" id="ledit-name" class="form-input" required />
+        </div>
+        <div>
+          <label class="form-label" for="ledit-email">Email</label>
+          <input type="email" id="ledit-email" class="form-input" required />
+        </div>
+      </div>
+      <div class="form-row" style="font-size:.78rem;color:var(--text-muted);">
+        <strong style="color:var(--dark-brown);">ABF:</strong> <span id="ledit-class-name">—</span>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <button type="button" class="btn btn-primary" id="leader-edit-save">Save</button>
+        <span id="leader-edit-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Feedback responses modal -->
 <div id="fb-responses-modal" class="sched-modal">
   <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;max-width:780px;">
@@ -4439,6 +4502,12 @@
     const pane = document.getElementById(`tab-${id}`);
     if (btn)  btn.classList.add('active');
     if (pane) pane.classList.add('active');
+
+    // Render data-driven panes lazily on activation.
+    if (id === 'leaders' && typeof renderLeadersRoster === 'function') {
+      renderLeadersRoster();
+      if (typeof bindLeaderEditModal === 'function') bindLeaderEditModal();
+    }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -5716,8 +5785,6 @@
     } else if (id && id.role === 'leader') {
       renderLeaderNewRequestForm();
       renderLeaderRequests();
-      renderLeaderProfile();
-      bindLeaderProfileForm();
     }
 
     // Pick a sensible default active pane based on who's signed in.
@@ -7024,6 +7091,161 @@
     resetBtn.addEventListener('click', () => {
       leaderCoursesFilter = Object.assign({}, LEADER_COURSES_DEFAULT_FILTER, { tags: [] });
       renderAvailableCoursesGrid();
+    });
+  }
+
+  /* ─── ABF Leaders Tab — roster + edit modal ─── */
+  function renderLeadersRoster() {
+    const wrap = document.getElementById('leaders-roster');
+    if (!wrap) return;
+    if (!Airtable._cache) {
+      wrap.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;">Loading leaders…</p>';
+      Airtable.ensureLoaded().then(() => renderLeadersRoster()).catch(() => {
+        wrap.innerHTML = '<p style="color:var(--terra);font-size:.85rem;">Couldn’t reach Airtable. Refresh to try again.</p>';
+      });
+      return;
+    }
+    wrap.innerHTML = '';
+
+    const classes = DataStore.listABFClasses();
+    const leaders = DataStore.listABFLeaders();
+
+    // Group leaders by class
+    const byClass = new Map();
+    leaders.forEach(l => {
+      if (!l.abfClassId) return;
+      if (!byClass.has(l.abfClassId)) byClass.set(l.abfClassId, []);
+      byClass.get(l.abfClassId).push(l);
+    });
+
+    const services = ['1st Service', '2nd Service'];
+    services.forEach(service => {
+      const sectionClasses = classes.filter(c => c.service === service && c.active !== false);
+      if (!sectionClasses.length) return;
+      const sec = document.createElement('div');
+      sec.className = 'service-section';
+      const badgeColor = service === '1st Service' ? 'var(--olive)' : 'var(--terra)';
+      sec.innerHTML =
+        '<div class="service-header">' +
+          '<div class="service-badge" style="background:' + badgeColor + ';">' + escapeHtml(service) + '</div>' +
+          '<hr />' +
+        '</div>';
+
+      sectionClasses.forEach(cls => {
+        const group = document.createElement('div');
+        group.className = 'class-group';
+        group.innerHTML =
+          '<div class="class-group-head">' +
+            '<span class="class-group-name">' + escapeHtml(cls.name) + '</span>' +
+            (cls.room ? '<span class="class-group-room">' + escapeHtml(cls.room) + '</span>' : '') +
+          '</div>' +
+          '<div class="leaders-grid"></div>';
+        const grid = group.querySelector('.leaders-grid');
+
+        const classLeaders = (byClass.get(cls.id) || [])
+          .slice()
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const leaderRecordNames = new Set(classLeaders.map(l => (l.name || '').trim()));
+
+        // Render existing leader records (clickable + editable for the signed-in leader)
+        classLeaders.forEach(l => {
+          const initials = (l.name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
+            .map(s => s[0].toUpperCase()).join('') || '?';
+          const editable = Identity.canEditLeader(l.id);
+          const card = document.createElement(editable ? 'button' : 'div');
+          if (editable) card.type = 'button';
+          card.className = 'leader-card' + (editable ? ' editable' : '');
+          card.dataset.leaderId = l.id;
+          card.title = editable ? 'Click to edit your profile' : (l.name || '');
+          card.innerHTML =
+            '<div class="leader-avatar">' + escapeHtml(initials) + '</div>' +
+            '<div class="leader-meta">' +
+              '<div class="leader-name">' + escapeHtml(l.name || '—') + '</div>' +
+              '<div class="leader-email">' + escapeHtml(l.email || '(no email)') + '</div>' +
+            '</div>' +
+            (editable ? '<span class="leader-edit-hint">Edit</span>' : '');
+          if (editable) card.addEventListener('click', () => openLeaderEditModal(l.id));
+          grid.appendChild(card);
+        });
+
+        // Placeholder cards for names listed on the class but with no leader record yet
+        const namesText = (cls.leaders || '').toString();
+        const namesInText = namesText.split(',').map(s => s.trim()).filter(Boolean);
+        namesInText.forEach(name => {
+          if (leaderRecordNames.has(name)) return;
+          const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
+            .map(s => s[0].toUpperCase()).join('') || '?';
+          const card = document.createElement('div');
+          card.className = 'leader-card';
+          card.innerHTML =
+            '<div class="leader-avatar" style="background:var(--cream-border);color:var(--text-muted);">' + escapeHtml(initials) + '</div>' +
+            '<div class="leader-meta">' +
+              '<div class="leader-name">' + escapeHtml(name) + '</div>' +
+              '<div class="leader-pending">profile not yet set up</div>' +
+            '</div>';
+          grid.appendChild(card);
+        });
+
+        sec.appendChild(group);
+      });
+
+      wrap.appendChild(sec);
+    });
+  }
+
+  function openLeaderEditModal(leaderId) {
+    const l = DataStore.getABFLeader(leaderId);
+    if (!l) return;
+    if (!Identity.canEditLeader(l.id)) {
+      toast('error', 'Read-only', 'Sign in as this leader (or an admin) to edit this profile.');
+      return;
+    }
+    document.getElementById('ledit-id').value    = l.id;
+    document.getElementById('ledit-name').value  = l.name || '';
+    document.getElementById('ledit-email').value = l.email || '';
+    const cls = DataStore.getABFClass(l.abfClassId);
+    document.getElementById('ledit-class-name').textContent = cls
+      ? cls.name + (cls.service ? ' — ' + cls.service : '')
+      : '(not assigned)';
+    document.getElementById('leader-edit-status').textContent = '';
+    document.getElementById('leader-edit-modal').classList.add('visible');
+  }
+  function closeLeaderEditModal() {
+    document.getElementById('leader-edit-modal').classList.remove('visible');
+  }
+  function bindLeaderEditModal() {
+    const modal = document.getElementById('leader-edit-modal');
+    if (!modal || modal.dataset._wired) return;
+    modal.dataset._wired = '1';
+    document.getElementById('leader-edit-close').addEventListener('click', closeLeaderEditModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeLeaderEditModal(); });
+    document.getElementById('leader-edit-save').addEventListener('click', async () => {
+      const id    = document.getElementById('ledit-id').value;
+      const name  = document.getElementById('ledit-name').value.trim();
+      const email = document.getElementById('ledit-email').value.trim();
+      if (!name)  { toast('error', 'Name required', 'Please enter your name.'); return; }
+      if (!email) { toast('error', 'Email required', 'Teachers and other leaders need a way to contact you.'); return; }
+      if (!Identity.canEditLeader(id)) {
+        toast('error', 'Read-only', 'Sign in as this leader (or an admin) to edit this profile.');
+        return;
+      }
+      const status  = document.getElementById('leader-edit-status');
+      const saveBtn = document.getElementById('leader-edit-save');
+      status.textContent = '';
+      saveBtn.disabled = true; const old = saveBtn.textContent; saveBtn.textContent = 'Saving…';
+      try {
+        await DataStore.upsertABFLeader({ id, name, email });
+        status.textContent = 'Saved.';
+        toast('success', 'Profile saved', 'Your profile is up to date.');
+        renderLeadersRoster();
+        updateIdentityBadge();
+        setTimeout(closeLeaderEditModal, 600);
+      } catch (e) {
+        console.error(e);
+        toast('error', 'Couldn’t save', 'Your profile wasn’t saved. Try again.');
+      } finally {
+        saveBtn.disabled = false; saveBtn.textContent = old;
+      }
     });
   }
 
