@@ -5599,6 +5599,10 @@
       if (document.getElementById('tab-teachers').classList.contains('active')) {
         renderTeachersRoster();
       }
+      // Re-render Leaders roster so edit affordances pick up the new identity
+      if (document.getElementById('tab-leaders').classList.contains('active')) {
+        renderLeadersRoster();
+      }
       toast('success', 'Signed in', Identity.isAdmin()
         ? 'Acting as ' + person.name + ' (admin override).'
         : 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
@@ -5648,6 +5652,9 @@
         if (document.getElementById('tab-teachers').classList.contains('active')) {
           renderTeachersRoster();
         }
+        if (document.getElementById('tab-leaders').classList.contains('active')) {
+          renderLeadersRoster();
+        }
         toast('success', 'Admin override on', 'You can edit any teacher or leader. Sign out when finished.');
       } finally {
         btn.disabled = false; btn.textContent = old;
@@ -5666,6 +5673,9 @@
       }
       if (document.getElementById('tab-teachers').classList.contains('active')) {
         renderTeachersRoster();
+      }
+      if (document.getElementById('tab-leaders').classList.contains('active')) {
+        renderLeadersRoster();
       }
     });
 
@@ -5689,6 +5699,9 @@
           }
           if (document.getElementById('tab-teachers').classList.contains('active')) {
             renderTeachersRoster();
+          }
+          if (document.getElementById('tab-leaders').classList.contains('active')) {
+            renderLeadersRoster();
           }
           toast('', 'Signed out', 'You\u2019re browsing anonymously now.');
           return;
