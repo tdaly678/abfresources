@@ -336,8 +336,8 @@
       <!-- Scheduling -->
       <div class="q">
         <div class="q-number">SCHEDULING</div>
-        <div class="q-text">Which evening works for the next gathering?<span class="required-mark">*</span></div>
-        <div class="q-help">Pick the one that works best. We only need to land one night.</div>
+        <div class="q-text">Which evening(s) would work for the next gathering?<span class="required-mark">*</span></div>
+        <div class="q-help">Check every night that could work — the more options, the easier to find a date everyone can make.</div>
         <div class="radio-list" id="dates-list"></div>
       </div>
 
@@ -345,13 +345,13 @@
       <div class="section-header">
         <span class="label">Section 2</span>
         <h2>Looking Back — Your Feedback on the Last Gathering</h2>
-        <div class="blurb">The rest of the survey asks how the last planning evening landed for you and how to make the next one sharper.</div>
+        <div class="blurb"><strong>Only complete this section if you attended one of our previous planning gatherings.</strong> All questions are optional — answer as much or as little as is helpful.</div>
       </div>
 
       <!-- Q1 -->
       <div class="q">
         <div class="q-number">QUESTION 1</div>
-        <div class="q-text">Overall, was the evening a good use of your time?<span class="required-mark">*</span></div>
+        <div class="q-text">Overall, was the evening a good use of your time? <span class="opt">(optional)</span></div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not worth my time</span>
           <span>Excellent use of my time<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -362,7 +362,7 @@
       <!-- Q2 -->
       <div class="q">
         <div class="q-number">QUESTION 2</div>
-        <div class="q-text">How personally edifying was the time — your own study, formation, engagement with the text?<span class="required-mark">*</span></div>
+        <div class="q-text">How personally edifying was the time — your own study, formation, engagement with the text? <span class="opt">(optional)</span></div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not at all edifying</span>
           <span>Deeply edifying<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -373,14 +373,14 @@
       <!-- Q3 -->
       <div class="q">
         <div class="q-number">QUESTION 3</div>
-        <div class="q-text">What's the single thing you personally walked away with?<span class="required-mark">*</span></div>
+        <div class="q-text">What's the single thing you personally walked away with? <span class="opt">(optional)</span></div>
         <textarea class="text-area tall" data-field="q3" placeholder="A sentence or two is plenty."></textarea>
       </div>
 
       <!-- Q4 -->
       <div class="q">
         <div class="q-number">QUESTION 4</div>
-        <div class="q-text">For each part of the evening, how useful do you think it was for the preaching pastors?<span class="required-mark">*</span></div>
+        <div class="q-text">For each part of the evening, how useful do you think it was for the preaching pastors? <span class="opt">(optional)</span></div>
         <div class="q-help anchor">1 = Not useful  ·  5 = Very useful</div>
         <div id="matrix"></div>
         <div style="margin-top:14px">
@@ -392,7 +392,7 @@
       <!-- Q5 -->
       <div class="q">
         <div class="q-number">QUESTION 5</div>
-        <div class="q-text">Listening to the John sermons, did you notice the planning evening's input showing up in the preaching?<span class="required-mark">*</span></div>
+        <div class="q-text">Listening to the John sermons, did you notice the planning evening's input showing up in the preaching? <span class="opt">(optional)</span></div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not really</span>
           <span>Repeatedly<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -410,14 +410,14 @@
       <!-- Q7 -->
       <div class="q">
         <div class="q-number">QUESTION 7</div>
-        <div class="q-text">We're wide open to ideas here. How could this time be used to better strengthen our preaching and the edification of the church?<span class="required-mark">*</span></div>
+        <div class="q-text">We're wide open to ideas here. How could this time be used to better strengthen our preaching and the edification of the church? <span class="opt">(optional)</span></div>
         <textarea class="text-area tall" data-field="q7" placeholder="Any and all ideas welcome — format, structure, who's invited, materials, focus, anything."></textarea>
       </div>
 
       <!-- Q8 -->
       <div class="q">
         <div class="q-number">QUESTION 8</div>
-        <div class="q-text">Any other feedback that would help us improve the process?<span class="required-mark">*</span></div>
+        <div class="q-text">Any other feedback that would help us improve the process? <span class="opt">(optional)</span></div>
         <textarea class="text-area tall" data-field="q8" placeholder="Anything we should keep, drop, change, or try? Format, length, pacing, logistics, prep work, follow-up — anything that would make the gathering better."></textarea>
       </div>
 
@@ -459,7 +459,7 @@
       name: '', email: '',
       q1: null, q2: null, q5: null,
       q3: '', q4comment: '', q6: '', q7: '', q8: '',
-      q9: null,
+      q9: [],
       recommendations: '',
       matrix: {}
     };
@@ -520,22 +520,43 @@
     });
 
     const datesList = document.getElementById('dates-list');
+    const optOutLabels = new Set([
+      "None of these — but I'd want to attend",
+      "Not planning to attend",
+    ]);
+    function isDateChoice(lbl) { return !optOutLabels.has(lbl); }
+
     dateOptions.forEach(([label, isMuted]) => {
       const wrap = document.createElement('label');
       wrap.className = 'radio-opt' + (isMuted ? ' muted' : '');
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = 'q9';
-      radio.value = label;
-      radio.addEventListener('change', () => {
-        state.q9 = label;
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.name = 'q9';
+      box.value = label;
+      box.addEventListener('change', () => {
+        const wasOptOut = optOutLabels.has(label);
+        if (box.checked && wasOptOut) {
+          // unchecking date choices
+          datesList.querySelectorAll('input[type=checkbox]').forEach(other => {
+            if (other === box) return;
+            if (isDateChoice(other.value)) other.checked = false;
+            else if (optOutLabels.has(other.value)) other.checked = false; // only one opt-out at a time
+          });
+        } else if (box.checked && !wasOptOut) {
+          // unchecking opt-out choices
+          datesList.querySelectorAll('input[type=checkbox]').forEach(other => {
+            if (other === box) return;
+            if (optOutLabels.has(other.value)) other.checked = false;
+          });
+        }
+        state.q9 = Array.from(datesList.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
         datesList.querySelectorAll('.radio-opt').forEach(opt => {
           opt.classList.toggle('selected', opt.querySelector('input').checked);
         });
       });
       const span = document.createElement('span');
       span.textContent = label;
-      wrap.appendChild(radio);
+      wrap.appendChild(box);
       wrap.appendChild(span);
       datesList.appendChild(wrap);
     });
@@ -565,15 +586,7 @@
       if (!state.name.trim()) errors.push('Your name');
       if (!state.email.trim()) errors.push('Your email');
       else if (!emailLooksValid(state.email)) errors.push('A valid email');
-      if (!state.q9) errors.push('Scheduling');
-      if (!state.q1) errors.push('Question 1');
-      if (!state.q2) errors.push('Question 2');
-      if (!state.q3.trim()) errors.push('Question 3');
-      const matrixMissing = matrixParts.filter(([k]) => !state.matrix[k]);
-      if (matrixMissing.length) errors.push('Question 4 (each row must have a rating)');
-      if (!state.q5) errors.push('Question 5');
-      if (!state.q7.trim()) errors.push('Question 7');
-      if (!state.q8.trim()) errors.push('Question 8');
+      if (!state.q9.length) errors.push('Scheduling (pick at least one)');
       return errors;
     }
 
@@ -590,7 +603,7 @@
         'Submitter Name': state.name.trim(),
         'Submitter Email': state.email.trim(),
         'Series': '1, 2, 3 John',
-        'Q9 Next Meeting Availability': state.q9,
+        'Q9 Next Meeting Availability': state.q9,  // array for multipleSelects
         'Q1 Time Well Spent': state.q1,
         'Q2 Personally Edifying': state.q2,
         'Q3 Single Takeaway': state.q3.trim(),
