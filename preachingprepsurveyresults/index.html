@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preaching Prep Survey — Results | LEFC|U</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-brown: #342D25;
+      --gold: #BCA944;
+      --olive: #524B30;
+      --terra: #AA3B24;
+      --light-gray: #E5E5E4;
+      --white: #FFFFFF;
+      --text: #2a2318;
+      --text-muted: #6b6050;
+      --cream: #f7eed7;
+      --cream-border: #ddcca5;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(52,45,37,.10);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light-gray);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Password gate ─────────────────────────────────────── */
+    #pw-screen {
+      position: fixed; inset: 0;
+      background: var(--dark-brown);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      z-index: 100;
+    }
+    #pw-screen.hidden { display: none; }
+    .pw-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      max-width: 420px; width: 100%;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .pw-card h1 {
+      color: var(--dark-brown);
+      font-size: 1.3rem; margin-bottom: 6px;
+      letter-spacing: -.01em;
+    }
+    .pw-card h1 span { color: var(--gold); }
+    .pw-card p { color: var(--text-muted); font-size: .9rem; margin-bottom: 18px; line-height: 1.45; }
+    .pw-input {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--cream-border);
+      border-radius: 8px;
+      font-family: inherit; font-size: 1rem;
+      color: var(--text);
+      text-align: center;
+      letter-spacing: .04em;
+    }
+    .pw-input:focus { outline: none; border-color: var(--gold); }
+    .pw-input.error { border-color: var(--terra); }
+    .pw-btn {
+      width: 100%; margin-top: 12px;
+      padding: 12px 14px;
+      background: var(--terra); color: var(--white);
+      border: none; border-radius: 8px;
+      font-family: inherit; font-size: .98rem; font-weight: 800;
+      letter-spacing: .04em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .pw-btn:hover { background: #8a2f1c; }
+    .pw-error { color: var(--terra); font-size: .85rem; margin-top: 10px; min-height: 1em; }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    header {
+      background: var(--dark-brown);
+      color: var(--white);
+      padding: 22px 24px;
+      border-bottom: 4px solid var(--gold);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-mark {
+      width: 40px; height: 40px;
+      border: 2px solid var(--gold); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-weight: 800; font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .brand-stack { line-height: 1.15; }
+    .brand-stack .top {
+      font-weight: 800; letter-spacing: .04em; font-size: 1rem;
+    }
+    .brand-stack .top span { color: var(--gold); }
+    .brand-stack .sub {
+      font-size: .74rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cream); opacity: .85; margin-top: 3px;
+    }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+    .hdr-btn {
+      background: transparent; border: 1px solid rgba(247,238,215,.4);
+      color: var(--cream);
+      padding: 7px 12px; border-radius: 6px;
+      font-family: inherit; font-size: .8rem; font-weight: 600;
+      cursor: pointer; letter-spacing: .04em;
+      transition: all .15s;
+    }
+    .hdr-btn:hover { background: rgba(247,238,215,.1); }
+    .hdr-btn.primary { background: var(--gold); color: var(--dark-brown); border-color: var(--gold); font-weight: 800; }
+    .hdr-btn.primary:hover { background: #d8c258; }
+
+    main {
+      max-width: 1100px; margin: 0 auto; padding: 22px 18px 60px;
+    }
+
+    .topline {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .topcard {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      flex: 1; min-width: 160px;
+      box-shadow: var(--shadow);
+    }
+    .topcard .label {
+      color: var(--text-muted);
+      font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+      font-weight: 700; margin-bottom: 6px;
+    }
+    .topcard .value {
+      color: var(--dark-brown);
+      font-size: 1.85rem; font-weight: 800;
+      line-height: 1;
+    }
+    .topcard .sub { color: var(--text-muted); font-size: .82rem; margin-top: 4px; }
+
+    .tabs {
+      display: flex; gap: 6px;
+      border-bottom: 2px solid var(--cream-border);
+      margin-bottom: 18px;
+    }
+    .tab-btn {
+      background: transparent; border: none;
+      padding: 12px 18px;
+      font-family: inherit; font-size: .92rem; font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      letter-spacing: .02em;
+      transition: all .15s;
+    }
+    .tab-btn:hover { color: var(--dark-brown); }
+    .tab-btn.active {
+      color: var(--terra);
+      border-bottom-color: var(--terra);
+    }
+
+    /* ─── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      color: var(--dark-brown);
+      font-size: 1.04rem; font-weight: 800;
+      margin-bottom: 4px;
+      letter-spacing: -.005em;
+    }
+    .card .q-prompt { color: var(--text-muted); font-size: .88rem; margin-bottom: 12px; line-height: 1.4; }
+
+    /* ─── Scale viz ──────────────────────────────────────────── */
+    .scale-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+    .scale-avg {
+      background: var(--cream);
+      color: var(--dark-brown);
+      padding: 6px 14px; border-radius: 99px;
+      font-weight: 800; font-size: 1.05rem;
+      border: 1px solid var(--cream-border);
+    }
+    .scale-avg .n {
+      font-size: .75rem; color: var(--text-muted);
+      font-weight: 600; margin-left: 6px;
+    }
+    .dist {
+      display: flex; align-items: stretch; height: 32px;
+      border-radius: 6px; overflow: hidden;
+      border: 1px solid var(--cream-border);
+      flex: 1; min-width: 220px;
+    }
+    .dist-bar {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--white); font-weight: 800; font-size: .78rem;
+      min-width: 0;
+    }
+    .dist-bar.b1 { background: #d97b6c; }
+    .dist-bar.b2 { background: #c75e4a; }
+    .dist-bar.b3 { background: #aa3b24; }
+    .dist-bar.b4 { background: #8c6b21; }
+    .dist-bar.b5 { background: var(--gold); color: var(--dark-brown); }
+    .dist-bar.empty { background: transparent; }
+    .scale-anchors {
+      display: flex; justify-content: space-between;
+      color: var(--text-muted); font-size: .72rem;
+      margin-top: 6px; font-weight: 600;
+    }
+
+    /* ─── Tally bars (Q4, Q9) ────────────────────────────────── */
+    .tally { display: flex; flex-direction: column; gap: 8px; }
+    .tally-row { }
+    .tally-label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 8px;
+      font-size: .9rem; color: var(--dark-brown);
+      font-weight: 600; margin-bottom: 3px;
+      line-height: 1.3;
+    }
+    .tally-label .count {
+      color: var(--terra);
+      font-weight: 800; font-size: .85rem;
+      white-space: nowrap;
+    }
+    .tally-track {
+      height: 12px; background: var(--light-gray);
+      border-radius: 99px; overflow: hidden;
+    }
+    .tally-fill {
+      height: 100%; background: var(--terra);
+      border-radius: 99px;
+      transition: width .25s;
+    }
+    .tally-fill.gold { background: var(--gold); }
+    .tally-fill.olive { background: var(--olive); }
+    .tally-fill.brown { background: var(--dark-brown); }
+    .tally-fill.muted { background: var(--text-muted); opacity: .55; }
+
+    /* ─── Long-text answer list ──────────────────────────────── */
+    .answer-list { display: flex; flex-direction: column; gap: 10px; }
+    .answer {
+      background: var(--cream);
+      border-left: 3px solid var(--gold);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: .94rem; line-height: 1.5;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+    .answer .who {
+      display: block;
+      color: var(--text-muted);
+      font-size: .75rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ─── Individual response card ───────────────────────────── */
+    .resp {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--terra);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .resp-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 10px; flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--cream-border);
+    }
+    .resp-name {
+      color: var(--dark-brown);
+      font-size: 1.08rem; font-weight: 800;
+    }
+    .resp-email {
+      color: var(--text-muted); font-size: .82rem;
+      font-weight: 500;
+    }
+    .resp-date {
+      color: var(--text-muted); font-size: .75rem;
+      letter-spacing: .04em;
+    }
+    .resp-q { margin-bottom: 12px; }
+    .resp-q:last-child { margin-bottom: 0; }
+    .resp-q .label {
+      color: var(--text-muted);
+      font-size: .72rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .resp-q .val {
+      color: var(--text);
+      font-size: .94rem; line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .resp-q .val.numeric {
+      display: inline-block;
+      background: var(--cream);
+      padding: 3px 10px; border-radius: 99px;
+      font-weight: 800; color: var(--dark-brown);
+      font-size: .88rem;
+    }
+    .resp-q .val.chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .resp-q .val.chips .chip {
+      background: var(--gold); color: var(--dark-brown);
+      padding: 3px 9px; border-radius: 99px;
+      font-weight: 700; font-size: .78rem;
+    }
+    .resp-q .val.muted { color: var(--text-muted); font-style: italic; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: .92rem; line-height: 1.5;
+    }
+    .empty-state strong { color: var(--dark-brown); }
+
+    .status-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: .9rem;
+      margin-bottom: 14px;
+    }
+    .status-banner.loading { background: var(--cream); color: var(--olive); border: 1px solid var(--cream-border); }
+    .status-banner.error { background: #fdecea; color: #7a1d0e; border: 1px solid #e8a59a; }
+
+    @media (max-width: 540px) {
+      .topcard .value { font-size: 1.45rem; }
+      .scale-summary { gap: 10px; }
+      .dist { height: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Password gate -->
+  <div id="pw-screen">
+    <div class="pw-card">
+      <h1>Preaching Prep Results · <span>LEFC|U</span></h1>
+      <p>Enter the leader password to view survey results.</p>
+      <input type="password" id="pw-input" class="pw-input" placeholder="Password" autocomplete="current-password" autofocus />
+      <button class="pw-btn" id="pw-btn">Unlock</button>
+      <div id="pw-error" class="pw-error"></div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="logo-mark">L</div>
+        <div class="brand-stack">
+          <div class="top">LEFC<span>|U</span></div>
+          <div class="sub">Preaching Prep · Survey Results</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="hdr-btn" id="refresh-btn">Refresh</button>
+        <a class="hdr-btn" href="/preachingprepsurvey/" target="_blank">View survey</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <div id="status" class="status-banner loading">Loading responses…</div>
+    <div id="content" style="display:none">
+
+      <div class="topline">
+        <div class="topcard">
+          <div class="label">Total Responses</div>
+          <div class="value" id="stat-total">—</div>
+        </div>
+        <div class="topcard">
+          <div class="label">Past Attendees</div>
+          <div class="value" id="stat-attended">—</div>
+          <div class="sub">Filled out Section 2</div>
+        </div>
+        <div class="topcard">
+          <div class="label">Most Picked Date</div>
+          <div class="value" id="stat-topdate">—</div>
+          <div class="sub" id="stat-topdate-sub"></div>
+        </div>
+        <div class="topcard">
+          <div class="label">Last Response</div>
+          <div class="value" id="stat-latest" style="font-size:1.05rem">—</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="agg">Aggregate</button>
+        <button class="tab-btn" data-tab="indiv">Individual</button>
+      </div>
+
+      <!-- ─── Aggregate view ──────────────────────────────────── -->
+      <div id="tab-agg">
+        <div class="card">
+          <h3>Which evening(s) work for the next gathering?</h3>
+          <div class="q-prompt">Multi-select. Each respondent could pick multiple nights.</div>
+          <div id="q9-tally" class="tally"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q1 · Overall, was the evening a good use of your time?</h3>
+          <div id="q1-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q2 · How personally edifying was the time?</h3>
+          <div id="q2-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q3 · One thing you walked away with</h3>
+          <div id="q3-list" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q4 · Most impactful parts for the preaching</h3>
+          <div class="q-prompt">Each respondent picked up to 3. Bars show pick frequency.</div>
+          <div id="q4-tally" class="tally"></div>
+          <div style="margin-top:14px">
+            <div class="q-prompt" style="margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Comments on Q4:</div>
+            <div id="q4-comments" class="answer-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Q5 · Did the planning input show up in the preaching?</h3>
+          <div id="q5-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q6 · Moments that stood out in the preaching</h3>
+          <div id="q6-list" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q7 · Ideas &amp; feedback to improve the gathering</h3>
+          <div id="q7-list" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Recommended attendees for next time</h3>
+          <div id="recs-list" class="answer-list"></div>
+        </div>
+      </div>
+
+      <!-- ─── Individual view ─────────────────────────────────── -->
+      <div id="tab-indiv" style="display:none">
+        <div id="indiv-list"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+  /* ════════════════════════════════════════════════════════════
+     Password gate (mirrors main site pattern)
+  ════════════════════════════════════════════════════════════════ */
+  (function(){
+    const DEFAULT_PW_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+    const SESSION_KEY = 'abf_auth';
+    const BASE = 'appTpp1agJQqoId07';
+    const SETTINGS_TBL = 'tblU0XGRCrWQJBPH6';
+    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+
+    const pwScreen = document.getElementById('pw-screen');
+    const pwInput = document.getElementById('pw-input');
+    const pwBtn = document.getElementById('pw-btn');
+    const pwError = document.getElementById('pw-error');
+
+    async function sha256Hex(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    let hashPromise = null;
+    function getHash() {
+      if (hashPromise) return hashPromise;
+      hashPromise = (async () => {
+        try {
+          const r = await fetch(`https://api.airtable.com/v0/${BASE}/${SETTINGS_TBL}?pageSize=100`, {
+            headers: { Authorization: 'Bearer ' + TOKEN },
+          });
+          if (!r.ok) throw new Error();
+          const j = await r.json();
+          const row = (j.records || []).find(rec => (rec.fields || {}).Key === 'passwordHash');
+          const v = row && row.fields && row.fields.Value ? String(row.fields.Value).trim().toLowerCase() : '';
+          return /^[0-9a-f]{64}$/.test(v) ? v : DEFAULT_PW_HASH;
+        } catch {
+          return DEFAULT_PW_HASH;
+        }
+      })();
+      return hashPromise;
+    }
+
+    function unlock() {
+      pwScreen.classList.add('hidden');
+      sessionStorage.setItem(SESSION_KEY, '1');
+      window.__bootResults && window.__bootResults();
+    }
+    function hexEq(a, b) {
+      if (a.length !== b.length) return false;
+      let d = 0;
+      for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return d === 0;
+    }
+    async function tryPw() {
+      const v = pwInput.value;
+      if (!v) return;
+      pwBtn.disabled = true;
+      try {
+        const [eh, ch] = await Promise.all([sha256Hex(v), getHash()]);
+        if (hexEq(eh, ch)) { pwError.textContent = ''; unlock(); }
+        else {
+          pwInput.classList.add('error');
+          pwError.textContent = 'Incorrect password. Please try again.';
+          pwInput.value = ''; pwInput.focus();
+        }
+      } catch (e) {
+        pwError.textContent = 'Could not verify password.';
+      } finally { pwBtn.disabled = false; }
+    }
+    pwBtn.addEventListener('click', tryPw);
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPw(); });
+
+    if (sessionStorage.getItem(SESSION_KEY) === '1') unlock();
+    getHash(); // warm
+  })();
+
+  /* ════════════════════════════════════════════════════════════
+     Results dashboard
+  ════════════════════════════════════════════════════════════════ */
+  (function(){
+    const BASE = 'appTpp1agJQqoId07';
+    const TABLE = 'tblqkdRxqC72RAsjy';
+    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+
+    const DATE_OPTIONS = ['Mon Jun 22','Mon Jul 6','Mon Jul 13','Tue Jul 14','Wed Jul 15'];
+    const OPTOUT_OPTIONS = ["None of these — but I'd want to attend",'Not planning to attend'];
+
+    const Q4_OPTIONS = [
+      'Round 1: Major themes / Gospel implications / cross-references',
+      'Round 2: Theological landmines',
+      'Round 2: Cultural landmines',
+      'Round 3: Tying texts to LEFC Rocks',
+      'Round 4: Repetitive / overlapping concepts',
+      'Round 5: Sermon titles, summary sentences, imagery',
+      'The breakout-and-regroup rhythm itself',
+      'The mix of leaders and teachers in the room',
+    ];
+
+    const statusEl = document.getElementById('status');
+    const contentEl = document.getElementById('content');
+
+    async function fetchAll() {
+      const out = [];
+      let offset = null;
+      do {
+        const qs = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}?${qs}`, {
+          headers: { Authorization: 'Bearer ' + TOKEN },
+        });
+        if (!r.ok) throw new Error('Airtable ' + r.status);
+        const j = await r.json();
+        out.push(...(j.records || []));
+        offset = j.offset || null;
+      } while (offset);
+      return out;
+    }
+
+    function clean(s) {
+      return (typeof s === 'string') ? s.trim() : (s == null ? '' : String(s));
+    }
+
+    function fmtDate(iso) {
+      try {
+        const d = new Date(iso);
+        const opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+        return d.toLocaleString('en-US', opts);
+      } catch { return iso; }
+    }
+
+    function avg(nums) {
+      if (!nums.length) return null;
+      return nums.reduce((a,b) => a+b, 0) / nums.length;
+    }
+
+    function renderScale(targetId, values) {
+      const el = document.getElementById(targetId);
+      if (!values.length) {
+        el.innerHTML = '<div class="empty-state">No responses yet.</div>';
+        return;
+      }
+      const a = avg(values);
+      const dist = [0,0,0,0,0];
+      values.forEach(v => { if (v >= 1 && v <= 5) dist[v-1]++; });
+      const max = Math.max(...dist);
+      const bars = dist.map((c, i) => {
+        const pct = max ? Math.max(c / values.length * 100, c ? 8 : 0) : 0;
+        return `<div class="dist-bar ${c ? 'b'+(i+1) : 'empty'}" style="flex: ${c || 0.01} 0 0">${c || ''}</div>`;
+      }).join('');
+      el.innerHTML = `
+        <div class="scale-summary">
+          <div class="scale-avg">${a.toFixed(1)} <span class="n">avg · ${values.length} ${values.length===1?'response':'responses'}</span></div>
+          <div class="dist">${bars}</div>
+        </div>
+        <div class="scale-anchors"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      `;
+    }
+
+    function renderTally(targetId, items, total, colorClassFn) {
+      const el = document.getElementById(targetId);
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-state">No responses yet.</div>';
+        return;
+      }
+      const max = Math.max(...items.map(i => i.count));
+      el.innerHTML = items.map(item => {
+        const pct = max ? (item.count / max * 100) : 0;
+        const cls = colorClassFn ? colorClassFn(item.label, item.count) : '';
+        return `
+          <div class="tally-row">
+            <div class="tally-label"><span>${escapeHtml(item.label)}</span><span class="count">${item.count}</span></div>
+            <div class="tally-track"><div class="tally-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function renderTextList(targetId, items) {
+      const el = document.getElementById(targetId);
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-state">No answers yet.</div>';
+        return;
+      }
+      el.innerHTML = items.map(({who, text}) => `
+        <div class="answer">
+          <span class="who">${escapeHtml(who || 'Anonymous')}</span>
+          ${escapeHtml(text)}
+        </div>
+      `).join('');
+    }
+
+    function renderIndividual(records) {
+      const el = document.getElementById('indiv-list');
+      if (!records.length) {
+        el.innerHTML = '<div class="empty-state">No responses yet.</div>';
+        return;
+      }
+      // sort newest first
+      const sorted = [...records].sort((a,b) => (b.createdTime || '').localeCompare(a.createdTime || ''));
+      el.innerHTML = sorted.map(rec => {
+        const f = rec.fields || {};
+        const name = clean(f['Submitter Name']) || 'Anonymous';
+        const email = clean(f['Submitter Email']);
+        const dateStr = rec.createdTime ? fmtDate(rec.createdTime) : '';
+        const q9 = Array.isArray(f['Q9 Next Meeting Availability']) ? f['Q9 Next Meeting Availability'] : [];
+        const q4picks = Array.isArray(f['Q4 Most Impactful Parts']) ? f['Q4 Most Impactful Parts'] : [];
+
+        const block = (label, val, opts={}) => {
+          if (val === undefined || val === null || val === '' ||
+              (Array.isArray(val) && val.length === 0)) {
+            return opts.hideIfEmpty ? '' : `<div class="resp-q"><div class="label">${escapeHtml(label)}</div><div class="val muted">No answer</div></div>`;
+          }
+          if (opts.numeric) {
+            return `<div class="resp-q"><div class="label">${escapeHtml(label)}</div><div class="val numeric">${escapeHtml(String(val))}</div></div>`;
+          }
+          if (Array.isArray(val)) {
+            return `<div class="resp-q"><div class="label">${escapeHtml(label)}</div><div class="val chips">${val.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join('')}</div></div>`;
+          }
+          return `<div class="resp-q"><div class="label">${escapeHtml(label)}</div><div class="val">${escapeHtml(String(val))}</div></div>`;
+        };
+
+        return `
+          <div class="resp">
+            <div class="resp-head">
+              <div>
+                <div class="resp-name">${escapeHtml(name)}</div>
+                <div class="resp-email">${escapeHtml(email)}</div>
+              </div>
+              <div class="resp-date">${escapeHtml(dateStr)}</div>
+            </div>
+            ${block('Scheduling — works for them', q9)}
+            ${block('Q1 · Good use of time', f['Q1 Time Well Spent'], {numeric:true, hideIfEmpty:true})}
+            ${block('Q2 · Personally edifying', f['Q2 Personally Edifying'], {numeric:true, hideIfEmpty:true})}
+            ${block('Q3 · One thing they walked away with', clean(f['Q3 Single Takeaway']), {hideIfEmpty:true})}
+            ${block('Q4 · Most impactful parts', q4picks, {hideIfEmpty:true})}
+            ${block('Q4 · Comment', clean(f['Q4 Comment']), {hideIfEmpty:true})}
+            ${block('Q5 · Showed up in the preaching', f['Q5 Noticed In Preaching'], {numeric:true, hideIfEmpty:true})}
+            ${block('Q6 · Moments that stood out', clean(f['Q6 Specific Moments']), {hideIfEmpty:true})}
+            ${block('Q7 · Ideas &amp; feedback', clean(f['Q7 Ideas & Feedback']), {hideIfEmpty:true})}
+            ${block('Recommended attendees', clean(f['Recommended Attendees']), {hideIfEmpty:true})}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function pluck(records, field) {
+      return records
+        .map(r => ({ who: clean((r.fields||{})['Submitter Name']), text: clean((r.fields||{})[field]) }))
+        .filter(x => x.text);
+    }
+
+    function renderAll(records) {
+      // Topline
+      document.getElementById('stat-total').textContent = records.length;
+      const attended = records.filter(r => {
+        const f = r.fields || {};
+        return f['Q1 Time Well Spent'] != null || f['Q2 Personally Edifying'] != null ||
+               clean(f['Q3 Single Takeaway']) || (Array.isArray(f['Q4 Most Impactful Parts']) && f['Q4 Most Impactful Parts'].length) ||
+               f['Q5 Noticed In Preaching'] != null || clean(f['Q6 Specific Moments']) ||
+               clean(f['Q7 Ideas & Feedback']) || clean(f['Q4 Comment']);
+      });
+      document.getElementById('stat-attended').textContent = attended.length;
+
+      // Q9 tally (live scheduling picture)
+      const q9Counts = new Map();
+      DATE_OPTIONS.forEach(d => q9Counts.set(d, 0));
+      OPTOUT_OPTIONS.forEach(d => q9Counts.set(d, 0));
+      records.forEach(r => {
+        const arr = (r.fields||{})['Q9 Next Meeting Availability'] || [];
+        arr.forEach(v => { if (q9Counts.has(v)) q9Counts.set(v, q9Counts.get(v) + 1); });
+      });
+      const dateItems = DATE_OPTIONS.map(d => ({ label: d, count: q9Counts.get(d) || 0 }));
+      const optoutItems = OPTOUT_OPTIONS.map(d => ({ label: d, count: q9Counts.get(d) || 0 }));
+      const topDate = dateItems.reduce((best, cur) => cur.count > best.count ? cur : best, {label:'—', count:0});
+      document.getElementById('stat-topdate').textContent = topDate.count ? topDate.label : '—';
+      document.getElementById('stat-topdate-sub').textContent =
+        topDate.count ? `${topDate.count} ${topDate.count===1?'pick':'picks'}` : '';
+      // tally — dates first (terra), opt-outs muted
+      renderTally('q9-tally',
+        [...dateItems, ...optoutItems],
+        records.length,
+        (label) => OPTOUT_OPTIONS.includes(label) ? 'muted' : ''
+      );
+
+      // Latest
+      const latest = records.reduce((best, r) => (!best || (r.createdTime||'') > best.createdTime ? r : best), null);
+      document.getElementById('stat-latest').textContent = latest ? fmtDate(latest.createdTime) : '—';
+
+      // Scales
+      renderScale('q1-scale', records.map(r => (r.fields||{})['Q1 Time Well Spent']).filter(v => typeof v === 'number'));
+      renderScale('q2-scale', records.map(r => (r.fields||{})['Q2 Personally Edifying']).filter(v => typeof v === 'number'));
+      renderScale('q5-scale', records.map(r => (r.fields||{})['Q5 Noticed In Preaching']).filter(v => typeof v === 'number'));
+
+      // Q3, Q6, Q7, Recs
+      renderTextList('q3-list', pluck(records, 'Q3 Single Takeaway'));
+      renderTextList('q6-list', pluck(records, 'Q6 Specific Moments'));
+      renderTextList('q7-list', pluck(records, 'Q7 Ideas & Feedback'));
+      renderTextList('recs-list', pluck(records, 'Recommended Attendees'));
+
+      // Q4 tally (count picks across responses)
+      const q4Counts = new Map();
+      Q4_OPTIONS.forEach(o => q4Counts.set(o, 0));
+      records.forEach(r => {
+        const arr = (r.fields||{})['Q4 Most Impactful Parts'] || [];
+        arr.forEach(v => { if (q4Counts.has(v)) q4Counts.set(v, q4Counts.get(v) + 1); });
+      });
+      const q4Items = Q4_OPTIONS.map(o => ({ label: o, count: q4Counts.get(o) || 0 }))
+        .sort((a,b) => b.count - a.count);
+      renderTally('q4-tally', q4Items, records.length, () => 'gold');
+
+      // Q4 comments
+      renderTextList('q4-comments', pluck(records, 'Q4 Comment'));
+
+      // Individual
+      renderIndividual(records);
+    }
+
+    async function load() {
+      statusEl.style.display = 'block';
+      statusEl.className = 'status-banner loading';
+      statusEl.textContent = 'Loading responses…';
+      contentEl.style.display = 'none';
+      try {
+        const records = await fetchAll();
+        renderAll(records);
+        statusEl.style.display = 'none';
+        contentEl.style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        statusEl.className = 'status-banner error';
+        statusEl.textContent = 'Could not load results: ' + (err.message || err);
+      }
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        const tab = btn.dataset.tab;
+        document.getElementById('tab-agg').style.display = tab === 'agg' ? 'block' : 'none';
+        document.getElementById('tab-indiv').style.display = tab === 'indiv' ? 'block' : 'none';
+      });
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', load);
+
+    // Boot on unlock
+    window.__bootResults = load;
+  })();
+  </script>
+</body>
+</html>
