@@ -186,18 +186,44 @@
       border-color: var(--terra);
     }
 
-    .matrix-row {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--cream-border);
+    /* ─── Pill list (Q4 pick-up-to-3) ────────────────────────── */
+    .pill-list { display: flex; flex-direction: column; gap: 8px; }
+    .pill {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
+      border: 2px solid var(--cream-border);
+      border-radius: 8px;
+      background: var(--white);
+      cursor: pointer;
+      transition: all .15s;
+      font-weight: 600; color: var(--dark-brown);
+      font-size: .95rem;
+      line-height: 1.4;
     }
-    .matrix-row:last-child { border-bottom: none; }
-    .matrix-label {
-      color: var(--dark-brown);
-      font-size: .95rem; font-weight: 600;
-      margin-bottom: 8px; line-height: 1.4;
+    .pill:hover:not(.disabled) { border-color: var(--gold); }
+    .pill.selected {
+      background: var(--terra);
+      color: var(--white);
+      border-color: var(--terra);
     }
-    .matrix-row .scale-row { gap: 6px; }
-    .matrix-row .scale-btn { padding: 8px 0; min-width: 44px; font-size: .92rem; }
+    .pill.disabled {
+      opacity: .45; cursor: not-allowed;
+    }
+    .pill input { display: none; }
+    .pill .marker {
+      width: 22px; height: 22px;
+      border: 2px solid var(--cream-border);
+      border-radius: 5px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--white);
+      transition: all .15s;
+    }
+    .pill.selected .marker {
+      background: var(--gold); border-color: var(--gold);
+      color: var(--dark-brown); font-weight: 800;
+    }
+    .pill.selected .marker::after { content: '\2713'; }
 
     .text-input, .text-area {
       width: 100%;
@@ -337,7 +363,7 @@
       <div class="q">
         <div class="q-number">SCHEDULING</div>
         <div class="q-text">Which evening(s) would work for the next gathering?<span class="required-mark">*</span></div>
-        <div class="q-help">Check every night that could work — the more options, the easier to find a date everyone can make.</div>
+        <div class="q-help">Each gathering runs roughly <strong>6–9pm</strong>. Check every night that could work — the more options, the easier to find a date everyone can make.</div>
         <div class="radio-list" id="dates-list"></div>
       </div>
 
@@ -345,13 +371,13 @@
       <div class="section-header">
         <span class="label">Section 2</span>
         <h2>Looking Back — Your Feedback on the Last Gathering</h2>
-        <div class="blurb"><strong>Only complete this section if you attended one of our previous planning gatherings.</strong> All questions are optional — answer as much or as little as is helpful.</div>
+        <div class="blurb"><strong>Only complete this section if you attended one of our previous planning gatherings.</strong> Answer as much or as little as is helpful.</div>
       </div>
 
       <!-- Q1 -->
       <div class="q">
         <div class="q-number">QUESTION 1</div>
-        <div class="q-text">Overall, was the evening a good use of your time? <span class="opt">(optional)</span></div>
+        <div class="q-text">Overall, was the evening a good use of your time?</div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not worth my time</span>
           <span>Excellent use of my time<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -362,7 +388,7 @@
       <!-- Q2 -->
       <div class="q">
         <div class="q-number">QUESTION 2</div>
-        <div class="q-text">How personally edifying was the time — your own study, formation, engagement with the text? <span class="opt">(optional)</span></div>
+        <div class="q-text">How personally edifying was the time — your own study, formation, engagement with the text?</div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not at all edifying</span>
           <span>Deeply edifying<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -373,26 +399,26 @@
       <!-- Q3 -->
       <div class="q">
         <div class="q-number">QUESTION 3</div>
-        <div class="q-text">What's the single thing you personally walked away with? <span class="opt">(optional)</span></div>
-        <textarea class="text-area tall" data-field="q3" placeholder="A sentence or two is plenty."></textarea>
+        <div class="q-text">One thing you personally walked away with?</div>
+        <textarea class="text-area tall" data-field="q3" placeholder="A sentence or two is plenty — no need to summarize everything."></textarea>
       </div>
 
       <!-- Q4 -->
       <div class="q">
         <div class="q-number">QUESTION 4</div>
-        <div class="q-text">For each part of the evening, how useful do you think it was for the preaching pastors? <span class="opt">(optional)</span></div>
-        <div class="q-help anchor">1 = Not useful  ·  5 = Very useful</div>
-        <div id="matrix"></div>
+        <div class="q-text">Which parts of the evening do you think were most impactful for the preaching?</div>
+        <div class="q-help">Pick <strong>up to three.</strong> <span id="q4-counter" style="color:var(--terra);font-weight:700"></span></div>
+        <div id="q4-pills" class="pill-list"></div>
         <div style="margin-top:14px">
-          <label class="q-help" style="display:block;margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Optional — anything to add about which parts helped the pastors most, or why?</label>
-          <textarea class="text-area" data-field="q4comment" placeholder="(Optional)"></textarea>
+          <label class="q-help" style="display:block;margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Anything to add — why these stood out, or other thoughts?</label>
+          <textarea class="text-area" data-field="q4comment" placeholder="A line or two if anything comes to mind."></textarea>
         </div>
       </div>
 
       <!-- Q5 -->
       <div class="q">
         <div class="q-number">QUESTION 5</div>
-        <div class="q-text">Listening to the John sermons, did you notice the planning evening's input showing up in the preaching? <span class="opt">(optional)</span></div>
+        <div class="q-text">Listening to the John sermons, did you notice the planning evening's input showing up in the preaching?</div>
         <div class="scale-anchor">
           <span><span class="chip">1</span>Not really</span>
           <span>Repeatedly<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
@@ -402,23 +428,16 @@
 
       <!-- Q6 -->
       <div class="q">
-        <div class="q-number">QUESTION 6 <span class="opt">(optional)</span></div>
+        <div class="q-number">QUESTION 6</div>
         <div class="q-text">Any specific moments that stood out?</div>
-        <textarea class="text-area" data-field="q6" placeholder="(Optional) Specific sermons, themes, or moments where you recognized our prep coming through."></textarea>
+        <textarea class="text-area" data-field="q6" placeholder="Specific sermons, themes, or moments where you recognized our prep coming through."></textarea>
       </div>
 
-      <!-- Q7 -->
+      <!-- Q7 (merged Q7+Q8) -->
       <div class="q">
         <div class="q-number">QUESTION 7</div>
-        <div class="q-text">We're wide open to ideas here. How could this time be used to better strengthen our preaching and the edification of the church? <span class="opt">(optional)</span></div>
-        <textarea class="text-area tall" data-field="q7" placeholder="Any and all ideas welcome — format, structure, who's invited, materials, focus, anything."></textarea>
-      </div>
-
-      <!-- Q8 -->
-      <div class="q">
-        <div class="q-number">QUESTION 8</div>
-        <div class="q-text">Any other feedback that would help us improve the process? <span class="opt">(optional)</span></div>
-        <textarea class="text-area tall" data-field="q8" placeholder="Anything we should keep, drop, change, or try? Format, length, pacing, logistics, prep work, follow-up — anything that would make the gathering better."></textarea>
+        <div class="q-text">How could we improve this time to better strengthen our preaching and the edification of the church?</div>
+        <textarea class="text-area tall" data-field="q7" placeholder="Any and all ideas and feedback welcome — format, structure, who's invited, materials, pacing, logistics, follow-up, anything."></textarea>
       </div>
 
       <!-- ═══════ SECTION 3 ═══════ -->
@@ -430,7 +449,7 @@
 
       <!-- Recommendations -->
       <div class="q">
-        <div class="q-number">RECOMMENDATIONS <span class="opt">(optional)</span></div>
+        <div class="q-number">RECOMMENDATIONS</div>
         <div class="q-text">Anyone you'd recommend we invite next time, and why?</div>
         <textarea class="text-area tall" data-field="recommendations" placeholder="List a name or two and why you think they'd add to this kind of work — depth in the text, particular gifting, fresh perspective, etc."></textarea>
       </div>
@@ -458,21 +477,21 @@
     const state = {
       name: '', email: '',
       q1: null, q2: null, q5: null,
-      q3: '', q4comment: '', q6: '', q7: '', q8: '',
+      q3: '', q4comment: '', q6: '', q7: '',
+      q4picks: [],
       q9: [],
       recommendations: '',
-      matrix: {}
     };
 
-    const matrixParts = [
-      ['r1_themes',     'Round 1: Major themes / Gospel implications / cross-references'],
-      ['r2_theo',       'Round 2 (small groups): Theological landmines on assigned texts'],
-      ['r2_cult',       'Round 2 (small groups): Cultural landmines on assigned texts'],
-      ['r3_rocks',      'Round 3: Tying texts to LEFC Rocks (Oikos, Multiplication, Prayer, Teaching)'],
-      ['r4_overlaps',   'Round 4: Flagging repetitive / overlapping concepts'],
-      ['r5_titles',     'Round 5: Sermon titles, summary sentences, imagery'],
-      ['breakout',      'The breakout-and-regroup rhythm itself'],
-      ['mix',           'The mix of leaders and teachers in the room'],
+    const q4Options = [
+      'Round 1: Major themes / Gospel implications / cross-references',
+      'Round 2: Theological landmines',
+      'Round 2: Cultural landmines',
+      'Round 3: Tying texts to LEFC Rocks',
+      'Round 4: Repetitive / overlapping concepts',
+      'Round 5: Sermon titles, summary sentences, imagery',
+      'The breakout-and-regroup rhythm itself',
+      'The mix of leaders and teachers in the room',
     ];
 
     const dateOptions = [
@@ -504,20 +523,50 @@
       makeScale(row, row.dataset.scale, state);
     });
 
-    const matrixEl = document.getElementById('matrix');
-    matrixParts.forEach(([key, label]) => {
-      const row = document.createElement('div');
-      row.className = 'matrix-row';
-      const lab = document.createElement('div');
-      lab.className = 'matrix-label';
-      lab.textContent = label;
-      row.appendChild(lab);
-      const scale = document.createElement('div');
-      scale.className = 'scale-row';
-      row.appendChild(scale);
-      matrixEl.appendChild(row);
-      makeScale(scale, key, state.matrix);
+    // ─── Q4 pick-up-to-3 pills ───────────────────────────────
+    const q4El = document.getElementById('q4-pills');
+    const q4Counter = document.getElementById('q4-counter');
+    const MAX_Q4 = 3;
+    function updateQ4Counter() {
+      const n = state.q4picks.length;
+      q4Counter.textContent = n ? `(${n} of ${MAX_Q4})` : '';
+    }
+    function refreshQ4Pills() {
+      q4El.querySelectorAll('.pill').forEach(p => {
+        const v = p.dataset.val;
+        const sel = state.q4picks.includes(v);
+        p.classList.toggle('selected', sel);
+        p.classList.toggle('disabled', !sel && state.q4picks.length >= MAX_Q4);
+      });
+      updateQ4Counter();
+    }
+    q4Options.forEach(label => {
+      const wrap = document.createElement('label');
+      wrap.className = 'pill';
+      wrap.dataset.val = label;
+      const marker = document.createElement('div');
+      marker.className = 'marker';
+      const span = document.createElement('span');
+      span.textContent = label;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = label;
+      wrap.appendChild(marker);
+      wrap.appendChild(span);
+      wrap.appendChild(input);
+      wrap.addEventListener('click', (e) => {
+        e.preventDefault();
+        const idx = state.q4picks.indexOf(label);
+        if (idx > -1) {
+          state.q4picks.splice(idx, 1);
+        } else if (state.q4picks.length < MAX_Q4) {
+          state.q4picks.push(label);
+        }
+        refreshQ4Pills();
+      });
+      q4El.appendChild(wrap);
     });
+    updateQ4Counter();
 
     const datesList = document.getElementById('dates-list');
     const optOutLabels = new Set([
@@ -607,21 +656,21 @@
         'Q1 Time Well Spent': state.q1,
         'Q2 Personally Edifying': state.q2,
         'Q3 Single Takeaway': state.q3.trim(),
-        'Q4a R1 Themes':              state.matrix.r1_themes,
-        'Q4b R2 Theological Landmines': state.matrix.r2_theo,
-        'Q4c R2 Cultural Landmines':  state.matrix.r2_cult,
-        'Q4d R3 LEFC Rocks':          state.matrix.r3_rocks,
-        'Q4e R4 Overlaps':            state.matrix.r4_overlaps,
-        'Q4f R5 Titles Imagery':      state.matrix.r5_titles,
-        'Q4g Breakout Rhythm':        state.matrix.breakout,
-        'Q4h Leader Teacher Mix':     state.matrix.mix,
+        'Q4 Most Impactful Parts': state.q4picks,
         'Q4 Comment': state.q4comment.trim(),
         'Q5 Noticed In Preaching': state.q5,
         'Q6 Specific Moments': state.q6.trim(),
-        'Q7 Strengthen Preaching Ideas': state.q7.trim(),
-        'Q8 Other Feedback': state.q8.trim(),
+        'Q7 Ideas & Feedback': state.q7.trim(),
         'Recommended Attendees': state.recommendations.trim(),
       };
+      // Strip empty values so Airtable doesn't write blank-string entries
+      Object.keys(fields).forEach(k => {
+        const v = fields[k];
+        if (v === null || v === undefined || v === '' ||
+            (Array.isArray(v) && v.length === 0)) {
+          delete fields[k];
+        }
+      });
 
       try {
         const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
