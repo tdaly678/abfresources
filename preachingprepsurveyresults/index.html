@@ -663,11 +663,13 @@
     const OPTOUT_OPTIONS = ["None of these — but I'd want to attend",'Not planning to attend'];
 
     // Invite list — keep names + emails in sync with what Tom sent.
+    // `aliases` is an optional array of additional emails that should also count as this person
+    // (covers people who responded from a personal gmail rather than their work email, etc).
     const INVITEES = [
       { name: 'Adam Timmins',         email: 'adamjtimmins@gmail.com' },
       { name: 'Beverly Mahoney',      email: 'bmahoney119@gmail.com' },
       { name: 'Bob Travis',           email: 'btravis@lefc.net' },
-      { name: 'Brianna Kauffman',     email: 'kauffman@lefc.net' },
+      { name: 'Brianna Kauffman',     email: 'kauffman@lefc.net', aliases: ['briannakauff@gmail.com'] },
       { name: 'Brianna Roberts',      email: 'brianna.roberts@lefc.net' },
       { name: 'Caleb Roberts',        email: 'roberts@lefc.net' },
       { name: 'Christie Hess',        email: 'scottchristie07@gmail.com' },
@@ -675,8 +677,7 @@
       { name: 'Dan Gallagher',        email: 'daniel.gallagher0502@outlook.com' },
       { name: 'Darryl & Michele Preziosi', email: 'dmprez@ptd.net' },
       { name: 'Dave Cox',             email: 'dcrdcox@gmail.com' },
-      { name: 'David Cox (thaimkdave)', email: 'thaimkdave@gmail.com' },
-      { name: 'Drew Huber',           email: 'dbhrock@gmail.com' },
+      { name: 'Drew Huber',           email: 'dbhrock@gmail.com', aliases: ['andrewbhuber@gmail.com'] },
       { name: 'Dylan Weaver',         email: 'dylan.weaver29@gmail.com' },
       { name: 'Ed Scheuerman',        email: 'edncarol2010@gmail.com' },
       { name: 'Erin Shenk',           email: 'erinlrhodes@gmail.com' },
@@ -691,9 +692,9 @@
       { name: 'Johnny Grisbacher',    email: 'jigrisbacher@gmail.com' },
       { name: 'Josh Bailey',          email: 'baileyjoshua313@gmail.com' },
       { name: 'Justin Neyer',         email: 'jneyer6113@gmail.com' },
-      { name: 'Kurt Zimmerman',       email: 'kurt@tntyouthministry.com' },
+      { name: 'Kurt Zimmerman',       email: 'kurt@tntyouthministry.com', aliases: ['kurtisw.zimmerman@gmail.com'] },
       { name: 'Lauren Timmins',       email: 'ajlmtimmins@gmail.com' },
-      { name: 'Linsey Smoker',        email: 'linsey.smoker@lefc.net' },
+      { name: 'Linsey Smoker',        email: 'linsey.smoker@lefc.net', aliases: ['linseysmoker@gmail.com'] },
       { name: 'Mark Spead',           email: 'markspead@gmail.com' },
       { name: 'Nick Vargas',          email: 'vargas@lefc.net' },
       { name: 'Paige Huber',          email: 'pnburke12@gmail.com' },
@@ -701,10 +702,16 @@
       { name: 'Phillip True',         email: 'philiptrue127@gmail.com' },
       { name: 'Sam Shoe',             email: 'sam@samshoe.com' },
       { name: 'T. Hahn',              email: 'thahn720@gmail.com' },
+      { name: 'Tom Daly',             email: 'daly@lefc.net', aliases: ['tdaly678@gmail.com'] },
       { name: 'Tony Hunt',            email: 'hunt@lefc.net' },
       { name: 'Tyler Morris',         email: 'tylermmorris94@gmail.com' },
     ];
-    const INVITEE_EMAIL_SET = new Set(INVITEES.map(i => i.email.toLowerCase()));
+    // Build a set covering primary + alias emails for "is this submitter on the invite list?"
+    const INVITEE_EMAIL_SET = new Set();
+    INVITEES.forEach(i => {
+      INVITEE_EMAIL_SET.add(i.email.toLowerCase());
+      (i.aliases || []).forEach(a => INVITEE_EMAIL_SET.add(a.toLowerCase()));
+    });
 
     const Q4_OPTIONS = [
       'Round 1: Major themes / Gospel implications / cross-references',
@@ -880,10 +887,12 @@
         const e = clean((r.fields || {})['Submitter Email']).toLowerCase();
         if (e) submittedEmails.add(e);
       });
-      const done = INVITEES.filter(i => submittedEmails.has(i.email.toLowerCase()))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      const pending = INVITEES.filter(i => !submittedEmails.has(i.email.toLowerCase()))
-        .sort((a, b) => a.name.localeCompare(b.name));
+      const matched = (invitee) => {
+        const all = [invitee.email, ...(invitee.aliases || [])].map(x => x.toLowerCase());
+        return all.some(e => submittedEmails.has(e));
+      };
+      const done = INVITEES.filter(matched).sort((a, b) => a.name.localeCompare(b.name));
+      const pending = INVITEES.filter(i => !matched(i)).sort((a, b) => a.name.localeCompare(b.name));
       const outsiders = [];
       records.forEach(r => {
         const e = clean((r.fields || {})['Submitter Email']).toLowerCase();
@@ -902,17 +911,25 @@
 
       const doneEl = document.getElementById('tracker-done-list');
       const pendingEl = document.getElementById('tracker-pending-list');
-      const liHtml = (icon, name, email) => `
+      const liHtml = (icon, name, email, viaAlias) => `
         <li>
           <span class="icon">${icon}</span>
           <div class="who">
-            <div class="name">${escapeHtml(name)}</div>
+            <div class="name">${escapeHtml(name)}${viaAlias ? ' <span style="color:var(--text-muted);font-weight:500;font-size:.72rem">(via alias)</span>' : ''}</div>
             <div class="em">${escapeHtml(email)}</div>
           </div>
         </li>`;
-      doneEl.innerHTML = done.length ? done.map(p => liHtml('&#10003;', p.name, p.email)).join('')
+      // For each "done" invitee, find which email they actually submitted from
+      const doneRendered = done.map(p => {
+        const all = [p.email, ...(p.aliases || [])].map(x => x.toLowerCase());
+        const usedPrimary = submittedEmails.has(p.email.toLowerCase());
+        if (usedPrimary) return liHtml('&#10003;', p.name, p.email, false);
+        const actual = all.find(e => submittedEmails.has(e)) || p.email;
+        return liHtml('&#10003;', p.name, actual, true);
+      });
+      doneEl.innerHTML = doneRendered.length ? doneRendered.join('')
         : '<li style="background:transparent;color:var(--text-muted);font-style:italic">No responses yet.</li>';
-      pendingEl.innerHTML = pending.length ? pending.map(p => liHtml('&middot;', p.name, p.email)).join('')
+      pendingEl.innerHTML = pending.length ? pending.map(p => liHtml('&middot;', p.name, p.email, false)).join('')
         : '<li style="background:transparent;color:var(--text-muted);font-style:italic">Everyone has responded.</li>';
 
       const outsideWrap = document.getElementById('tracker-outside-wrap');
