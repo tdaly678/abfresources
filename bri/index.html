@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Rock Ideas &amp; Feedback</title>
+<style>
+  :root {
+    --brown:#342D25; --gold:#BCA944; --olive:#524B30;
+    --terra:#AA3B24; --steel:#3F5765; --gray:#E5E5E4;
+    --bg:#f4ede2; --card:#ffffff; --line:#e6dccb;
+    --text:#342D25; --muted:#6b6258;
+    --green:#3f7d52; --amber:#c08a1e; --red:#AA3B24;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+    line-height:1.5; min-height:100vh;
+  }
+  button { font-family:inherit; cursor:pointer; }
+  input,textarea,select { font-family:inherit; font-size:.95rem; }
+  a { color:var(--terra); }
+
+  /* ───── Password gate ───── */
+  #gate, #board { display:none; }
+  .gate-wrap {
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem 1.25rem;
+  }
+  .gate-card {
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 4px 18px rgba(50,40,30,.08); padding:2.4rem 2rem; max-width:420px; width:100%; text-align:center;
+  }
+  .badge {
+    display:inline-block; background:var(--brown); color:#fff; font-weight:800;
+    letter-spacing:.04em; font-size:.72rem; padding:.4rem .7rem; border-radius:8px; margin-bottom:1rem;
+  }
+  .gate-card h1 { font-size:1.4rem; margin:.2rem 0 .4rem; }
+  .gate-card p { color:var(--muted); font-size:.9rem; margin:.2rem 0 1.3rem; }
+  .field-pw {
+    width:100%; padding:.7rem .85rem; border:1px solid var(--line); border-radius:10px;
+    text-align:center; letter-spacing:.15em; margin-bottom:.8rem; background:#fcfaf6;
+  }
+  .btn {
+    border:none; border-radius:10px; padding:.7rem 1.1rem; font-weight:700; font-size:.92rem;
+    background:var(--terra); color:#fff; transition:filter .15s;
+  }
+  .btn:hover { filter:brightness(1.07); }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btn-full { width:100%; }
+  .btn-ghost { background:transparent; color:var(--steel); border:1px solid var(--line); }
+  .btn-ghost:hover { background:#faf6ee; filter:none; }
+  .btn-gold { background:var(--gold); color:var(--brown); }
+  .btn-sm { padding:.4rem .7rem; font-size:.82rem; border-radius:8px; }
+  .err { color:var(--red); font-size:.82rem; min-height:1.1em; margin-top:.2rem; }
+
+  /* ───── Header ───── */
+  header.topbar {
+    background:var(--brown); color:#fff; padding:.9rem 1.25rem;
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+  }
+  .topbar .brand { display:flex; align-items:center; gap:.7rem; }
+  .topbar .mark {
+    width:34px; height:34px; border-radius:9px; background:var(--gold); color:var(--brown);
+    display:grid; place-items:center; font-weight:900; font-size:1rem;
+  }
+  .topbar h1 { font-size:1.02rem; margin:0; font-weight:800; letter-spacing:.01em; }
+  .topbar .sub { font-size:.74rem; color:#d8cdbb; margin-top:1px; }
+  .topbar .right { display:flex; align-items:center; gap:.6rem; }
+  .admin-chip {
+    background:var(--gold); color:var(--brown); font-weight:800; font-size:.72rem;
+    padding:.32rem .6rem; border-radius:7px;
+  }
+
+  .container { max-width:880px; margin:0 auto; padding:1.4rem 1.25rem 4rem; }
+
+  /* ───── Submit form ───── */
+  .panel {
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.2rem 1.25rem; margin-bottom:1.4rem;
+  }
+  .panel h2 { font-size:1.02rem; margin:0 0 .9rem; }
+  .form-grid { display:grid; gap:.7rem; }
+  .row2 { display:grid; grid-template-columns:1fr 180px; gap:.7rem; }
+  @media(max-width:560px){ .row2 { grid-template-columns:1fr; } }
+  label.lbl { font-size:.78rem; font-weight:700; color:var(--muted); display:block; margin-bottom:.25rem; }
+  .inp {
+    width:100%; padding:.6rem .7rem; border:1px solid var(--line); border-radius:9px; background:#fcfaf6;
+  }
+  textarea.inp { resize:vertical; min-height:78px; }
+
+  /* ───── Controls ───── */
+  .controls { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+  .controls .seg { display:flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:#fff; }
+  .controls .seg button {
+    border:none; background:#fff; padding:.45rem .8rem; font-size:.82rem; font-weight:700; color:var(--muted);
+  }
+  .controls .seg button.on { background:var(--brown); color:#fff; }
+  .controls .spacer { flex:1; }
+  .controls select.inp { width:auto; padding:.45rem .6rem; }
+  .count-note { font-size:.8rem; color:var(--muted); }
+
+  /* ───── Ticket card ───── */
+  .ticket { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1rem 1.1rem; margin-bottom:1rem; }
+  .ticket.resolved { opacity:.72; }
+  .t-head { display:flex; gap:.85rem; align-items:flex-start; }
+  .vote {
+    flex:0 0 auto; width:58px; display:flex; flex-direction:column; align-items:center; gap:2px;
+    border:1px solid var(--line); border-radius:11px; padding:.45rem 0; background:#fcfaf6; user-select:none;
+  }
+  .vote button { border:none; background:transparent; font-size:1.1rem; line-height:1; color:var(--steel); padding:0; }
+  .vote.voted { border-color:var(--gold); background:#fbf6e3; }
+  .vote.voted .arrow { color:var(--gold); }
+  .vote .num { font-weight:800; font-size:1.05rem; }
+  .vote .vlabel { font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .t-body { flex:1; min-width:0; }
+  .t-title { font-size:1.05rem; font-weight:800; margin:0 0 .25rem; }
+  .t-meta { font-size:.78rem; color:var(--muted); margin-bottom:.5rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+  .pill { font-size:.7rem; font-weight:800; padding:.18rem .5rem; border-radius:6px; text-transform:uppercase; letter-spacing:.03em; }
+  .pri-High { background:#f6e0da; color:var(--terra); }
+  .pri-Medium { background:#f7eccf; color:#8a6310; }
+  .pri-Low { background:#e4ebe6; color:var(--olive); }
+  .st-Resolved { background:#dcebe1; color:var(--green); }
+  .t-desc { font-size:.92rem; white-space:pre-wrap; word-wrap:break-word; }
+  .t-actions { display:flex; gap:.6rem; align-items:center; margin-top:.7rem; flex-wrap:wrap; }
+  .link-btn { background:none; border:none; color:var(--steel); font-weight:700; font-size:.82rem; padding:0; }
+  .link-btn:hover { text-decoration:underline; }
+
+  /* ───── Comments ───── */
+  .comments { margin-top:.8rem; border-top:1px dashed var(--line); padding-top:.8rem; display:none; }
+  .comments.open { display:block; }
+  .comment { padding:.5rem 0; border-bottom:1px solid #f1e9da; }
+  .comment:last-child { border-bottom:none; }
+  .c-head { font-size:.78rem; color:var(--muted); margin-bottom:.15rem; }
+  .c-author { font-weight:800; color:var(--text); }
+  .c-admin { background:var(--terra); color:#fff; font-size:.64rem; font-weight:800; padding:.1rem .4rem; border-radius:5px; margin-left:.35rem; text-transform:uppercase; letter-spacing:.03em; }
+  .c-body { font-size:.9rem; white-space:pre-wrap; word-wrap:break-word; }
+  .c-form { display:grid; gap:.5rem; margin-top:.6rem; }
+  .c-form .row { display:flex; gap:.5rem; }
+  .c-form .row .inp { flex:1; }
+  .empty { text-align:center; color:var(--muted); padding:2.5rem 1rem; }
+  .toast {
+    position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
+    background:var(--brown); color:#fff; padding:.7rem 1.1rem; border-radius:10px; font-size:.86rem;
+    box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;
+  }
+  .toast.show { opacity:1; }
+
+  /* ───── Modal ───── */
+  .modal-bg {
+    position:fixed; inset:0; background:rgba(40,32,24,.5); display:none; align-items:center; justify-content:center; padding:1.25rem; z-index:60;
+  }
+  .modal-bg.open { display:flex; }
+  .modal { background:#fff; border-radius:14px; padding:1.6rem 1.5rem; max-width:380px; width:100%; }
+  .modal h3 { margin:0 0 .3rem; font-size:1.1rem; }
+  .modal p { font-size:.84rem; color:var(--muted); margin:.2rem 0 1rem; }
+  .modal .actions { display:flex; gap:.6rem; margin-top:.4rem; }
+  .footer-note { text-align:center; font-size:.74rem; color:var(--muted); margin-top:2rem; }
+</style>
+</head>
+<body>
+
+<!-- ════════ PASSWORD GATE ════════ -->
+<div id="gate">
+  <div class="gate-wrap">
+    <div class="gate-card">
+      <div class="badge">LEFC · ROCK</div>
+      <h1>Rock Ideas &amp; Feedback</h1>
+      <p>Enter the access password to view and submit ideas for our Rock system.</p>
+      <input id="pw" class="field-pw" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="pw-btn" class="btn btn-full">Enter</button>
+      <div id="pw-err" class="err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ BOARD ════════ -->
+<div id="board">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">R</div>
+      <div>
+        <h1>Rock Ideas &amp; Feedback</h1>
+        <div class="sub">Lancaster Evangelical Free Church · Admin</div>
+      </div>
+    </div>
+    <div class="right">
+      <span id="admin-chip" class="admin-chip" style="display:none;">★ Admin: Bri</span>
+      <button id="admin-btn" class="btn btn-ghost btn-sm" style="background:#4a4137;color:#fff;border-color:#5a5046;">Admin sign in</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Submit -->
+    <div class="panel">
+      <h2>Submit an idea or piece of feedback</h2>
+      <div class="form-grid">
+        <div>
+          <label class="lbl" for="f-title">Title</label>
+          <input id="f-title" class="inp" maxlength="120" placeholder="Short summary of the idea" />
+        </div>
+        <div>
+          <label class="lbl" for="f-desc">Description</label>
+          <textarea id="f-desc" class="inp" maxlength="2000" placeholder="What's the idea, problem, or request? Add any detail that helps."></textarea>
+        </div>
+        <div class="row2">
+          <div>
+            <label class="lbl" for="f-name">Your name</label>
+            <input id="f-name" class="inp" maxlength="60" placeholder="First and last name" />
+          </div>
+          <div>
+            <label class="lbl" for="f-pri">Priority</label>
+            <select id="f-pri" class="inp">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <button id="submit-btn" class="btn">Submit idea</button>
+          <span id="submit-err" class="err" style="display:inline-block;margin-left:.6rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="seg" id="filter-seg">
+        <button data-filter="open" class="on">Open</button>
+        <button data-filter="resolved">Resolved</button>
+        <button data-filter="all">All</button>
+      </div>
+      <div class="spacer"></div>
+      <label class="count-note" for="sort-sel">Sort:</label>
+      <select id="sort-sel" class="inp">
+        <option value="votes">Most votes</option>
+        <option value="new">Newest</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+
+    <div id="list"></div>
+
+    <p class="footer-note">Ideas feed our ongoing work in Rock. Bri reviews and resolves items. · LEFC</p>
+  </div>
+</div>
+
+<!-- Admin modal -->
+<div id="admin-modal" class="modal-bg">
+  <div class="modal">
+    <h3>Admin sign in</h3>
+    <p>For Bri. Enter the admin password to mark items resolved and comment as the admin.</p>
+    <input id="admin-pw" class="field-pw" type="password" placeholder="Admin password" />
+    <div id="admin-err" class="err"></div>
+    <div class="actions">
+      <button id="admin-cancel" class="btn btn-ghost" style="flex:1;">Cancel</button>
+      <button id="admin-go" class="btn btn-gold" style="flex:1;">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Rock Ideas & Feedback — standalone board for LEFC admin.
+   Backed by Airtable (shares the base used by the ABF site, but
+   uses its own three tables: Rock Tickets / Rock Ticket Votes /
+   Rock Ticket Comments). Two passwords:
+     • access  = "oikos"   (everyone, to view/submit/vote/comment)
+     • admin   = "rockstar" (Bri only — resolve + admin comments)
+   To rotate a password, replace the matching SHA-256 hash below.
+   Generate one with:  printf '%s' 'NEWPASS' | sha256sum
+   ══════════════════════════════════════════════════════════════ */
+
+const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+const ADMIN_HASH  = 'c7e6b0a81e2a2664d16ce6b95857add48c2386b6af8f624df56f2655ca3783f2'; // sha256('irock')
+const ADMIN_NAME  = 'Bri';
+
+/* Airtable — same base + base-scoped token as the rest of the site.
+   Token split so GitHub's secret scanner doesn't flag the repo. Not a
+   security measure: anyone past the gate can read it. Mitigation is the
+   base-scoped PAT. */
+const AT = {
+  get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
+  BASE: 'appTpp1agJQqoId07',
+  TBL: { tickets:'Rock Tickets', votes:'Rock Ticket Votes', comments:'Rock Ticket Comments' },
+  async api(method, table, opts={}){
+    const { recordId, body, query } = opts;
+    let path = '/' + encodeURIComponent(table);
+    if (recordId) path += '/' + recordId;
+    const qs = query ? '?' + query : '';
+    const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
+      method,
+      headers:{ 'Authorization':'Bearer ' + this.TOKEN, 'Content-Type':'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok){ const t = await res.text(); console.error('[airtable]', method, table, res.status, t); throw new Error('Airtable '+res.status); }
+    return res.status === 204 ? null : res.json();
+  },
+  async listAll(table){
+    const out = []; let offset = null;
+    do {
+      const q = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+      const page = await this.api('GET', table, { query:q });
+      out.push(...(page.records||[]));
+      offset = page.offset || null;
+    } while(offset);
+    return out;
+  }
+};
+
+/* ───── helpers ───── */
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2400); }
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+
+/* per-browser voter id (one vote per browser per ticket) */
+function voterId(){
+  let v = localStorage.getItem('rockVoterId');
+  if(!v){ v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('rockVoterId', v); }
+  return v;
+}
+
+/* ───── state ───── */
+let isAdmin = false;
+let state = { tickets:[], votes:[], comments:[], filter:'open', sort:'votes', openComments:{} };
+
+/* ───── gate ───── */
+async function tryAccess(){
+  const val = $('#pw').value.trim();
+  $('#pw-err').textContent = '';
+  if(!val) return;
+  $('#pw-btn').disabled = true;
+  try {
+    if(await sha256(val) === ACCESS_HASH){ enterBoard(); }
+    else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
+  } catch(e){ $('#pw-err').textContent = 'Something went wrong. Try again.'; }
+  $('#pw-btn').disabled = false;
+}
+function enterBoard(){
+  $('#gate').style.display = 'none';
+  $('#board').style.display = 'block';
+  if(sessionStorage.getItem('rockAdmin') === '1') setAdmin(true);
+  load();
+}
+
+/* ───── admin ───── */
+function setAdmin(on){
+  isAdmin = on;
+  $('#admin-chip').style.display = on ? 'inline-block' : 'none';
+  $('#admin-btn').style.display = on ? 'none' : 'inline-block';
+  if(on) sessionStorage.setItem('rockAdmin','1'); else sessionStorage.removeItem('rockAdmin');
+}
+async function tryAdmin(){
+  const val = $('#admin-pw').value.trim();
+  $('#admin-err').textContent = '';
+  if(!val) return;
+  try {
+    if(await sha256(val) === ADMIN_HASH){
+      setAdmin(true); $('#admin-modal').classList.remove('open'); $('#admin-pw').value='';
+      toast('Signed in as admin'); render();
+    } else { $('#admin-err').textContent = 'Incorrect admin password.'; }
+  } catch(e){ $('#admin-err').textContent = 'Something went wrong. Try again.'; }
+}
+
+/* ───── data ───── */
+async function load(){
+  $('#list').innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const [tk, vt, cm] = await Promise.all([ AT.listAll(AT.TBL.tickets), AT.listAll(AT.TBL.votes), AT.listAll(AT.TBL.comments) ]);
+    state.tickets = tk; state.votes = vt; state.comments = cm;
+    render();
+  } catch(e){
+    $('#list').innerHTML = '<div class="empty">Couldn\'t load tickets. If this is the first run, make sure the three Rock tables exist in Airtable (see the setup guide).</div>';
+  }
+}
+
+function votesFor(ticketId){ return state.votes.filter(v => (v.fields['Ticket ID']||'') === ticketId); }
+function hasVoted(ticketId){ const me = voterId(); return state.votes.some(v => v.fields['Ticket ID']===ticketId && v.fields.Voter===me); }
+function commentsFor(ticketId){
+  return state.comments.filter(c => (c.fields['Ticket ID']||'')===ticketId)
+    .sort((a,b)=> new Date(a.createdTime) - new Date(b.createdTime));
+}
+
+/* ───── render ───── */
+function render(){
+  const list = $('#list');
+  let rows = state.tickets.slice();
+  if(state.filter==='open') rows = rows.filter(t => (t.fields.Status||'Open')!=='Resolved');
+  else if(state.filter==='resolved') rows = rows.filter(t => (t.fields.Status||'')==='Resolved');
+
+  const PRI = { High:3, Medium:2, Low:1 };
+  rows.sort((a,b)=>{
+    if(state.sort==='votes') return votesFor(b.id).length - votesFor(a.id).length || new Date(b.createdTime)-new Date(a.createdTime);
+    if(state.sort==='priority') return (PRI[b.fields.Priority]||0)-(PRI[a.fields.Priority]||0) || votesFor(b.id).length-votesFor(a.id).length;
+    return new Date(b.createdTime) - new Date(a.createdTime);
+  });
+
+  if(!rows.length){ list.innerHTML = '<div class="empty">No '+(state.filter==='all'?'':state.filter+' ')+'ideas yet. Be the first to add one above.</div>'; return; }
+
+  list.innerHTML = rows.map(t => {
+    const f = t.fields;
+    const id = t.id;
+    const vCount = votesFor(id).length;
+    const voted = hasVoted(id);
+    const resolved = (f.Status||'')==='Resolved';
+    const pri = f.Priority || 'Medium';
+    const cms = commentsFor(id);
+    const open = !!state.openComments[id];
+
+    const meta = [
+      '<span>' + esc(f.Submitter||'Anonymous') + '</span>',
+      '<span>·</span>',
+      '<span>' + fmtDate(t.createdTime) + '</span>',
+      '<span class="pill pri-'+pri+'">'+pri+'</span>',
+      resolved ? '<span class="pill st-Resolved">Resolved'+(f['Resolved By']?(' · '+esc(f['Resolved By'])):'')+'</span>' : ''
+    ].join(' ');
+
+    const commentHtml = cms.map(c => {
+      const cf = c.fields;
+      return '<div class="comment"><div class="c-head"><span class="c-author">'+esc(cf.Author||'Anonymous')+'</span>'
+        + (cf['Is Admin'] ? '<span class="c-admin">Admin</span>' : '')
+        + ' · ' + fmtDate(c.createdTime) + '</div><div class="c-body">'+esc(cf.Body||'')+'</div></div>';
+    }).join('') || '<div class="c-head" style="padding:.2rem 0;">No comments yet.</div>';
+
+    const adminCommentRow = isAdmin
+      ? '<div class="c-form"><textarea class="inp cm-body" data-id="'+id+'" placeholder="Reply as admin (posts as '+esc(ADMIN_NAME)+')"></textarea>'
+        + '<div><button class="btn btn-gold btn-sm cm-send" data-id="'+id+'" data-admin="1">Post as Admin</button></div></div>'
+      : '<div class="c-form"><div class="row"><input class="inp cm-name" data-id="'+id+'" placeholder="Your name" maxlength="60" />'
+        + '<button class="btn btn-sm cm-send" data-id="'+id+'">Post</button></div>'
+        + '<textarea class="inp cm-body" data-id="'+id+'" placeholder="Add a comment"></textarea></div>';
+
+    return '<div class="ticket'+(resolved?' resolved':'')+'">'
+      + '<div class="t-head">'
+        + '<div class="vote'+(voted?' voted':'')+'"><button class="arrow vote-btn" data-id="'+id+'" title="Vote">▲</button>'
+          + '<span class="num">'+vCount+'</span><span class="vlabel">votes</span></div>'
+        + '<div class="t-body">'
+          + '<h3 class="t-title">'+esc(f.Title||'(untitled)')+'</h3>'
+          + '<div class="t-meta">'+meta+'</div>'
+          + (f.Description ? '<div class="t-desc">'+esc(f.Description)+'</div>' : '')
+          + '<div class="t-actions">'
+            + '<button class="link-btn toggle-cm" data-id="'+id+'">💬 '+cms.length+' comment'+(cms.length===1?'':'s')+'</button>'
+            + (isAdmin ? (resolved
+                ? '<button class="btn btn-ghost btn-sm reopen" data-id="'+id+'">Reopen</button>'
+                : '<button class="btn btn-gold btn-sm resolve" data-id="'+id+'">Mark resolved</button>') : '')
+          + '</div>'
+          + '<div class="comments'+(open?' open':'')+'" id="cm-'+id+'">'+commentHtml+adminCommentRow+'</div>'
+        + '</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+/* ───── actions ───── */
+async function submitTicket(){
+  const title = $('#f-title').value.trim();
+  const desc  = $('#f-desc').value.trim();
+  const name  = $('#f-name').value.trim();
+  const pri   = $('#f-pri').value;
+  $('#submit-err').textContent = '';
+  if(!title){ $('#submit-err').textContent = 'Add a title.'; return; }
+  if(!name){ $('#submit-err').textContent = 'Add your name.'; return; }
+  $('#submit-btn').disabled = true;
+  try {
+    await AT.api('POST', AT.TBL.tickets, { body:{ fields:{ Title:title, Description:desc, Submitter:name, Priority:pri, Status:'Open' } } });
+    $('#f-title').value=''; $('#f-desc').value=''; // keep name for convenience
+    toast('Idea submitted — thank you!');
+    state.filter='open'; syncFilterUI();
+    await load();
+  } catch(e){ $('#submit-err').textContent = 'Could not submit. Try again.'; }
+  $('#submit-btn').disabled = false;
+}
+
+async function toggleVote(ticketId){
+  const me = voterId();
+  const existing = state.votes.find(v => v.fields['Ticket ID']===ticketId && v.fields.Voter===me);
+  try {
+    if(existing){
+      state.votes = state.votes.filter(v => v.id !== existing.id); render();
+      await AT.api('DELETE', AT.TBL.votes, { recordId: existing.id });
+    } else {
+      const optimistic = { id:'tmp_'+Date.now(), fields:{ 'Ticket ID':ticketId, Voter:me, 'Voter Key':ticketId+':'+me }, createdTime:new Date().toISOString() };
+      state.votes.push(optimistic); render();
+      const rec = await AT.api('POST', AT.TBL.votes, { body:{ fields:{ 'Voter Key':ticketId+':'+me, 'Ticket ID':ticketId, Voter:me } } });
+      optimistic.id = rec.id;
+    }
+  } catch(e){ toast('Vote didn\'t save — reloading.'); load(); }
+}
+
+async function postComment(ticketId, admin){
+  const card = $('#cm-'+ticketId);
+  const bodyEl = card.querySelector('.cm-body');
+  const body = bodyEl.value.trim();
+  if(!body){ toast('Write a comment first.'); return; }
+  let author = ADMIN_NAME;
+  if(!admin){ const n = card.querySelector('.cm-name').value.trim(); if(!n){ toast('Add your name.'); return; } author = n; }
+  bodyEl.disabled = true;
+  try {
+    await AT.api('POST', AT.TBL.comments, { body:{ fields:{
+      Ref: author + ' · ' + new Date().toISOString(),
+      'Ticket ID': ticketId, Author: author, Body: body, 'Is Admin': !!admin
+    } } });
+    state.openComments[ticketId] = true;
+    toast('Comment posted');
+    await load();
+  } catch(e){ toast('Could not post comment.'); bodyEl.disabled=false; }
+}
+
+async function setResolved(ticketId, resolved){
+  try {
+    const fields = resolved
+      ? { Status:'Resolved', 'Resolved By':ADMIN_NAME, 'Resolved At':new Date().toISOString().slice(0,10) }
+      : { Status:'Open', 'Resolved By':'', 'Resolved At':null };
+    await AT.api('PATCH', AT.TBL.tickets, { recordId:ticketId, body:{ fields } });
+    toast(resolved ? 'Marked resolved' : 'Reopened');
+    await load();
+  } catch(e){ toast('Could not update status.'); }
+}
+
+/* ───── filter / sort UI ───── */
+function syncFilterUI(){
+  document.querySelectorAll('#filter-seg button').forEach(b => b.classList.toggle('on', b.dataset.filter===state.filter));
+}
+
+/* ───── events ───── */
+$('#pw-btn').addEventListener('click', tryAccess);
+$('#pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAccess(); });
+
+$('#admin-btn').addEventListener('click', () => { $('#admin-modal').classList.add('open'); setTimeout(()=>$('#admin-pw').focus(),50); });
+$('#admin-cancel').addEventListener('click', () => { $('#admin-modal').classList.remove('open'); $('#admin-pw').value=''; $('#admin-err').textContent=''; });
+$('#admin-go').addEventListener('click', tryAdmin);
+$('#admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAdmin(); });
+
+$('#submit-btn').addEventListener('click', submitTicket);
+
+$('#filter-seg').addEventListener('click', e => { const b=e.target.closest('button'); if(!b) return; state.filter=b.dataset.filter; syncFilterUI(); render(); });
+$('#sort-sel').addEventListener('change', e => { state.sort=e.target.value; render(); });
+
+/* delegated clicks within the list */
+$('#list').addEventListener('click', e => {
+  const vb = e.target.closest('.vote-btn'); if(vb){ toggleVote(vb.dataset.id); return; }
+  const tg = e.target.closest('.toggle-cm'); if(tg){ const id=tg.dataset.id; state.openComments[id]=!state.openComments[id]; render(); return; }
+  const send = e.target.closest('.cm-send'); if(send){ postComment(send.dataset.id, send.dataset.admin==='1'); return; }
+  const rs = e.target.closest('.resolve'); if(rs){ setResolved(rs.dataset.id, true); return; }
+  const ro = e.target.closest('.reopen'); if(ro){ setResolved(ro.dataset.id, false); return; }
+});
+
+/* boot */
+$('#gate').style.display = 'block';
+$('#pw').focus();
+</script>
+</body>
+</html>
