@@ -141,21 +141,59 @@ async function sendRockNotification(cfg, payload) {
   if (type !== 'ticket' && type !== 'comment') {
     throw new Error('unknown notification type');
   }
-  const recipients = cfg.rockNotifyEmails;
-  if (!recipients.length) return { sent: false, reason: 'no recipients configured' };
+
+  // ROCK_NOTIFY_EMAILS is both the "whole team" list and the allowlist: the
+  // endpoint can only ever email addresses in this roster, never arbitrary ones.
+  const roster = cfg.rockNotifyEmails;
+  const lc = s => (s || '').trim().toLowerCase();
+
+  let recipients;
+  if (type === 'ticket') {
+    // New ticket → whole team, minus the person who submitted it.
+    const submitter = lc(payload.submitterEmail);
+    recipients = roster.filter(r => lc(r) !== submitter);
+  } else {
+    // New comment → only that ticket's people (submitter + upvoters),
+    // minus the comment's author. Derived server-side from Airtable.
+    const subs = await rockSubscribers(cfg, payload.ticketId);
+    const author = lc(payload.authorEmail);
+    recipients = roster.filter(r => subs.has(lc(r)) && lc(r) !== author);
+  }
+
+  if (!recipients.length) return { sent: false, reason: 'no recipients after routing' };
 
   const email = type === 'ticket'
     ? buildRockTicketEmail(payload, cfg.portalUrl)
     : buildRockCommentEmail(payload, cfg.portalUrl);
 
   if (cfg.dryRun) {
-    console.log('DRY_RUN ROCK:', JSON.stringify({ to: recipients, subject: email.subject }));
+    console.log('DRY_RUN ROCK:', JSON.stringify({ type, to: recipients, subject: email.subject }));
     return { sent: false, dryRun: true, to: recipients, subject: email.subject };
   }
 
   // One SendGrid call, all recipients on the To line so they can see each other.
   await sendgridSendMulti(cfg, { to: recipients, ...email });
   return { sent: true, to: recipients, subject: email.subject };
+}
+
+// Who is "subscribed" to a Rock ticket = its submitter + everyone who upvoted it.
+// Returns a Set of lowercased emails, derived from Airtable (Rock Tickets + Votes).
+async function rockSubscribers(cfg, ticketId) {
+  const emails = new Set();
+  if (!ticketId) return emails;
+  try {
+    const ticket = await airtableGet(cfg, 'Rock Tickets', ticketId);
+    const se = ticket && ticket.fields && ticket.fields['Submitter Email'];
+    if (se) emails.add(se.trim().toLowerCase());
+  } catch (e) { console.error('rockSubscribers ticket lookup:', e.message); }
+  try {
+    const votes = await airtableQuery(cfg, 'Rock Ticket Votes', `{Ticket ID}='${ticketId}'`);
+    for (const v of votes) {
+      const ve = v.fields && v.fields['Voter Email'];
+      if (ve) emails.add(ve.trim().toLowerCase());
+    }
+  } catch (e) { console.error('rockSubscribers votes lookup:', e.message); }
+  return emails;
 }
 
 // ─── Process: A — New requests ──────────────────────────────────────────────

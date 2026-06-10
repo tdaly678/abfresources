@@ -24,8 +24,8 @@
   input,textarea,select { font-family:inherit; font-size:.95rem; }
   a { color:var(--terra); }
 
-  /* ───── Password gate ───── */
-  #gate, #board { display:none; }
+  /* ───── Gate / identity screens ───── */
+  #gate, #who, #board { display:none; }
   .gate-wrap {
     min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem 1.25rem;
   }
@@ -39,10 +39,11 @@
   }
   .gate-card h1 { font-size:1.4rem; margin:.2rem 0 .4rem; }
   .gate-card p { color:var(--muted); font-size:.9rem; margin:.2rem 0 1.3rem; }
-  .field-pw {
+  .field-pw, .field-sel {
     width:100%; padding:.7rem .85rem; border:1px solid var(--line); border-radius:10px;
-    text-align:center; letter-spacing:.15em; margin-bottom:.8rem; background:#fcfaf6;
+    margin-bottom:.8rem; background:#fcfaf6;
   }
+  .field-pw { text-align:center; letter-spacing:.15em; }
   .btn {
     border:none; border-radius:10px; padding:.7rem 1.1rem; font-weight:700; font-size:.92rem;
     background:var(--terra); color:#fff; transition:filter .15s;
@@ -68,11 +69,15 @@
   }
   .topbar h1 { font-size:1.02rem; margin:0; font-weight:800; letter-spacing:.01em; }
   .topbar .sub { font-size:.74rem; color:#d8cdbb; margin-top:1px; }
-  .topbar .right { display:flex; align-items:center; gap:.6rem; }
+  .topbar .right { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+  .who-chip { font-size:.78rem; color:#e9e0d2; }
+  .who-chip strong { color:#fff; }
   .admin-chip {
     background:var(--gold); color:var(--brown); font-weight:800; font-size:.72rem;
     padding:.32rem .6rem; border-radius:7px;
   }
+  .switch-btn { background:#4a4137; color:#fff; border:1px solid #5a5046; }
+  .switch-btn:hover { background:#574c40; filter:none; }
 
   .container { max-width:880px; margin:0 auto; padding:1.4rem 1.25rem 4rem; }
 
@@ -82,7 +87,7 @@
   }
   .panel h2 { font-size:1.02rem; margin:0 0 .9rem; }
   .form-grid { display:grid; gap:.7rem; }
-  .row2 { display:grid; grid-template-columns:1fr 180px; gap:.7rem; }
+  .row2 { display:grid; grid-template-columns:1fr 180px; gap:.7rem; align-items:end; }
   @media(max-width:560px){ .row2 { grid-template-columns:1fr; } }
   label.lbl { font-size:.78rem; font-weight:700; color:var(--muted); display:block; margin-bottom:.25rem; }
   .inp {
@@ -137,8 +142,7 @@
   .c-admin { background:var(--terra); color:#fff; font-size:.64rem; font-weight:800; padding:.1rem .4rem; border-radius:5px; margin-left:.35rem; text-transform:uppercase; letter-spacing:.03em; }
   .c-body { font-size:.9rem; white-space:pre-wrap; word-wrap:break-word; }
   .c-form { display:grid; gap:.5rem; margin-top:.6rem; }
-  .c-form .row { display:flex; gap:.5rem; }
-  .c-form .row .inp { flex:1; }
+  .c-form .row { display:flex; gap:.5rem; justify-content:flex-end; }
   .empty { text-align:center; color:var(--muted); padding:2.5rem 1rem; }
   .toast {
     position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
@@ -146,16 +150,6 @@
     box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;
   }
   .toast.show { opacity:1; }
-
-  /* ───── Modal ───── */
-  .modal-bg {
-    position:fixed; inset:0; background:rgba(40,32,24,.5); display:none; align-items:center; justify-content:center; padding:1.25rem; z-index:60;
-  }
-  .modal-bg.open { display:flex; }
-  .modal { background:#fff; border-radius:14px; padding:1.6rem 1.5rem; max-width:380px; width:100%; }
-  .modal h3 { margin:0 0 .3rem; font-size:1.1rem; }
-  .modal p { font-size:.84rem; color:var(--muted); margin:.2rem 0 1rem; }
-  .modal .actions { display:flex; gap:.6rem; margin-top:.4rem; }
   .footer-note { text-align:center; font-size:.74rem; color:var(--muted); margin-top:2rem; }
 </style>
 </head>
@@ -167,10 +161,24 @@
     <div class="gate-card">
       <div class="badge">LEFC · ROCK</div>
       <h1>Rock Ideas &amp; Feedback</h1>
-      <p>Enter the access password to view and submit ideas for our Rock system.</p>
+      <p>Enter the access password to continue.</p>
       <input id="pw" class="field-pw" type="password" placeholder="Password" autocomplete="current-password" />
       <button id="pw-btn" class="btn btn-full">Enter</button>
       <div id="pw-err" class="err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ IDENTITY PICKER ════════ -->
+<div id="who">
+  <div class="gate-wrap">
+    <div class="gate-card">
+      <div class="badge">LEFC · ROCK</div>
+      <h1>Who's signing in?</h1>
+      <p>Pick your name so we can credit your ideas and votes and email you when there's activity on tickets you're part of.</p>
+      <select id="who-sel" class="field-sel"></select>
+      <button id="who-btn" class="btn btn-full">Continue</button>
+      <div id="who-err" class="err"></div>
     </div>
   </div>
 </div>
@@ -182,12 +190,13 @@
       <div class="mark">R</div>
       <div>
         <h1>Rock Ideas &amp; Feedback</h1>
-        <div class="sub">Lancaster Evangelical Free Church · Admin</div>
+        <div class="sub">Lancaster Evangelical Free Church</div>
       </div>
     </div>
     <div class="right">
-      <span id="admin-chip" class="admin-chip" style="display:none;">★ Admin: Bri</span>
-      <button id="admin-btn" class="btn btn-ghost btn-sm" style="background:#4a4137;color:#fff;border-color:#5a5046;">Admin sign in</button>
+      <span class="who-chip">Signed in as <strong id="who-name">—</strong></span>
+      <span id="admin-chip" class="admin-chip" style="display:none;">★ Admin</span>
+      <button id="switch-btn" class="btn switch-btn btn-sm">Switch user</button>
     </div>
   </header>
 
@@ -201,14 +210,10 @@
           <label class="lbl" for="f-title">Title</label>
           <input id="f-title" class="inp" maxlength="120" placeholder="Short summary of the idea" />
         </div>
-        <div>
-          <label class="lbl" for="f-desc">Description</label>
-          <textarea id="f-desc" class="inp" maxlength="2000" placeholder="What's the idea, problem, or request? Add any detail that helps."></textarea>
-        </div>
         <div class="row2">
           <div>
-            <label class="lbl" for="f-name">Your name</label>
-            <input id="f-name" class="inp" maxlength="60" placeholder="First and last name" />
+            <label class="lbl" for="f-desc">Description</label>
+            <textarea id="f-desc" class="inp" maxlength="2000" placeholder="What's the idea, problem, or request? Add any detail that helps."></textarea>
           </div>
           <div>
             <label class="lbl" for="f-pri">Priority</label>
@@ -244,21 +249,7 @@
 
     <div id="list"></div>
 
-    <p class="footer-note">Ideas feed our ongoing work in Rock. Bri reviews and resolves items. · LEFC</p>
-  </div>
-</div>
-
-<!-- Admin modal -->
-<div id="admin-modal" class="modal-bg">
-  <div class="modal">
-    <h3>Admin sign in</h3>
-    <p>For Bri. Enter the admin password to mark items resolved and comment as the admin.</p>
-    <input id="admin-pw" class="field-pw" type="password" placeholder="Admin password" />
-    <div id="admin-err" class="err"></div>
-    <div class="actions">
-      <button id="admin-cancel" class="btn btn-ghost" style="flex:1;">Cancel</button>
-      <button id="admin-go" class="btn btn-gold" style="flex:1;">Sign in</button>
-    </div>
+    <p class="footer-note">Ideas feed our ongoing work in Rock. Brianna reviews and resolves items. · LEFC</p>
   </div>
 </div>
 
@@ -266,25 +257,37 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   Rock Ideas & Feedback — standalone board for LEFC admin.
+   Rock Ideas & Feedback — standalone board for the LEFC Rock team.
    Backed by Airtable (shares the base used by the ABF site, but
    uses its own three tables: Rock Tickets / Rock Ticket Votes /
-   Rock Ticket Comments). Two passwords:
-     • access  = "oikos"   (everyone, to view/submit/vote/comment)
-     • admin   = "rockstar" (Bri only — resolve + admin comments)
-   To rotate a password, replace the matching SHA-256 hash below.
+   Rock Ticket Comments).
+
+   Access:   one shared password ("oikos") for everyone.
+   Identity: after the password, each person picks their name from
+             the roster below. That sets who they are + their email
+             (used for vote dedup and notifications). Brianna's
+             identity carries admin powers (resolve + admin comments).
+   To rotate the password, replace the SHA-256 hash below.
    Generate one with:  printf '%s' 'NEWPASS' | sha256sum
    ══════════════════════════════════════════════════════════════ */
 
 const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
-const ADMIN_HASH  = 'c7e6b0a81e2a2664d16ce6b95857add48c2386b6af8f624df56f2655ca3783f2'; // sha256('irock')
-const ADMIN_NAME  = 'Bri';
 
-/* Email notifications: the deployed Cloudflare worker's URL + /rock-notify.
-   Fires an immediate email to daly@ and brianna.roberts@ on each new ticket /
-   comment. Leave '' until the worker is deployed — notify() no-ops while empty,
-   so the board works fine without it. After deploy, paste the worker URL here,
-   e.g. 'https://abf-email-worker.YOURSUB.workers.dev/rock-notify'. */
+/* The people with access. `admin:true` grants resolve + admin comments. */
+const ROSTER = [
+  { name:'Brianna Roberts', email:'brianna.roberts@lefc.net', admin:true },
+  { name:'Emma Smith',      email:'e.smith@lefc.net' },
+  { name:'Ethan Zook',      email:'ethanzook@cedarville.edu' },
+  { name:'Gary Poorman',    email:'g.poorman@lefc.net' },
+  { name:'Jeff Travis',     email:'travis@lefc.net' },
+  { name:'Jenny Hoover',    email:'hoover@lefc.net' },
+  { name:'Linsey Smoker',   email:'linsey.smoker@lefc.net' },
+  { name:'Sandy Morris',    email:'sandy.morris@lefc.net' },
+  { name:'Tom Daly',        email:'daly@lefc.net' },
+];
+
+/* Cloudflare worker endpoint that sends the notification emails.
+   '' = no-op (board still works, just no emails). */
 const NOTIFY_URL = 'https://abf-email-worker.tdaly678.workers.dev/rock-notify';
 
 /* Airtable — same base + base-scoped token as the rest of the site.
@@ -335,24 +338,26 @@ function notify(payload){
   if(!NOTIFY_URL) return;
   try {
     fetch(NOTIFY_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(payload),
-      keepalive:true,
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(payload), keepalive:true,
     }).catch(()=>{});
   } catch(e){ /* ignore */ }
 }
 
-/* per-browser voter id (one vote per browser per ticket) */
-function voterId(){
-  let v = localStorage.getItem('rockVoterId');
-  if(!v){ v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('rockVoterId', v); }
-  return v;
-}
+/* ───── identity ───── */
+let ME = null;  // { name, email, admin }
+function loadIdentity(){ try { return JSON.parse(localStorage.getItem('rockIdentity')||'null'); } catch(e){ return null; } }
+function saveIdentity(m){ localStorage.setItem('rockIdentity', JSON.stringify(m)); }
+function clearIdentity(){ localStorage.removeItem('rockIdentity'); }
+function isAdmin(){ return !!(ME && ME.admin); }
 
 /* ───── state ───── */
-let isAdmin = false;
 let state = { tickets:[], votes:[], comments:[], filter:'open', sort:'votes', openComments:{} };
+
+/* ───── screens ───── */
+function show(screen){
+  ['gate','who','board'].forEach(s => $('#'+s).style.display = (s===screen ? (s==='board'?'block':'block') : 'none'));
+}
 
 /* ───── gate ───── */
 async function tryAccess(){
@@ -361,35 +366,49 @@ async function tryAccess(){
   if(!val) return;
   $('#pw-btn').disabled = true;
   try {
-    if(await sha256(val) === ACCESS_HASH){ enterBoard(); }
-    else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
+    if(await sha256(val) === ACCESS_HASH){
+      sessionStorage.setItem('rockUnlocked','1');
+      afterUnlock();
+    } else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
   } catch(e){ $('#pw-err').textContent = 'Something went wrong. Try again.'; }
   $('#pw-btn').disabled = false;
 }
-function enterBoard(){
-  $('#gate').style.display = 'none';
-  $('#board').style.display = 'block';
-  if(sessionStorage.getItem('rockAdmin') === '1') setAdmin(true);
-  load();
+
+function afterUnlock(){
+  const saved = loadIdentity();
+  if(saved && ROSTER.some(p => p.email === saved.email)){
+    ME = saved; enterBoard();
+  } else {
+    showIdentityPicker();
+  }
 }
 
-/* ───── admin ───── */
-function setAdmin(on){
-  isAdmin = on;
-  $('#admin-chip').style.display = on ? 'inline-block' : 'none';
-  $('#admin-btn').style.display = on ? 'none' : 'inline-block';
-  if(on) sessionStorage.setItem('rockAdmin','1'); else sessionStorage.removeItem('rockAdmin');
+/* ───── identity picker ───── */
+function showIdentityPicker(){
+  const sel = $('#who-sel');
+  sel.innerHTML = '<option value="" disabled selected>Select your name…</option>'
+    + ROSTER.map((p,i) => '<option value="'+i+'">'+esc(p.name)+'</option>').join('');
+  $('#who-err').textContent = '';
+  show('who');
 }
-async function tryAdmin(){
-  const val = $('#admin-pw').value.trim();
-  $('#admin-err').textContent = '';
-  if(!val) return;
-  try {
-    if(await sha256(val) === ADMIN_HASH){
-      setAdmin(true); $('#admin-modal').classList.remove('open'); $('#admin-pw').value='';
-      toast('Signed in as admin'); render();
-    } else { $('#admin-err').textContent = 'Incorrect admin password.'; }
-  } catch(e){ $('#admin-err').textContent = 'Something went wrong. Try again.'; }
+function chooseIdentity(){
+  const idx = $('#who-sel').value;
+  if(idx === '' || idx == null){ $('#who-err').textContent = 'Please pick your name.'; return; }
+  ME = { ...ROSTER[Number(idx)] };
+  saveIdentity(ME);
+  enterBoard();
+}
+
+/* ───── board ───── */
+function enterBoard(){
+  $('#who-name').textContent = ME.name;
+  $('#admin-chip').style.display = isAdmin() ? 'inline-block' : 'none';
+  show('board');
+  load();
+}
+function switchUser(){
+  clearIdentity(); ME = null;
+  showIdentityPicker();
 }
 
 /* ───── data ───── */
@@ -400,12 +419,12 @@ async function load(){
     state.tickets = tk; state.votes = vt; state.comments = cm;
     render();
   } catch(e){
-    $('#list').innerHTML = '<div class="empty">Couldn\'t load tickets. If this is the first run, make sure the three Rock tables exist in Airtable (see the setup guide).</div>';
+    $('#list').innerHTML = '<div class="empty">Couldn\'t load tickets. Make sure the three Rock tables exist in Airtable (see the setup guide).</div>';
   }
 }
 
 function votesFor(ticketId){ return state.votes.filter(v => (v.fields['Ticket ID']||'') === ticketId); }
-function hasVoted(ticketId){ const me = voterId(); return state.votes.some(v => v.fields['Ticket ID']===ticketId && v.fields.Voter===me); }
+function hasVoted(ticketId){ return state.votes.some(v => v.fields['Ticket ID']===ticketId && v.fields['Voter Email']===ME.email); }
 function commentsFor(ticketId){
   return state.comments.filter(c => (c.fields['Ticket ID']||'')===ticketId)
     .sort((a,b)=> new Date(a.createdTime) - new Date(b.createdTime));
@@ -438,7 +457,7 @@ function render(){
     const open = !!state.openComments[id];
 
     const meta = [
-      '<span>' + esc(f.Submitter||'Anonymous') + '</span>',
+      '<span>' + esc(f.Submitter||'Someone') + '</span>',
       '<span>·</span>',
       '<span>' + fmtDate(t.createdTime) + '</span>',
       '<span class="pill pri-'+pri+'">'+pri+'</span>',
@@ -447,17 +466,16 @@ function render(){
 
     const commentHtml = cms.map(c => {
       const cf = c.fields;
-      return '<div class="comment"><div class="c-head"><span class="c-author">'+esc(cf.Author||'Anonymous')+'</span>'
+      return '<div class="comment"><div class="c-head"><span class="c-author">'+esc(cf.Author||'Someone')+'</span>'
         + (cf['Is Admin'] ? '<span class="c-admin">Admin</span>' : '')
         + ' · ' + fmtDate(c.createdTime) + '</div><div class="c-body">'+esc(cf.Body||'')+'</div></div>';
     }).join('') || '<div class="c-head" style="padding:.2rem 0;">No comments yet.</div>';
 
-    const adminCommentRow = isAdmin
-      ? '<div class="c-form"><textarea class="inp cm-body" data-id="'+id+'" placeholder="Reply as admin (posts as '+esc(ADMIN_NAME)+')"></textarea>'
-        + '<div><button class="btn btn-gold btn-sm cm-send" data-id="'+id+'" data-admin="1">Post as Admin</button></div></div>'
-      : '<div class="c-form"><div class="row"><input class="inp cm-name" data-id="'+id+'" placeholder="Your name" maxlength="60" />'
-        + '<button class="btn btn-sm cm-send" data-id="'+id+'">Post</button></div>'
-        + '<textarea class="inp cm-body" data-id="'+id+'" placeholder="Add a comment"></textarea></div>';
+    const postLabel = isAdmin() ? 'Post as Admin' : 'Post';
+    const postClass = isAdmin() ? 'btn btn-gold btn-sm cm-send' : 'btn btn-sm cm-send';
+    const commentForm =
+      '<div class="c-form"><textarea class="inp cm-body" data-id="'+id+'" placeholder="Add a comment as '+esc(ME.name)+'"></textarea>'
+      + '<div class="row"><button class="'+postClass+'" data-id="'+id+'">'+postLabel+'</button></div></div>';
 
     return '<div class="ticket'+(resolved?' resolved':'')+'">'
       + '<div class="t-head">'
@@ -469,11 +487,11 @@ function render(){
           + (f.Description ? '<div class="t-desc">'+esc(f.Description)+'</div>' : '')
           + '<div class="t-actions">'
             + '<button class="link-btn toggle-cm" data-id="'+id+'">💬 '+cms.length+' comment'+(cms.length===1?'':'s')+'</button>'
-            + (isAdmin ? (resolved
+            + (isAdmin() ? (resolved
                 ? '<button class="btn btn-ghost btn-sm reopen" data-id="'+id+'">Reopen</button>'
                 : '<button class="btn btn-gold btn-sm resolve" data-id="'+id+'">Mark resolved</button>') : '')
           + '</div>'
-          + '<div class="comments'+(open?' open':'')+'" id="cm-'+id+'">'+commentHtml+adminCommentRow+'</div>'
+          + '<div class="comments'+(open?' open':'')+'" id="cm-'+id+'">'+commentHtml+commentForm+'</div>'
         + '</div>'
       + '</div></div>';
   }).join('');
@@ -483,16 +501,16 @@ function render(){
 async function submitTicket(){
   const title = $('#f-title').value.trim();
   const desc  = $('#f-desc').value.trim();
-  const name  = $('#f-name').value.trim();
   const pri   = $('#f-pri').value;
   $('#submit-err').textContent = '';
   if(!title){ $('#submit-err').textContent = 'Add a title.'; return; }
-  if(!name){ $('#submit-err').textContent = 'Add your name.'; return; }
   $('#submit-btn').disabled = true;
   try {
-    await AT.api('POST', AT.TBL.tickets, { body:{ fields:{ Title:title, Description:desc, Submitter:name, Priority:pri, Status:'Open' } } });
-    notify({ type:'ticket', title, submitter:name, priority:pri, description:desc });
-    $('#f-title').value=''; $('#f-desc').value=''; // keep name for convenience
+    await AT.api('POST', AT.TBL.tickets, { body:{ fields:{
+      Title:title, Description:desc, Submitter:ME.name, 'Submitter Email':ME.email, Priority:pri, Status:'Open'
+    } } });
+    notify({ type:'ticket', title, submitter:ME.name, submitterEmail:ME.email, priority:pri, description:desc });
+    $('#f-title').value=''; $('#f-desc').value='';
     toast('Idea submitted — thank you!');
     state.filter='open'; syncFilterUI();
     await load();
@@ -501,36 +519,36 @@ async function submitTicket(){
 }
 
 async function toggleVote(ticketId){
-  const me = voterId();
-  const existing = state.votes.find(v => v.fields['Ticket ID']===ticketId && v.fields.Voter===me);
+  const key = ticketId + ':' + ME.email;
+  const existing = state.votes.find(v => v.fields['Ticket ID']===ticketId && v.fields['Voter Email']===ME.email);
   try {
     if(existing){
       state.votes = state.votes.filter(v => v.id !== existing.id); render();
       await AT.api('DELETE', AT.TBL.votes, { recordId: existing.id });
     } else {
-      const optimistic = { id:'tmp_'+Date.now(), fields:{ 'Ticket ID':ticketId, Voter:me, 'Voter Key':ticketId+':'+me }, createdTime:new Date().toISOString() };
+      const optimistic = { id:'tmp_'+Date.now(), fields:{ 'Ticket ID':ticketId, 'Voter Email':ME.email, Voter:ME.name, 'Voter Key':key }, createdTime:new Date().toISOString() };
       state.votes.push(optimistic); render();
-      const rec = await AT.api('POST', AT.TBL.votes, { body:{ fields:{ 'Voter Key':ticketId+':'+me, 'Ticket ID':ticketId, Voter:me } } });
+      const rec = await AT.api('POST', AT.TBL.votes, { body:{ fields:{ 'Voter Key':key, 'Ticket ID':ticketId, Voter:ME.name, 'Voter Email':ME.email } } });
       optimistic.id = rec.id;
+      // Voting subscribes you to this ticket — no email is sent for the vote itself.
     }
   } catch(e){ toast('Vote didn\'t save — reloading.'); load(); }
 }
 
-async function postComment(ticketId, admin){
+async function postComment(ticketId){
   const card = $('#cm-'+ticketId);
   const bodyEl = card.querySelector('.cm-body');
   const body = bodyEl.value.trim();
   if(!body){ toast('Write a comment first.'); return; }
-  let author = ADMIN_NAME;
-  if(!admin){ const n = card.querySelector('.cm-name').value.trim(); if(!n){ toast('Add your name.'); return; } author = n; }
   bodyEl.disabled = true;
   try {
     await AT.api('POST', AT.TBL.comments, { body:{ fields:{
-      Ref: author + ' · ' + new Date().toISOString(),
-      'Ticket ID': ticketId, Author: author, Body: body, 'Is Admin': !!admin
+      Ref: ME.name + ' · ' + new Date().toISOString(),
+      'Ticket ID': ticketId, Author: ME.name, 'Author Email': ME.email, Body: body, 'Is Admin': isAdmin()
     } } });
     const tkt = state.tickets.find(t => t.id === ticketId);
-    notify({ type:'comment', title:(tkt && tkt.fields.Title) || 'a ticket', author, isAdmin:!!admin, body });
+    notify({ type:'comment', title:(tkt && tkt.fields.Title) || 'a ticket', ticketId,
+             author:ME.name, authorEmail:ME.email, isAdmin:isAdmin(), body });
     state.openComments[ticketId] = true;
     toast('Comment posted');
     await load();
@@ -540,7 +558,7 @@ async function postComment(ticketId, admin){
 async function setResolved(ticketId, resolved){
   try {
     const fields = resolved
-      ? { Status:'Resolved', 'Resolved By':ADMIN_NAME, 'Resolved At':new Date().toISOString().slice(0,10) }
+      ? { Status:'Resolved', 'Resolved By':ME.name, 'Resolved At':new Date().toISOString().slice(0,10) }
       : { Status:'Open', 'Resolved By':'', 'Resolved At':null };
     await AT.api('PATCH', AT.TBL.tickets, { recordId:ticketId, body:{ fields } });
     toast(resolved ? 'Marked resolved' : 'Reopened');
@@ -557,10 +575,8 @@ function syncFilterUI(){
 $('#pw-btn').addEventListener('click', tryAccess);
 $('#pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAccess(); });
 
-$('#admin-btn').addEventListener('click', () => { $('#admin-modal').classList.add('open'); setTimeout(()=>$('#admin-pw').focus(),50); });
-$('#admin-cancel').addEventListener('click', () => { $('#admin-modal').classList.remove('open'); $('#admin-pw').value=''; $('#admin-err').textContent=''; });
-$('#admin-go').addEventListener('click', tryAdmin);
-$('#admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAdmin(); });
+$('#who-btn').addEventListener('click', chooseIdentity);
+$('#switch-btn').addEventListener('click', switchUser);
 
 $('#submit-btn').addEventListener('click', submitTicket);
 
@@ -571,14 +587,17 @@ $('#sort-sel').addEventListener('change', e => { state.sort=e.target.value; rend
 $('#list').addEventListener('click', e => {
   const vb = e.target.closest('.vote-btn'); if(vb){ toggleVote(vb.dataset.id); return; }
   const tg = e.target.closest('.toggle-cm'); if(tg){ const id=tg.dataset.id; state.openComments[id]=!state.openComments[id]; render(); return; }
-  const send = e.target.closest('.cm-send'); if(send){ postComment(send.dataset.id, send.dataset.admin==='1'); return; }
+  const send = e.target.closest('.cm-send'); if(send){ postComment(send.dataset.id); return; }
   const rs = e.target.closest('.resolve'); if(rs){ setResolved(rs.dataset.id, true); return; }
   const ro = e.target.closest('.reopen'); if(ro){ setResolved(ro.dataset.id, false); return; }
 });
 
 /* boot */
-$('#gate').style.display = 'block';
-$('#pw').focus();
+if(sessionStorage.getItem('rockUnlocked') === '1'){
+  afterUnlock();
+} else {
+  show('gate'); $('#pw').focus();
+}
 </script>
 </body>
 </html>

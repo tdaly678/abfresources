@@ -19,5 +19,7 @@ FROM_NAME = "LEFC|U ABF"
 PORTAL_URL = "https://www.abfresources.com"
 DRY_RUN = "false"
 BCC_EMAIL = "daly@lefc.net"
-# Rock Ideas & Feedback board (/bri) — who gets the immediate new-ticket / new-comment emails.
-ROCK_NOTIFY_EMAILS = "daly@lefc.net, brianna.roberts@lefc.net"
+# Rock Ideas & Feedback board (/bri). This is BOTH the "whole team" list (new-ticket
+# emails go to everyone here) AND the allowlist (comment emails can only ever reach
+# addresses in this list). Must match the ROSTER in bri/index.html.
+ROCK_NOTIFY_EMAILS = "brianna.roberts@lefc.net, e.smith@lefc.net, ethanzook@cedarville.edu, g.poorman@lefc.net, travis@lefc.net, hoover@lefc.net, linsey.smoker@lefc.net, sandy.morris@lefc.net, daly@lefc.net"

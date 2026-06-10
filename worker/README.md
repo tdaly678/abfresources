@@ -136,10 +136,15 @@ sender). Unlike the three cron flows above, this one is **push, not poll**: the 
 page calls the worker the instant something happens, so the email is immediate.
 
 - **Endpoint:** `POST /rock-notify` (CORS-enabled, no auth — see note below)
-- **Triggers:** a **new ticket** or a **new comment**. (Votes and resolve/reopen do not email.)
-- **Recipients:** fixed server-side via the `ROCK_NOTIFY_EMAILS` var in `wrangler.toml`
-  (default `daly@lefc.net, brianna.roberts@lefc.net`). The client never specifies
-  recipients, so the endpoint can only ever mail those addresses.
+- **Triggers & routing:**
+  - **New ticket** → the **whole team** (everyone in `ROCK_NOTIFY_EMAILS`), minus the submitter.
+  - **New comment** → only **that ticket's people**: its submitter + everyone who upvoted it,
+    minus the comment's author. The subscriber list is derived server-side from Airtable
+    (the ticket's `Submitter Email` + the `Voter Email`s on its votes).
+  - Votes and resolve/reopen do **not** email.
+- **Recipients / allowlist:** the `ROCK_NOTIFY_EMAILS` var in `wrangler.toml` is both the
+  "whole team" list and the allowlist — the endpoint can only ever mail addresses in it,
+  never arbitrary ones. **Must match the `ROSTER` in `bri/index.html`.**
 - **DRY_RUN** applies here too — logs `DRY_RUN ROCK:` instead of sending.
 
 **Connect the page to the worker (one step after deploy):** the page ships with

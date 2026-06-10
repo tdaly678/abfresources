@@ -4,123 +4,96 @@ A standalone, password-protected idea/feedback board for our **Rock** system, li
 **abfresources.com/bri**. It's intentionally separate from the ABF content — it just rides
 on the same domain and the same Airtable account.
 
-People past the password can **submit ideas** (name, title, description, priority),
-**vote** items up, and **comment**. **Bri** signs in with a second admin password to
-**mark items resolved** and **reply as the admin** (badged).
+Everyone signs in with one shared password, then **picks their name** from the roster (so
+the system knows who they are and their email). Signed-in people can **submit ideas**,
+**upvote**, and **comment**. **Brianna's** identity carries admin powers — she can **mark
+items resolved/reopen** and her comments show an **Admin** badge.
 
 ---
 
-## Passwords
+## Access & identity
 
-| Who | Password | What it unlocks |
-|-----|----------|-----------------|
-| Everyone | `oikos` | View, submit, vote, comment (same as the main ABF site) |
-| Bri (admin) | `irock` | Mark items **Resolved** / Reopen, and post **Admin** comments |
+- **One shared password for everyone: `oikos`.**
+- After the password, each person selects their name from a dropdown. That name + email is
+  remembered in their browser (they can "Switch user" anytime from the header).
+- **Admin = whoever signs in as Brianna Roberts.** No separate admin password. (Because the
+  password is shared, this isn't strict security — anyone *could* pick her name. Fine for a
+  trusted internal team; tell me if you ever want it locked down.)
 
-> To rotate either password, edit `bri/index.html`, find the line with the matching hash near
-> the top of the `<script>` (`ACCESS_HASH` / `ADMIN_HASH`), and replace it with a new SHA-256
-> hash. Generate one in a terminal: `printf '%s' 'YourNewPassword' | sha256sum`
+To rotate the access password, edit `bri/index.html`, replace the `ACCESS_HASH` line near the
+top of the `<script>`, and push. Generate a hash with: `printf '%s' 'YourNewPassword' | sha256sum`
 
----
+### Roster
 
-## Step 1 — Create three tables in Airtable
+The people with access live in the `ROSTER` array at the top of `bri/index.html`'s script,
+and **must match** `ROCK_NOTIFY_EMAILS` in `worker/wrangler.toml`. Current list:
 
-These go in the **same base** the ABF site already uses (`ABF Scheduling`,
-id `appTpp1agJQqoId07`). The page reuses the token already in the site, so there's
-**no token to generate**. The data stays logically separate in its own tables.
+Brianna Roberts (admin), Emma Smith, Ethan Zook, Gary Poorman, Jeff Travis, Jenny Hoover,
+Linsey Smoker, Sandy Morris, Tom Daly.
 
-Open the base → **Add a table** (the `+` next to the table tabs) → **Start from scratch**.
-Name and field spelling must match **exactly** (the page references them by name).
-
-### Table 1 — `Rock Tickets`
-
-| Field name   | Type             | Notes |
-|--------------|------------------|-------|
-| `Title`      | Single line text | Primary field. |
-| `Description`| Long text        | |
-| `Submitter`  | Single line text | The submitter's typed name. |
-| `Priority`   | Single select    | Options exactly: `Low`, `Medium`, `High`. |
-| `Status`     | Single select    | Options exactly: `Open`, `Resolved`. |
-| `Resolved By`| Single line text | Auto-filled with the admin name when resolved. |
-| `Resolved At`| Date             | Auto-filled when resolved. (Date only is fine.) |
-
-### Table 2 — `Rock Ticket Votes`
-
-| Field name   | Type             | Notes |
-|--------------|------------------|-------|
-| `Voter Key`  | Single line text | Primary field. Auto-filled as `<ticketId>:<voterId>` — prevents double votes. |
-| `Ticket ID`  | Single line text | The Rock Tickets record id this vote belongs to. |
-| `Voter`      | Single line text | Anonymous per-browser id. |
-
-### Table 3 — `Rock Ticket Comments`
-
-| Field name   | Type             | Notes |
-|--------------|------------------|-------|
-| `Ref`        | Single line text | Primary field. Auto-filled `author · timestamp`. |
-| `Ticket ID`  | Single line text | The Rock Tickets record id this comment belongs to. |
-| `Author`     | Single line text | Commenter's name (or the admin name). |
-| `Body`       | Long text        | The comment text. |
-| `Is Admin`   | Checkbox         | Checked when Bri posts as admin → shows the **Admin** badge. |
-
-> You can delete the auto-created "Notes"/"Assignee"/"Status" starter fields Airtable adds —
-> just keep the fields listed above. Don't rename tables or fields after go-live; the page
-> looks them up by name.
-
-There are no linked-record fields and no formulas to set up — votes and comments reference
-their ticket by a plain `Ticket ID` text value, so setup is quick.
+To add/remove someone: edit both places, then push the page and redeploy the worker.
 
 ---
 
-## Step 2 — Deploy
+## Airtable tables (already created)
 
-The page is already in this repo at `bri/index.html`. Push to GitHub like any other site
-change (see the repo/push notes in the project) and GitHub Pages will serve it at:
+The three tables live in the **same base** the ABF site uses (`ABF Scheduling`,
+id `appTpp1agJQqoId07`) and were created for you via the API. The page reuses the token
+already in the site, so there's **no token to generate**. Field reference:
 
-```
-https://www.abfresources.com/bri
-```
+**`Rock Tickets`** — `Title` (primary), `Description`, `Submitter`, `Submitter Email`,
+`Priority` (`Low`/`Medium`/`High`), `Status` (`Open`/`Resolved`), `Resolved By`, `Resolved At`.
 
-(GitHub Pages serves `bri/index.html` for the `/bri/` path; `/bri` redirects to `/bri/`
-automatically.)
+**`Rock Ticket Votes`** — `Voter Key` (primary, `<ticketId>:<email>` — prevents double votes),
+`Ticket ID`, `Voter` (name), `Voter Email`.
+
+**`Rock Ticket Comments`** — `Ref` (primary), `Ticket ID`, `Author`, `Author Email`, `Body`,
+`Is Admin` (checkbox → shows the Admin badge).
+
+Votes and comments reference their ticket by a plain `Ticket ID` text value (no linked-record
+fields). Don't rename tables or fields — the page and worker look them up by name.
 
 ---
 
-## Step 3 — Smoke test
+## Voting
 
-1. Visit `/bri`, enter `oikos`.
-2. Submit a test idea → it should appear in the list.
-3. Click the ▲ vote arrow → count goes to 1; click again → back to 0.
-4. Open comments, post one as yourself.
-5. Click **Admin sign in**, enter the admin password → an "★ Admin: Bri" chip appears.
-6. Post an **Admin** comment (shows the red Admin badge), then **Mark resolved** → the
-   item moves to the **Resolved** filter. **Reopen** brings it back.
-7. Delete the test records from Airtable when done.
+One vote **per person** (keyed by email), so it holds across devices and browsers — not the
+old per-browser method.
 
 ---
 
 ## Email notifications
 
-New tickets and new comments fire an **immediate email** to `daly@lefc.net` and
-`brianna.roberts@lefc.net`. (Votes and resolve/reopen do **not** email.)
+Routed through the existing Cloudflare email worker (`worker/`). Rules:
 
-This runs through the existing Cloudflare email worker (`worker/`), which must be
-**deployed** for emails to send — see `worker/README.md`. Two things to know:
+| Event | Who gets emailed |
+|-------|------------------|
+| **New ticket** | The **whole team** (everyone in the roster), minus the submitter. |
+| **New comment** | Only **that ticket's people** — its submitter + everyone who upvoted it — minus the comment's author. |
+| Upvote | No email. |
+| Resolved / reopened | No email. |
 
-1. The board works fine **without** the worker; it just won't send emails until it's
-   deployed and the page is pointed at it.
-2. After deploying, set `NOTIFY_URL` near the top of `bri/index.html` to the worker's
-   `/rock-notify` URL and push. Until then it's `''` (no-op). To change who gets the
-   emails, edit `ROCK_NOTIFY_EMAILS` in `worker/wrangler.toml`.
+"That ticket's people" is derived server-side from Airtable (the ticket's `Submitter Email`
+plus the `Voter Email`s on its votes). The worker can only ever email addresses in
+`ROCK_NOTIFY_EMAILS` (the roster doubles as an allowlist), so it can't be used to mail
+arbitrary addresses.
+
+**After any change to the worker or the roster, redeploy it:**
+
+```
+cd "/Users/daly/Documents/Claude/Projects/ABF Resources/worker"
+npx wrangler deploy
+```
+
+The page's `NOTIFY_URL` already points at the deployed worker
+(`https://abf-email-worker.tdaly678.workers.dev/rock-notify`).
 
 ---
 
 ## Notes & limitations
 
-- **Vote dedup is per browser** (a random id stored in the browser). Someone clearing their
-  browser data or using another device could vote again. Fine for an internal idea board;
-  tell me if you want true one-person-one-vote and we'll add name-based sign-in.
-- **Only the admin password gates resolve/admin-comments.** Anyone who learns that password
-  gets those powers — so keep it to Bri.
+- **Identity isn't authenticated** — the shared password plus a name dropdown. Good enough for
+  a trusted internal team; not a security boundary.
 - **The Airtable token is visible in the page source**, same as the rest of the site. It's
   scoped to this one base. Don't treat anything here as confidential.
 - This board is **not linked** from the ABF site nav — it's reachable only by going to `/bri`
