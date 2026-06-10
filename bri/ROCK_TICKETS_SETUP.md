@@ -98,6 +98,22 @@ automatically.)
 
 ---
 
+## Email notifications
+
+New tickets and new comments fire an **immediate email** to `daly@lefc.net` and
+`brianna.roberts@lefc.net`. (Votes and resolve/reopen do **not** email.)
+
+This runs through the existing Cloudflare email worker (`worker/`), which must be
+**deployed** for emails to send — see `worker/README.md`. Two things to know:
+
+1. The board works fine **without** the worker; it just won't send emails until it's
+   deployed and the page is pointed at it.
+2. After deploying, set `NOTIFY_URL` near the top of `bri/index.html` to the worker's
+   `/rock-notify` URL and push. Until then it's `''` (no-op). To change who gets the
+   emails, edit `ROCK_NOTIFY_EMAILS` in `worker/wrangler.toml`.
+
+---
+
 ## Notes & limitations
 
 - **Vote dedup is per browser** (a random id stored in the browser). Someone clearing their

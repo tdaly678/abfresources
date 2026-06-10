@@ -1,0 +1,23 @@
+name = "abf-email-worker"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Cron trigger: every 5 minutes
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Environment variables set via:
+#   wrangler secret put AIRTABLE_TOKEN
+#   wrangler secret put SENDGRID_API_KEY
+# Or via the Cloudflare Dashboard → Workers → abf-email-worker → Settings → Variables
+
+# Non-secret config (visible in dashboard)
+[vars]
+AIRTABLE_BASE_ID = "appTpp1agJQqoId07"
+FROM_EMAIL = "noreply@abfresources.com"
+FROM_NAME = "LEFC|U ABF"
+PORTAL_URL = "https://www.abfresources.com"
+DRY_RUN = "false"
+BCC_EMAIL = "daly@lefc.net"
+# Rock Ideas & Feedback board (/bri) — who gets the immediate new-ticket / new-comment emails.
+ROCK_NOTIFY_EMAILS = "daly@lefc.net, brianna.roberts@lefc.net"

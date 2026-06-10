@@ -280,6 +280,13 @@ const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65
 const ADMIN_HASH  = 'c7e6b0a81e2a2664d16ce6b95857add48c2386b6af8f624df56f2655ca3783f2'; // sha256('irock')
 const ADMIN_NAME  = 'Bri';
 
+/* Email notifications: the deployed Cloudflare worker's URL + /rock-notify.
+   Fires an immediate email to daly@ and brianna.roberts@ on each new ticket /
+   comment. Leave '' until the worker is deployed — notify() no-ops while empty,
+   so the board works fine without it. After deploy, paste the worker URL here,
+   e.g. 'https://abf-email-worker.YOURSUB.workers.dev/rock-notify'. */
+const NOTIFY_URL = '';
+
 /* Airtable — same base + base-scoped token as the rest of the site.
    Token split so GitHub's secret scanner doesn't flag the repo. Not a
    security measure: anyone past the gate can read it. Mitigation is the
@@ -322,6 +329,19 @@ const $ = s => document.querySelector(s);
 const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2400); }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+
+/* Fire-and-forget email notification. Never blocks or fails the user action. */
+function notify(payload){
+  if(!NOTIFY_URL) return;
+  try {
+    fetch(NOTIFY_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(payload),
+      keepalive:true,
+    }).catch(()=>{});
+  } catch(e){ /* ignore */ }
+}
 
 /* per-browser voter id (one vote per browser per ticket) */
 function voterId(){
@@ -471,6 +491,7 @@ async function submitTicket(){
   $('#submit-btn').disabled = true;
   try {
     await AT.api('POST', AT.TBL.tickets, { body:{ fields:{ Title:title, Description:desc, Submitter:name, Priority:pri, Status:'Open' } } });
+    notify({ type:'ticket', title, submitter:name, priority:pri, description:desc });
     $('#f-title').value=''; $('#f-desc').value=''; // keep name for convenience
     toast('Idea submitted — thank you!');
     state.filter='open'; syncFilterUI();
@@ -508,6 +529,8 @@ async function postComment(ticketId, admin){
       Ref: author + ' · ' + new Date().toISOString(),
       'Ticket ID': ticketId, Author: author, Body: body, 'Is Admin': !!admin
     } } });
+    const tkt = state.tickets.find(t => t.id === ticketId);
+    notify({ type:'comment', title:(tkt && tkt.fields.Title) || 'a ticket', author, isAdmin:!!admin, body });
     state.openComments[ticketId] = true;
     toast('Comment posted');
     await load();
