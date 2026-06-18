@@ -171,6 +171,33 @@
     select.filled-greeter  { background: #e8f5e8; border-color: #5a9a5a; font-weight: 600; }
     select.filled-teardown { background: #fdf0e0; border-color: #c0853a; font-weight: 600; }
 
+    .signed-up {
+      margin-top: 6px;
+      min-height: 20px;
+    }
+
+    .signed-up-name {
+      display: inline-block;
+      font-family: 'Arial', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin: 2px 2px 0 0;
+      color: #fff;
+    }
+
+    .signed-up-name.role-setup    { background: #4a7fa5; }
+    .signed-up-name.role-greeter  { background: #5a9a5a; }
+    .signed-up-name.role-teardown { background: #c0853a; }
+
+    .loading-names {
+      font-family: 'Arial', sans-serif;
+      font-size: 11px;
+      color: #aaa;
+      font-style: italic;
+    }
+
     .submit-row {
       margin-top: 28px;
       display: flex;
@@ -307,6 +334,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0621"></div>
           </td>
           <td data-label="Greeter — June 21">
             <select name="greeter_0621" onchange="markFilled(this,'greeter')">
@@ -316,6 +344,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0621"></div>
           </td>
           <td data-label="Teardown — June 21">
             <select name="teardown_0621" onchange="markFilled(this,'teardown')">
@@ -325,6 +354,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0621"></div>
           </td>
         </tr>
 
@@ -342,6 +372,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0628"></div>
           </td>
           <td data-label="Greeter — June 28">
             <select name="greeter_0628" onchange="markFilled(this,'greeter')">
@@ -351,6 +382,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0628"></div>
           </td>
           <td data-label="Teardown — June 28">
             <select name="teardown_0628" onchange="markFilled(this,'teardown')">
@@ -360,6 +392,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0628"></div>
           </td>
         </tr>
 
@@ -377,6 +410,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0712"></div>
           </td>
           <td data-label="Greeter — July 12">
             <select name="greeter_0712" onchange="markFilled(this,'greeter')">
@@ -386,6 +420,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0712"></div>
           </td>
           <td data-label="Teardown — July 12">
             <select name="teardown_0712" onchange="markFilled(this,'teardown')">
@@ -395,6 +430,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0712"></div>
           </td>
         </tr>
 
@@ -412,6 +448,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0719"></div>
           </td>
           <td data-label="Greeter — July 19">
             <select name="greeter_0719" onchange="markFilled(this,'greeter')">
@@ -421,6 +458,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0719"></div>
           </td>
           <td data-label="Teardown — July 19">
             <select name="teardown_0719" onchange="markFilled(this,'teardown')">
@@ -430,6 +468,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0719"></div>
           </td>
         </tr>
 
@@ -447,6 +486,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0726"></div>
           </td>
           <td data-label="Greeter — July 26">
             <select name="greeter_0726" onchange="markFilled(this,'greeter')">
@@ -456,6 +496,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0726"></div>
           </td>
           <td data-label="Teardown — July 26">
             <select name="teardown_0726" onchange="markFilled(this,'teardown')">
@@ -465,6 +506,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0726"></div>
           </td>
         </tr>
 
@@ -482,6 +524,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0802"></div>
           </td>
           <td data-label="Greeter — August 2">
             <select name="greeter_0802" onchange="markFilled(this,'greeter')">
@@ -491,6 +534,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0802"></div>
           </td>
           <td data-label="Teardown — August 2">
             <select name="teardown_0802" onchange="markFilled(this,'teardown')">
@@ -500,6 +544,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0802"></div>
           </td>
         </tr>
 
@@ -517,6 +562,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0809"></div>
           </td>
           <td data-label="Greeter — August 9">
             <select name="greeter_0809" onchange="markFilled(this,'greeter')">
@@ -526,6 +572,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0809"></div>
           </td>
           <td data-label="Teardown — August 9">
             <select name="teardown_0809" onchange="markFilled(this,'teardown')">
@@ -535,6 +582,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0809"></div>
           </td>
         </tr>
 
@@ -552,6 +600,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0816"></div>
           </td>
           <td data-label="Greeter — August 16">
             <select name="greeter_0816" onchange="markFilled(this,'greeter')">
@@ -561,6 +610,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0816"></div>
           </td>
           <td data-label="Teardown — August 16">
             <select name="teardown_0816" onchange="markFilled(this,'teardown')">
@@ -570,6 +620,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0816"></div>
           </td>
         </tr>
 
@@ -587,6 +638,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0823"></div>
           </td>
           <td data-label="Greeter — August 23">
             <select name="greeter_0823" onchange="markFilled(this,'greeter')">
@@ -596,6 +648,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0823"></div>
           </td>
           <td data-label="Teardown — August 23">
             <select name="teardown_0823" onchange="markFilled(this,'teardown')">
@@ -605,6 +658,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0823"></div>
           </td>
         </tr>
 
@@ -622,6 +676,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_setup_0830"></div>
           </td>
           <td data-label="Greeter — August 30">
             <select name="greeter_0830" onchange="markFilled(this,'greeter')">
@@ -631,6 +686,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_greeter_0830"></div>
           </td>
           <td data-label="Teardown — August 30">
             <select name="teardown_0830" onchange="markFilled(this,'teardown')">
@@ -640,6 +696,7 @@
               <option>Gene</option><option>Hal</option><option>Jeff</option>
               <option>Joel</option><option>Tom</option>
             </select>
+            <div class="signed-up" id="su_teardown_0830"></div>
           </td>
         </tr>
 
@@ -683,6 +740,60 @@
     '0823': { date: 'August 23, 2026', topic: 'Response & Eternal Destiny' },
     '0830': { date: 'August 30, 2026', topic: 'Wrap-up' },
   };
+
+  // ── Reverse-lookup: "June 21, 2026" + "Setup" → "su_setup_0621" ──
+  const DATE_TO_KEY = {};
+  Object.entries(SLOT_META).forEach(function([key, meta]) {
+    DATE_TO_KEY[meta.date] = key;
+  });
+
+  // ── Render existing sign-ups into each slot ──────────────────────
+  function renderSignups(records) {
+    // Clear all existing chips first
+    document.querySelectorAll('.signed-up').forEach(function(el) { el.innerHTML = ''; });
+
+    records.forEach(function(rec) {
+      const f    = rec.fields;
+      const key  = DATE_TO_KEY[f['Date']];
+      const role = f['Role'] ? f['Role'].toLowerCase() : '';
+      if (!key || !role || !f['Name']) return;
+
+      const divId = 'su_' + role + '_' + key;
+      const div   = document.getElementById(divId);
+      if (!div) return;
+
+      const chip = document.createElement('span');
+      chip.className   = 'signed-up-name role-' + role;
+      chip.textContent = f['Name'];
+      div.appendChild(chip);
+    });
+  }
+
+  // ── Load sign-ups from Airtable ──────────────────────────────────
+  async function loadSignups() {
+    try {
+      let allRecords = [];
+      let offset = null;
+      do {
+        const url = 'https://api.airtable.com/v0/' + BASE_ID + '/' + TABLE_ID
+          + '?pageSize=100' + (offset ? '&offset=' + offset : '');
+        const res = await fetch(url, {
+          headers: { 'Authorization': 'Bearer ' + TOKEN }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        allRecords = allRecords.concat(data.records || []);
+        offset = data.offset || null;
+      } while (offset);
+
+      renderSignups(allRecords);
+    } catch (err) {
+      console.warn('Could not load sign-ups:', err);
+    }
+  }
+
+  // Load on page open
+  loadSignups();
 
   // ── Visual feedback on select change ────────────────────────────
   function markFilled(select, role) {
@@ -753,7 +864,8 @@
         }
       }
 
-      // Success
+      // Success — refresh the displayed sign-ups so new names appear
+      await loadSignups();
       successEl.style.display = 'block';
       successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       btn.disabled    = true;
