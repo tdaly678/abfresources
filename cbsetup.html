@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Core Beliefs – Volunteer Sign-Up</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #f5f0e8;
+      color: #2c2c2c;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #4a7fa5;
+      color: #fff;
+      padding: 32px 24px 24px;
+      text-align: center;
+    }
+
+    header .eyebrow {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 8px;
+      font-family: 'Arial', sans-serif;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: normal;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 14px;
+      opacity: 0.85;
+      font-family: 'Arial', sans-serif;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 16px 64px;
+    }
+
+    .instructions {
+      background: #fff;
+      border-left: 4px solid #4a7fa5;
+      padding: 16px 20px;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 28px;
+      font-family: 'Arial', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #444;
+    }
+
+    .instructions strong { color: #2c2c2c; }
+
+    .role-legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .role-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Arial', sans-serif;
+      font-size: 13px;
+      color: #444;
+    }
+
+    .role-badge .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-setup    { background: #4a7fa5; }
+    .dot-greeter  { background: #6aab6a; }
+    .dot-teardown { background: #c0853a; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    thead tr {
+      background: #4a7fa5;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 14px 16px;
+      text-align: left;
+      font-family: 'Arial', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    thead th.col-setup    { background: #3d6e92; }
+    thead th.col-greeter  { background: #5a9a5a; }
+    thead th.col-teardown { background: #a87030; }
+
+    tbody tr {
+      border-bottom: 1px solid #eee;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #faf7f2; }
+
+    td {
+      padding: 14px 16px;
+      vertical-align: middle;
+    }
+
+    .date-cell {
+      font-family: 'Arial', sans-serif;
+      white-space: nowrap;
+    }
+
+    .date-cell .date {
+      font-weight: 600;
+      font-size: 14px;
+      color: #4a7fa5;
+    }
+
+    .date-cell .topic {
+      font-size: 12px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-family: 'Arial', sans-serif;
+      font-size: 13px;
+      color: #2c2c2c;
+      background: #fafafa;
+      cursor: pointer;
+      appearance: auto;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #4a7fa5;
+      background: #fff;
+    }
+
+    select.filled-setup    { background: #e8f1f8; border-color: #4a7fa5; font-weight: 600; }
+    select.filled-greeter  { background: #e8f5e8; border-color: #5a9a5a; font-weight: 600; }
+    select.filled-teardown { background: #fdf0e0; border-color: #c0853a; font-weight: 600; }
+
+    .submit-row {
+      margin-top: 28px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .submit-note {
+      font-family: 'Arial', sans-serif;
+      font-size: 13px;
+      color: #888;
+    }
+
+    button[type="submit"] {
+      background: #4a7fa5;
+      color: #fff;
+      border: none;
+      padding: 13px 32px;
+      font-family: 'Arial', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button[type="submit"]:hover { background: #3d6e92; }
+    button[type="submit"]:active { transform: scale(0.98); }
+    button[type="submit"]:disabled { background: #a0b8cc; cursor: not-allowed; transform: none; }
+
+    .success-banner {
+      display: none;
+      background: #e8f5e8;
+      border: 1px solid #5a9a5a;
+      border-radius: 6px;
+      padding: 16px 20px;
+      text-align: center;
+      font-family: 'Arial', sans-serif;
+      font-size: 15px;
+      color: #2d6a2d;
+      margin-top: 20px;
+    }
+
+    .error-banner {
+      display: none;
+      background: #fdecea;
+      border: 1px solid #c0392b;
+      border-radius: 6px;
+      padding: 16px 20px;
+      text-align: center;
+      font-family: 'Arial', sans-serif;
+      font-size: 15px;
+      color: #922b21;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      thead th.col-date { display: none; }
+      .date-cell { display: none; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead tr { display: none; }
+      tbody tr {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+      }
+      td { border: none; padding: 6px 0; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        font-family: 'Arial', sans-serif;
+        margin-bottom: 4px;
+      }
+      .date-mobile {
+        font-family: 'Arial', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #4a7fa5;
+        margin-bottom: 4px;
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">LEFC · Summer 2026</div>
+  <h1>Core Beliefs — Volunteer Sign-Up</h1>
+  <p>Setup · Greeter · Teardown</p>
+</header>
+
+<div class="container">
+
+  <div class="instructions">
+    <strong>How it works:</strong> Find the week(s) you're available, select your name in the role(s) you can fill, then click <strong>Submit</strong>. Each role is for the <em>Sunday morning</em> class session.
+    <br><br>
+    <strong>Setup</strong> — arrive before 1st service (8:45 am) to prep the room &nbsp;·&nbsp;
+    <strong>Greeter</strong> — welcome attenders during 1st service &nbsp;·&nbsp;
+    <strong>Teardown</strong> — break down and reset after class
+  </div>
+
+  <form id="signupForm">
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-date">Date &amp; Topic</th>
+          <th class="col-setup">Setup</th>
+          <th class="col-greeter">Greeter</th>
+          <th class="col-teardown">Teardown</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">June 21 – The Bible</span>
+            <div class="date">June 21</div>
+            <div class="topic">The Bible</div>
+          </td>
+          <td data-label="Setup — June 21">
+            <select name="setup_0621" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — June 21">
+            <select name="greeter_0621" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — June 21">
+            <select name="teardown_0621" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">June 28 – The Human Condition</span>
+            <div class="date">June 28</div>
+            <div class="topic">The Human Condition</div>
+          </td>
+          <td data-label="Setup — June 28">
+            <select name="setup_0628" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — June 28">
+            <select name="greeter_0628" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — June 28">
+            <select name="teardown_0628" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">July 12 – Jesus Christ</span>
+            <div class="date">July 12</div>
+            <div class="topic">Jesus Christ</div>
+          </td>
+          <td data-label="Setup — July 12">
+            <select name="setup_0712" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — July 12">
+            <select name="greeter_0712" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — July 12">
+            <select name="teardown_0712" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">July 19 – The Work of Christ</span>
+            <div class="date">July 19</div>
+            <div class="topic">The Work of Christ</div>
+          </td>
+          <td data-label="Setup — July 19">
+            <select name="setup_0719" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — July 19">
+            <select name="greeter_0719" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — July 19">
+            <select name="teardown_0719" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">July 26 – The Holy Spirit</span>
+            <div class="date">July 26</div>
+            <div class="topic">The Holy Spirit</div>
+          </td>
+          <td data-label="Setup — July 26">
+            <select name="setup_0726" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — July 26">
+            <select name="greeter_0726" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — July 26">
+            <select name="teardown_0726" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">August 2 – The Church</span>
+            <div class="date">August 2</div>
+            <div class="topic">The Church</div>
+          </td>
+          <td data-label="Setup — August 2">
+            <select name="setup_0802" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — August 2">
+            <select name="greeter_0802" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — August 2">
+            <select name="teardown_0802" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">August 9 – Christian Living</span>
+            <div class="date">August 9</div>
+            <div class="topic">Christian Living</div>
+          </td>
+          <td data-label="Setup — August 9">
+            <select name="setup_0809" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — August 9">
+            <select name="greeter_0809" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — August 9">
+            <select name="teardown_0809" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">August 16 – Christ's Return</span>
+            <div class="date">August 16</div>
+            <div class="topic">Christ's Return</div>
+          </td>
+          <td data-label="Setup — August 16">
+            <select name="setup_0816" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — August 16">
+            <select name="greeter_0816" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — August 16">
+            <select name="teardown_0816" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">August 23 – Response &amp; Eternal Destiny</span>
+            <div class="date">August 23</div>
+            <div class="topic">Response &amp; Eternal Destiny</div>
+          </td>
+          <td data-label="Setup — August 23">
+            <select name="setup_0823" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — August 23">
+            <select name="greeter_0823" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — August 23">
+            <select name="teardown_0823" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="date-cell">
+            <span class="date-mobile">August 30 – Wrap-up</span>
+            <div class="date">August 30</div>
+            <div class="topic">Wrap-up</div>
+          </td>
+          <td data-label="Setup — August 30">
+            <select name="setup_0830" onchange="markFilled(this,'setup')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Greeter — August 30">
+            <select name="greeter_0830" onchange="markFilled(this,'greeter')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+          <td data-label="Teardown — August 30">
+            <select name="teardown_0830" onchange="markFilled(this,'teardown')">
+              <option value="">— Select name —</option>
+              <option>Adam</option><option>Chip</option><option>Daryl</option>
+              <option>Dave Cox</option><option>Drew</option><option>Ed</option>
+              <option>Gene</option><option>Hal</option><option>Jeff</option>
+              <option>Joel</option><option>Tom</option>
+            </select>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+
+    <div class="submit-row">
+      <span class="submit-note">Select any slots you can fill, then submit.</span>
+      <button type="submit" id="submitBtn">Submit Sign-Up</button>
+    </div>
+
+    <div class="success-banner" id="successBanner">
+      ✓ Thanks for signing up! Your selections have been saved.
+    </div>
+
+    <div class="error-banner" id="errorBanner">
+      ✗ Something went wrong saving your sign-up. Please try again or contact Tom.
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+  // ── Airtable config ──────────────────────────────────────────────
+  const TOKEN = ['pat1pppuwziUpjdcJ',
+    '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+  const BASE_ID  = 'appTpp1agJQqoId07';
+  const TABLE_ID = 'tblIY53Mbkhh8dbwg'; // CB Signups
+
+  // Map select name → { date label, topic }
+  const SLOT_META = {
+    '0621': { date: 'June 21, 2026',   topic: 'The Bible' },
+    '0628': { date: 'June 28, 2026',   topic: 'The Human Condition' },
+    '0712': { date: 'July 12, 2026',   topic: 'Jesus Christ' },
+    '0719': { date: 'July 19, 2026',   topic: 'The Work of Christ' },
+    '0726': { date: 'July 26, 2026',   topic: 'The Holy Spirit' },
+    '0802': { date: 'August 2, 2026',  topic: 'The Church' },
+    '0809': { date: 'August 9, 2026',  topic: 'Christian Living' },
+    '0816': { date: 'August 16, 2026', topic: "Christ's Return" },
+    '0823': { date: 'August 23, 2026', topic: 'Response & Eternal Destiny' },
+    '0830': { date: 'August 30, 2026', topic: 'Wrap-up' },
+  };
+
+  // ── Visual feedback on select change ────────────────────────────
+  function markFilled(select, role) {
+    select.className = select.value ? 'filled-' + role : '';
+  }
+
+  // ── Submit handler ───────────────────────────────────────────────
+  document.getElementById('signupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn         = document.getElementById('submitBtn');
+    const successEl   = document.getElementById('successBanner');
+    const errorEl     = document.getElementById('errorBanner');
+    successEl.style.display = 'none';
+    errorEl.style.display   = 'none';
+
+    // Collect all filled-in slots
+    const records = [];
+    const submittedAt = new Date().toISOString();
+
+    document.querySelectorAll('select').forEach(function(sel) {
+      if (!sel.value) return;
+      // name format: "setup_0621", "greeter_0628", etc.
+      const parts = sel.name.split('_');
+      const role  = parts[0].charAt(0).toUpperCase() + parts[0].slice(1); // "Setup"
+      const key   = parts[1]; // "0621"
+      const meta  = SLOT_META[key];
+      if (!meta) return;
+
+      records.push({
+        fields: {
+          'Name':         sel.value,
+          'Date':         meta.date,
+          'Topic':        meta.topic,
+          'Role':         role,
+          'Submitted At': submittedAt,
+        }
+      });
+    });
+
+    if (records.length === 0) {
+      alert('Please select at least one slot before submitting.');
+      return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      // Airtable accepts up to 10 records per batch
+      const BATCH = 10;
+      for (let i = 0; i < records.length; i += BATCH) {
+        const batch = records.slice(i, i + BATCH);
+        const res = await fetch(
+          'https://api.airtable.com/v0/' + BASE_ID + '/' + TABLE_ID,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + TOKEN,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ records: batch }),
+          }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error && err.error.message ? err.error.message : 'HTTP ' + res.status);
+        }
+      }
+
+      // Success
+      successEl.style.display = 'block';
+      successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      btn.disabled    = true;
+      btn.textContent = 'Submitted ✓';
+
+    } catch (err) {
+      console.error('Airtable error:', err);
+      errorEl.style.display = 'block';
+      errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      btn.disabled    = false;
+      btn.textContent = 'Submit Sign-Up';
+    }
+  });
+</script>
+
+</body>
+</html>
