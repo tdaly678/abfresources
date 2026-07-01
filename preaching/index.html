@@ -258,6 +258,13 @@ const ROTATING = PICKERS.filter(p => p.id !== 'tom');    // Nick..Bob (1–2 eac
 const FILLER   = ROSTER.find(p => p.id === 'tom');       // takes the rest
 const byId = id => ROSTER.find(p => p.id === id);
 
+/* Extra calendar tags shown as badges on specific dates. */
+const DATE_TAGS = {
+  '2026-10-04': 'PMD Retreat',
+  '2026-11-29': 'Thanksgiving',
+  '2027-01-03': 'New Year’s',
+};
+
 const CYCLE = [null, 'available', 'desired', 'maybe', 'no'];
 const GLYPH = { available:'✓', desired:'♥', maybe:'~', no:'✕' };
 const WEIGHT = { desired:3, available:2, maybe:1 };       // assignable positives
@@ -412,9 +419,12 @@ function render(){
     const f = rec.fields;
     const iso = f.DateISO;
     const open = isOpen(f);
-    const noteFlag = /family worship/i.test(f.Notes||'') ? '<span class="note-badge">Family Worship</span>'
-                    : /christmas/i.test(f.Notes||'') ? '<span class="note-badge">Christmas</span>'
-                    : /lent/i.test(f.Notes||'') ? '<span class="note-badge">Lent</span>' : '';
+    const notes = f.Notes||'';
+    let noteFlag = '';
+    if(/family worship/i.test(notes)) noteFlag += '<span class="note-badge">Family Worship</span>';
+    if(/christmas/i.test(notes))      noteFlag += '<span class="note-badge">Christmas</span>';
+    if(/lent/i.test(notes))           noteFlag += '<span class="note-badge">Lent</span>';
+    if(DATE_TAGS[iso])                noteFlag += '<span class="note-badge">'+esc(DATE_TAGS[iso])+'</span>';
     const assignedTag = open
       ? '<span class="tag tag-open">Open</span>'
       : (/guest/i.test(f.Speaker) ? '<span class="tag tag-guest">Guest</span>' : '<span class="tag tag-tony">'+esc(f.Speaker)+'</span>');
