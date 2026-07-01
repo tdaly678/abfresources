@@ -124,9 +124,12 @@
   }
   table.grid thead th.who-col{ background:var(--olive); }
   table.grid thead th.plan-col{ background:var(--steel); }
-  th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:96px; }
+  th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:72px; white-space:normal; }
   thead th.c-date{ z-index:4; background:var(--brown); }
   td.c-date{ font-weight:800; color:var(--brown); }
+  td.c-date .d-lbl{ display:block; white-space:nowrap; }
+  td.c-date .d-tags{ display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; margin-top:.3rem; }
+  td.c-date .d-tags .note-badge{ margin-left:0; }
   td.c-info{ text-align:left; max-width:320px; white-space:normal; }
   td.c-info .psg{ font-weight:800; color:var(--steel); }
   td.c-info .subj{ font-size:.8rem; color:var(--muted); }
@@ -460,7 +463,7 @@ function render(){
     }
 
     return '<tr class="'+rowCls+'">'
-      + '<td class="c-date">'+esc(f.DateLabel)+noteFlag+'</td>'
+      + '<td class="c-date"><span class="d-lbl">'+esc(f.DateLabel)+'</span>'+(noteFlag?'<span class="d-tags">'+noteFlag+'</span>':'')+'</td>'
       + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
         + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
       + (admin ? '' : '<td class="c-assigned">'+assignedTag+'</td>')
