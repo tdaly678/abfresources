@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex" />
 <title>Preaching Sign-Up · Hebrews</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --brown:#342D25; --gold:#BCA944; --olive:#524B30;
@@ -23,8 +24,8 @@
   input,select{ font-family:inherit; font-size:.95rem; }
   a{ color:var(--terra); }
 
-  /* ── gate / picker ── */
-  #gate,#who,#app{ display:none; }
+  /* ── picker ── */
+  #who,#app{ display:none; }
   .gate-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem 1.25rem; }
   .gate-card{
     background:var(--card); border:1px solid var(--line); border-radius:16px;
@@ -37,11 +38,10 @@
   .badge .u{ color:var(--terra); }
   .gate-card h1{ font-size:1.4rem; margin:.2rem 0 .4rem; }
   .gate-card p{ color:var(--muted); font-size:.9rem; margin:.2rem 0 1.3rem; }
-  .field-pw,.field-sel{
+  .field-sel{
     width:100%; padding:.7rem .85rem; border:1px solid var(--line); border-radius:10px;
     margin-bottom:.8rem; background:#fcfaf6;
   }
-  .field-pw{ text-align:center; letter-spacing:.15em; }
   .btn{
     border:none; border-radius:10px; padding:.7rem 1.1rem; font-weight:700; font-size:.92rem;
     background:var(--terra); color:#fff; transition:filter .15s;
@@ -50,6 +50,9 @@
   .btn:disabled{ opacity:.5; cursor:default; }
   .btn-full{ width:100%; }
   .btn-sm{ padding:.4rem .7rem; font-size:.82rem; border-radius:8px; }
+  .btn-gold{ background:var(--gold); color:var(--brown); }
+  .btn-ghost{ background:transparent; color:var(--steel); border:1px solid var(--line); }
+  .btn-ghost:hover{ background:#faf6ee; filter:none; }
   .err{ color:var(--red); font-size:.82rem; min-height:1.1em; margin-top:.2rem; }
 
   /* ── header ── */
@@ -71,8 +74,7 @@
   .switch-btn{ background:#4a4137; color:#fff; border:1px solid #5a5046; }
   .switch-btn:hover{ background:#574c40; filter:none; }
 
-  .container{ max-width:1180px; margin:0 auto; padding:1.3rem 1.1rem 4rem; }
-
+  .container{ max-width:1240px; margin:0 auto; padding:1.3rem 1.1rem 4rem; }
   .intro{ font-size:.9rem; color:var(--muted); margin:0 0 1rem; }
   .intro strong{ color:var(--text); }
 
@@ -84,6 +86,14 @@
   .legend .lg-title{ font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-right:.2rem; }
   .lg-item{ display:flex; align-items:center; gap:.45rem; font-size:.82rem; }
   .lg-item b{ font-weight:700; }
+
+  /* ── admin toolbar ── */
+  .admin-bar{
+    display:none; background:#fbf6e6; border:1px solid #e8dcb4; border-radius:14px;
+    padding:.9rem 1.1rem; margin-bottom:1rem; align-items:center; gap:.7rem; flex-wrap:wrap;
+  }
+  .admin-bar .ab-title{ font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--olive); }
+  .admin-bar .ab-note{ font-size:.8rem; color:var(--muted); flex:1; min-width:200px; }
 
   /* ── status dots ── */
   .dot{
@@ -104,10 +114,8 @@
   .progress{ font-size:.84rem; color:var(--muted); margin:.2rem 0 1rem; }
   .progress b{ color:var(--terra); }
 
-  /* ── grid table ── */
-  .grid-wrap{
-    background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:auto; -webkit-overflow-scrolling:touch;
-  }
+  /* ── grid ── */
+  .grid-wrap{ background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:auto; -webkit-overflow-scrolling:touch; }
   table.grid{ border-collapse:collapse; width:100%; font-size:.86rem; }
   table.grid th, table.grid td{ padding:.55rem .6rem; text-align:center; border-bottom:1px solid #f0e9db; white-space:nowrap; }
   table.grid thead th{
@@ -115,11 +123,11 @@
     text-transform:uppercase; letter-spacing:.03em; font-weight:800; padding:.6rem .6rem;
   }
   table.grid thead th.who-col{ background:var(--olive); }
+  table.grid thead th.plan-col{ background:var(--steel); }
   th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:96px; }
   thead th.c-date{ z-index:4; background:var(--brown); }
   td.c-date{ font-weight:800; color:var(--brown); }
-  td.c-date .lil{ display:block; font-weight:600; font-size:.72rem; color:var(--muted); }
-  td.c-info{ text-align:left; max-width:340px; white-space:normal; }
+  td.c-info{ text-align:left; max-width:320px; white-space:normal; }
   td.c-info .psg{ font-weight:800; color:var(--steel); }
   td.c-info .subj{ font-size:.8rem; color:var(--muted); }
   td.c-assigned{ font-weight:700; }
@@ -131,11 +139,14 @@
   tr.row-fixed{ background:#faf7f0; }
   td.na{ color:#cdc6b8; }
   .note-badge{ display:inline-block; margin-left:.4rem; font-size:.66rem; font-weight:700; color:var(--muted); background:#f1ead9; border-radius:5px; padding:.08rem .35rem; }
+  select.plan-sel{ padding:.35rem .5rem; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.8rem; font-weight:700; color:var(--text); max-width:130px; }
+  select.plan-sel.assigned{ border-color:var(--steel); background:#eef3f5; }
+  td.plan-cell{ min-width:130px; }
 
   .toast{
     position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
     background:var(--brown); color:#fff; padding:.7rem 1.1rem; border-radius:10px; font-size:.86rem;
-    box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;
+    box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:90vw; text-align:center;
   }
   .toast.show{ opacity:1; }
   .live-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green-bright); margin-right:.35rem; vertical-align:middle; animation:pulse 2s infinite; }
@@ -145,27 +156,13 @@
 </head>
 <body>
 
-<!-- ══ PASSWORD GATE ══ -->
-<div id="gate">
-  <div class="gate-wrap">
-    <div class="gate-card">
-      <div class="badge">LEFC<span class="u">|U</span> · PREACHING</div>
-      <h1>Preaching Sign-Up</h1>
-      <p>Hebrews teaching series · Sept 2026 – May 2027.<br>Enter the access password to continue.</p>
-      <input id="pw" class="field-pw" type="password" placeholder="Password" autocomplete="current-password" />
-      <button id="pw-btn" class="btn btn-full">Enter</button>
-      <div id="pw-err" class="err"></div>
-    </div>
-  </div>
-</div>
-
 <!-- ══ IDENTITY PICKER ══ -->
 <div id="who">
   <div class="gate-wrap">
     <div class="gate-card">
       <div class="badge">LEFC<span class="u">|U</span> · PREACHING</div>
-      <h1>Who's signing in?</h1>
-      <p>Pick your name. You'll set your availability on the open Sundays with a single tap per date.</p>
+      <h1>Preaching Sign-Up</h1>
+      <p>Hebrews teaching series · Sept 2026 – May 2027.<br>Pick your name. You'll set your availability on the open Sundays with a single tap per date.</p>
       <select id="who-sel" class="field-sel"></select>
       <button id="who-btn" class="btn btn-full">Continue</button>
       <div id="who-err" class="err"></div>
@@ -202,6 +199,15 @@
       <span class="lg-item"><span class="dot s-no">✕</span> <b>Not available</b></span>
     </div>
 
+    <!-- admin-only scheduling tools -->
+    <div class="admin-bar" id="admin-bar">
+      <span class="ab-title">Schedule tools</span>
+      <button id="build-btn" class="btn btn-gold btn-sm">⚡ Create schedule</button>
+      <button id="clear-btn" class="btn btn-ghost btn-sm">Clear plan</button>
+      <button id="export-btn" class="btn btn-ghost btn-sm">⬇ Export Excel</button>
+      <span class="ab-note">Auto-fills the open Sundays — hearts get priority, each preacher takes one or two, and you get the rest. Then fine-tune any date in the <b>Plan</b> column.</span>
+    </div>
+
     <div class="progress" id="progress"></div>
 
     <div class="grid-wrap">
@@ -218,21 +224,19 @@
 /* ══════════════════════════════════════════════════════════════
    Preaching Sign-Up — Hebrews series (Sept 2026 – May 2027).
    Standalone page for the LEFC preaching team, backed by Airtable
-   (shares the ABF base; its own two tables: Preaching Sundays /
+   (shares the ABF base; its own tables: Preaching Sundays /
    Preaching Availability).
 
-   Access:   shared password ("oikos").
    Identity: pick your name. Each of the 6 rotating preachers sets
              their own availability; a person sees ONLY their own
-             column. Tony Hunt and Tom Daly see the full grid.
-   Tony's Sundays are pre-assigned and fixed; Guest-Preacher Sundays
-   are fixed too. The rest are open for the rotation to claim.
+             column. Tony Hunt and Tom Daly see the full grid AND get
+             the schedule-building tools.
+   Tony's Sundays are pre-assigned; Guest-Preacher Sundays are fixed
+   too. The rest are open for the rotation to claim.
    ══════════════════════════════════════════════════════════════ */
 
-const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
-
 /* Roster. `picks:true` = one of the rotating preachers (gets a column).
-   `admin:true` = sees the full grid (everyone's columns). */
+   `admin:true` = sees the full grid + schedule tools. */
 const ROSTER = [
   { id:'tony', name:'Tony Hunt',    admin:true,  picks:false },
   { id:'nick', name:'Nick',                       picks:true  },
@@ -242,15 +246,16 @@ const ROSTER = [
   { id:'bob',  name:'Bob',                        picks:true  },
   { id:'tom',  name:'Tom Daly',     admin:true,  picks:true  },
 ];
-const PICKERS = ROSTER.filter(p => p.picks);   // column order in the full grid
+const PICKERS  = ROSTER.filter(p => p.picks);            // grid columns
+const ROTATING = PICKERS.filter(p => p.id !== 'tom');    // Nick..Bob (1–2 each)
+const FILLER   = ROSTER.find(p => p.id === 'tom');       // takes the rest
+const byId = id => ROSTER.find(p => p.id === id);
 
-/* Cycle order for a single tap. null = gray / no response. */
 const CYCLE = [null, 'available', 'desired', 'maybe', 'no'];
 const GLYPH = { available:'✓', desired:'♥', maybe:'~', no:'✕' };
+const WEIGHT = { desired:3, available:2, maybe:1 };       // assignable positives
 
-/* Airtable — same base + base-scoped token as the rest of the site.
-   Token split so GitHub's secret scanner doesn't flag the repo. Not a
-   security measure: anyone past the gate can read it. */
+/* Airtable — same base + base-scoped token as the rest of the site. */
 const AT = {
   get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
   BASE: 'appTpp1agJQqoId07',
@@ -277,17 +282,19 @@ const AT = {
       offset = page.offset || null;
     } while(offset);
     return out;
+  },
+  /* PATCH many records in chunks of 10 */
+  async patchMany(table, recs){
+    for(let i=0;i<recs.length;i+=10){
+      await this.api('PATCH', table, { body:{ records: recs.slice(i,i+10) } });
+    }
   }
 };
 
 /* ── helpers ── */
-async function sha256(str){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
 const $ = s => document.querySelector(s);
 const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2400); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),3200); }
 
 /* ── identity ── */
 let ME = null;
@@ -297,30 +304,12 @@ function clearIdentity(){ localStorage.removeItem('preachIdentity'); }
 function isAdmin(){ return !!(ME && ME.admin); }
 
 /* ── state ── */
-let state = { sundays:[], avail:[] };   // avail: Airtable records
-let pending = {};                        // key -> true while a write is in flight (blocks poll clobber)
+let state = { sundays:[], avail:[] };
+let pending = {};
 let pollTimer = null, pausePollUntil = 0;
 
 /* ── screens ── */
-function show(screen){ ['gate','who','app'].forEach(s => $('#'+s).style.display = (s===screen ? 'block' : 'none')); }
-
-/* ── gate ── */
-async function tryAccess(){
-  const val = $('#pw').value.trim();
-  $('#pw-err').textContent = '';
-  if(!val) return;
-  $('#pw-btn').disabled = true;
-  try {
-    if(await sha256(val) === ACCESS_HASH){ sessionStorage.setItem('preachUnlocked','1'); afterUnlock(); }
-    else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
-  } catch(e){ $('#pw-err').textContent = 'Something went wrong. Try again.'; }
-  $('#pw-btn').disabled = false;
-}
-function afterUnlock(){
-  const saved = loadIdentity();
-  if(saved && ROSTER.some(p => p.id === saved.id)){ ME = ROSTER.find(p=>p.id===saved.id); enterApp(); }
-  else showIdentityPicker();
-}
+function show(screen){ ['who','app'].forEach(s => $('#'+s).style.display = (s===screen ? 'block' : 'none')); }
 
 /* ── identity picker ── */
 function showIdentityPicker(){
@@ -333,24 +322,30 @@ function showIdentityPicker(){
 function chooseIdentity(){
   const id = $('#who-sel').value;
   if(!id){ $('#who-err').textContent = 'Please pick your name.'; return; }
-  ME = ROSTER.find(p => p.id === id);
+  ME = byId(id);
   saveIdentity({ id:ME.id, name:ME.name });
   enterApp();
+}
+function boot(){
+  const saved = loadIdentity();
+  if(saved && byId(saved.id)){ ME = byId(saved.id); enterApp(); }
+  else showIdentityPicker();
 }
 
 /* ── app ── */
 async function enterApp(){
   $('#who-name').textContent = ME.name;
   $('#view-chip').style.display = isAdmin() ? 'inline-block' : 'none';
-  const cols = visibleCols();
+  $('#admin-bar').style.display = isAdmin() ? 'flex' : 'none';
   if(isAdmin()){
     $('#intro').innerHTML = 'Full view — you can see every preacher’s response.'
-      + (ME.picks ? ' Tap any date in <strong>your</strong> column to set your own availability.' : ' (Your Sundays are already fixed.)');
+      + (ME.picks ? ' Tap any date in <strong>your</strong> column to set your own availability.' : ' (Your Sundays are already fixed.)')
+      + ' Use <strong>Create schedule</strong> to draft assignments, then tweak the <strong>Plan</strong> column.';
   } else {
     $('#intro').innerHTML = 'Tap any <strong>open</strong> Sunday to cycle your response. Each tap saves instantly — no submit button. You only see your own column.';
   }
   show('app');
-  await loadSundays();
+  await loadSundays(true);
   await loadAvail();
   render();
   startPolling();
@@ -361,34 +356,33 @@ function visibleCols(){ return isAdmin() ? PICKERS : [ME]; }
 function canEdit(colId){ return colId === ME.id && ME.picks; }
 
 /* ── data ── */
-async function loadSundays(){
-  if(state.sundays.length) return;
+async function loadSundays(force){
+  if(state.sundays.length && !force) return;
   const recs = await AT.listAll(AT.TBL.sundays);
   state.sundays = recs.sort((a,b)=> (a.fields.Order||0)-(b.fields.Order||0));
 }
-async function loadAvail(){
-  state.avail = await AT.listAll(AT.TBL.avail);
-}
+async function loadAvail(){ state.avail = await AT.listAll(AT.TBL.avail); }
 function availKey(dateISO, colId){ return dateISO + '|' + colId; }
-function findAvail(dateISO, colId){
-  const k = availKey(dateISO, colId);
-  return state.avail.find(r => (r.fields.Key||'') === k);
-}
-function statusOf(dateISO, colId){
-  const r = findAvail(dateISO, colId);
-  return r ? (r.fields.Status || null) : null;
-}
+function findAvail(dateISO, colId){ const k = availKey(dateISO, colId); return state.avail.find(r => (r.fields.Key||'') === k); }
+function statusOf(dateISO, colId){ const r = findAvail(dateISO, colId); return r ? (r.fields.Status || null) : null; }
 function isOpen(f){ return !((f.Speaker||'').trim()); }
+function assignedOf(f){ return (f['Assigned Preacher']||'').trim(); }
 
 /* ── render ── */
 function render(){
   const cols = visibleCols();
+  const admin = isAdmin();
+
   const head = '<thead><tr>'
     + '<th class="c-date">Date</th>'
     + '<th>Series / Passage</th>'
-    + '<th>Assigned</th>'
+    + (admin ? '' : '<th>Assigned</th>')
     + cols.map(c => '<th class="who-col">'+esc(c.name.split(' ')[0])+'</th>').join('')
+    + (admin ? '<th class="plan-col">Plan</th>' : '')
     + '</tr></thead>';
+
+  const planOptions = sel => '<option value="">— open —</option>'
+    + ROSTER.map(p => '<option value="'+p.id+'"'+(sel===p.id?' selected':'')+'>'+esc(p.name)+'</option>').join('');
 
   const body = '<tbody>' + state.sundays.map(rec => {
     const f = rec.fields;
@@ -397,29 +391,39 @@ function render(){
     const noteFlag = /family worship/i.test(f.Notes||'') ? '<span class="note-badge">Family Worship</span>'
                     : /christmas/i.test(f.Notes||'') ? '<span class="note-badge">Christmas</span>'
                     : /lent/i.test(f.Notes||'') ? '<span class="note-badge">Lent</span>' : '';
-    const assigned = open
+    const assignedTag = open
       ? '<span class="tag tag-open">Open</span>'
       : (/guest/i.test(f.Speaker) ? '<span class="tag tag-guest">Guest</span>' : '<span class="tag tag-tony">'+esc(f.Speaker)+'</span>');
 
     const cells = cols.map(c => {
-      if(!open){ return '<td class="na">—</td>'; }
+      if(!open) return '<td class="na">—</td>';
       const st = statusOf(iso, c.id);
       const cls = 's-' + (st || 'none');
       const editable = canEdit(c.id);
-      return '<td>'
-        + '<button class="cell '+(editable?'editable':'ro')+'" '
-          + (editable ? 'data-date="'+esc(iso)+'" data-col="'+esc(c.id)+'"' : 'disabled')
-          + ' title="'+(st?st:'no response')+'">'
-          + '<span class="dot '+cls+'">'+(st?GLYPH[st]:'')+'</span>'
-        + '</button></td>';
+      return '<td><button class="cell '+(editable?'editable':'ro')+'" '
+        + (editable ? 'data-date="'+esc(iso)+'" data-col="'+esc(c.id)+'"' : 'disabled')
+        + ' title="'+(st?st:'no response')+'">'
+        + '<span class="dot '+cls+'">'+(st?GLYPH[st]:'')+'</span></button></td>';
     }).join('');
+
+    let planCell = '';
+    if(admin){
+      if(open){
+        const cur = assignedOf(f);            // stored as name; map to id for the select
+        const curId = (ROSTER.find(p=>p.name===cur)||{}).id || '';
+        planCell = '<td class="plan-cell"><select class="plan-sel'+(curId?' assigned':'')+'" data-date="'+esc(iso)+'">'+planOptions(curId)+'</select></td>';
+      } else {
+        planCell = '<td class="c-assigned">'+assignedTag+'</td>';
+      }
+    }
 
     return '<tr class="'+(open?'':'row-fixed')+'">'
       + '<td class="c-date">'+esc(f.DateLabel)+noteFlag+'</td>'
       + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
         + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
-      + '<td class="c-assigned">'+assigned+'</td>'
+      + (admin ? '' : '<td class="c-assigned">'+assignedTag+'</td>')
       + cells
+      + planCell
       + '</tr>';
   }).join('') + '</tbody>';
 
@@ -429,6 +433,15 @@ function render(){
 
 function renderProgress(){
   const openSundays = state.sundays.filter(r => isOpen(r.fields));
+  if(isAdmin()){
+    const counts = {}; ROSTER.forEach(p=>counts[p.name]=0);
+    let planned = 0;
+    openSundays.forEach(r=>{ const a=assignedOf(r.fields); if(a){ planned++; if(counts[a]!=null) counts[a]++; } });
+    const summary = ROSTER.filter(p=>counts[p.name]).map(p=>p.name.split(' ')[0]+' ×'+counts[p.name]).join(' · ');
+    $('#progress').innerHTML = '<b>'+planned+'</b> of <b>'+openSundays.length+'</b> open Sundays planned'
+      + (summary ? ' — '+summary : ' — no plan yet');
+    return;
+  }
   if(!ME.picks){ $('#progress').innerHTML = '<b>'+openSundays.length+'</b> open Sundays in the series.'; return; }
   const done = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)).length;
   const desired = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)==='desired').length;
@@ -436,76 +449,181 @@ function renderProgress(){
     + (desired?(' · <b>'+desired+'</b> marked “strongly want”'):'') + '.';
 }
 
-/* ── click to cycle + self-save ── */
+/* ── click to cycle + self-save (own availability) ── */
 async function cycle(dateISO, colId){
   if(!canEdit(colId)) return;
   const cur = statusOf(dateISO, colId);
   const next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
   const key = availKey(dateISO, colId);
-  pending[key] = true;
-  pausePollUntil = Date.now() + 4000;
+  pending[key] = true; pausePollUntil = Date.now() + 4000;
 
   const rec = findAvail(dateISO, colId);
-  // optimistic local update
-  if(next === null){
-    if(rec) state.avail = state.avail.filter(r => r.id !== rec.id);
-  } else if(rec){
-    rec.fields.Status = next;
-  } else {
-    state.avail.push({ id:'tmp_'+Date.now(), fields:{ Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next } });
-  }
+  if(next === null){ if(rec) state.avail = state.avail.filter(r => r.id !== rec.id); }
+  else if(rec){ rec.fields.Status = next; }
+  else { state.avail.push({ id:'tmp_'+Date.now(), fields:{ Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next } }); }
   render();
 
   try {
-    if(next === null){
-      if(rec && !rec.id.startsWith('tmp_')) await AT.api('DELETE', AT.TBL.avail, { recordId: rec.id });
-    } else if(rec && !rec.id.startsWith('tmp_')){
-      await AT.api('PATCH', AT.TBL.avail, { recordId: rec.id, body:{ fields:{ Status:next, UpdatedAt:new Date().toISOString() } } });
-    } else {
-      const created = await AT.api('POST', AT.TBL.avail, { body:{ fields:{
-        Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next, UpdatedAt:new Date().toISOString()
-      } } });
-      const opt = state.avail.find(r => (r.fields.Key||'')===key);
-      if(opt) opt.id = created.id;
+    if(next === null){ if(rec && !rec.id.startsWith('tmp_')) await AT.api('DELETE', AT.TBL.avail, { recordId: rec.id }); }
+    else if(rec && !rec.id.startsWith('tmp_')){ await AT.api('PATCH', AT.TBL.avail, { recordId: rec.id, body:{ fields:{ Status:next, UpdatedAt:new Date().toISOString() } } }); }
+    else {
+      const created = await AT.api('POST', AT.TBL.avail, { body:{ fields:{ Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next, UpdatedAt:new Date().toISOString() } } });
+      const opt = state.avail.find(r => (r.fields.Key||'')===key); if(opt) opt.id = created.id;
     }
-  } catch(e){
-    toast('Didn’t save — reloading.'); await loadAvail(); render();
-  }
+  } catch(e){ toast('Didn’t save — reloading.'); await loadAvail(); render(); }
   delete pending[key];
 }
 
+/* ══ SCHEDULE BUILDER (admins) ══
+   Rules: honor hearts first; each rotating preacher (Nick..Bob) takes
+   one, at most two; Tom fills every remaining open Sunday. Only assigns
+   people to Sundays they marked available/strongly-want/possible. */
+function buildSchedule(){
+  const openS = state.sundays.filter(r => isOpen(r.fields));
+  const assign = {};                 // iso -> preacher NAME
+  const count = {}; ROTATING.forEach(p=>count[p.id]=0);
+  const filled = new Set();
+
+  // each rotating preacher's assignable options (excludes "no"/no-response)
+  const opts = {}; ROTATING.forEach(p=>opts[p.id]=[]);
+  openS.forEach(r=>{
+    const iso=r.fields.DateISO;
+    ROTATING.forEach(p=>{ const st=statusOf(iso,p.id); if(st && WEIGHT[st]) opts[p.id].push({iso,w:WEIGHT[st]}); });
+  });
+  const flex = id => opts[id].length;         // fewer options = less flexible → assign earlier
+
+  const place = (iso,id)=>{ assign[iso]=byId(id).name; filled.add(iso); count[id]++; };
+
+  // PHASE 1 — hearts. For each hearted Sunday, give it to the hearter with the
+  // fewest current assignments, then the least flexibility.
+  openS.forEach(r=>{
+    const iso=r.fields.DateISO; if(filled.has(iso)) return;
+    const hearts = ROTATING.filter(p=>statusOf(iso,p.id)==='desired' && count[p.id]<2);
+    if(!hearts.length) return;
+    hearts.sort((a,b)=> count[a.id]-count[b.id] || flex(a.id)-flex(b.id));
+    place(iso, hearts[0].id);
+  });
+
+  // PHASE 2 — everyone preaches at least once (best available first).
+  ROTATING.slice().sort((a,b)=>flex(a.id)-flex(b.id)).forEach(p=>{
+    if(count[p.id]>=1) return;
+    const cand = opts[p.id].filter(o=>!filled.has(o.iso)).sort((a,b)=>b.w-a.w);
+    if(cand.length) place(cand[0].iso, p.id);
+  });
+
+  // PHASE 3 — bump willing preachers to two to spread load off Tom.
+  let progress=true;
+  while(progress){
+    progress=false;
+    ROTATING.filter(p=>count[p.id]<2).sort((a,b)=>count[a.id]-count[b.id]||flex(a.id)-flex(b.id)).forEach(p=>{
+      const cand = opts[p.id].filter(o=>!filled.has(o.iso)).sort((a,b)=>b.w-a.w);
+      if(cand.length){ place(cand[0].iso, p.id); progress=true; }
+    });
+  }
+
+  // PHASE 4 — Tom takes the rest.
+  openS.forEach(r=>{ const iso=r.fields.DateISO; if(!filled.has(iso)) assign[iso]=FILLER.name; });
+  return assign;
+}
+
+async function createSchedule(){
+  $('#build-btn').disabled = true;
+  const assign = buildSchedule();
+  const updates = [];
+  state.sundays.forEach(r=>{
+    if(!isOpen(r.fields)) return;
+    const name = assign[r.fields.DateISO] || '';
+    r.fields['Assigned Preacher'] = name;                 // optimistic
+    updates.push({ id:r.id, fields:{ 'Assigned Preacher': name } });
+  });
+  pausePollUntil = Date.now() + 6000;
+  render();
+  try { await AT.patchMany(AT.TBL.sundays, updates); toast('Draft schedule created — adjust any date in the Plan column.'); }
+  catch(e){ toast('Couldn’t save the plan. Try again.'); }
+  $('#build-btn').disabled = false;
+}
+
+async function clearPlan(){
+  if(!confirm('Clear the assigned preacher on all open Sundays?')) return;
+  const updates = [];
+  state.sundays.forEach(r=>{ if(isOpen(r.fields)){ r.fields['Assigned Preacher']=''; updates.push({ id:r.id, fields:{ 'Assigned Preacher':'' } }); } });
+  pausePollUntil = Date.now() + 6000; render();
+  try { await AT.patchMany(AT.TBL.sundays, updates); toast('Plan cleared.'); }
+  catch(e){ toast('Couldn’t clear the plan.'); }
+}
+
+async function changePlan(dateISO, preacherId){
+  const rec = state.sundays.find(r=>r.fields.DateISO===dateISO); if(!rec) return;
+  const name = preacherId ? byId(preacherId).name : '';
+  rec.fields['Assigned Preacher'] = name;
+  pausePollUntil = Date.now() + 5000; render();
+  try { await AT.api('PATCH', AT.TBL.sundays, { recordId: rec.id, body:{ fields:{ 'Assigned Preacher': name } } }); }
+  catch(e){ toast('Change didn’t save — reloading.'); await loadSundays(true); render(); }
+}
+
+/* ══ EXCEL EXPORT — mirrors the uploaded workbook exactly ══
+   Columns: Date | Subject | Text | Speaker | Notes, one row per Sunday.
+   Speaker = fixed speaker for Tony/Guest rows, else the planned preacher. */
+function exportExcel(){
+  const aoa = [['Date','Subject','Text','Speaker','Notes']];
+  state.sundays.forEach(r=>{
+    const f = r.fields;
+    const speaker = isOpen(f) ? assignedOf(f) : (f.Speaker||'');
+    const [y,m,d] = (f.DateISO||'').split('-').map(Number);
+    const dateVal = (y? new Date(y, m-1, d) : (f.DateLabel||''));
+    aoa.push([ dateVal, f.Subject||'', f.Passage||'', speaker, f.Notes||'' ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates:true });
+  ws['!cols'] = [{wch:12},{wch:52},{wch:12},{wch:16},{wch:60}];
+  // format the date column (col A, skip header)
+  for(let i=2;i<=aoa.length;i++){ const c = ws['A'+i]; if(c && c.t==='d'){ c.z = 'm/d/yyyy'; } }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  XLSX.writeFile(wb, 'Hebrews series - preaching schedule.xlsx');
+  toast('Excel downloaded.');
+}
+
 /* ── live polling ── */
+function planSig(sundays){ return sundays.map(r => (r.fields.DateISO||'')+'>'+(r.fields['Assigned Preacher']||'')).sort(); }
+function availSig(recs){ return recs.map(r => (r.fields.Key||'')+':'+(r.fields.Status||'')).sort(); }
 function startPolling(){
   stopPolling();
   pollTimer = setInterval(async () => {
-    if(Date.now() < pausePollUntil) return;
-    if(Object.keys(pending).length) return;
+    if(Date.now() < pausePollUntil || Object.keys(pending).length) return;
     try {
-      const fresh = await AT.listAll(AT.TBL.avail);
-      // don't clobber cells with in-flight writes
-      if(Object.keys(pending).length) return;
-      const changed = JSON.stringify(sig(fresh)) !== JSON.stringify(sig(state.avail));
-      if(changed){ state.avail = fresh; render(); }
-    } catch(e){ /* transient — try again next tick */ }
+      const tasks = [AT.listAll(AT.TBL.avail)];
+      if(isAdmin()) tasks.push(AT.listAll(AT.TBL.sundays));
+      const [freshAvail, freshSun] = await Promise.all(tasks);
+      if(Date.now() < pausePollUntil || Object.keys(pending).length) return;
+      let dirty = false;
+      if(JSON.stringify(availSig(freshAvail)) !== JSON.stringify(availSig(state.avail))){ state.avail = freshAvail; dirty = true; }
+      if(freshSun){ const sorted = freshSun.sort((a,b)=>(a.fields.Order||0)-(b.fields.Order||0));
+        if(JSON.stringify(planSig(sorted)) !== JSON.stringify(planSig(state.sundays))){ state.sundays = sorted; dirty = true; } }
+      // avoid yanking a dropdown mid-interaction
+      if(dirty && !document.activeElement.classList.contains('plan-sel')) render();
+    } catch(e){ /* transient */ }
   }, 9000);
 }
 function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
-function sig(recs){ return recs.map(r => (r.fields.Key||'')+':'+(r.fields.Status||'')).sort(); }
 
 /* ── events ── */
-$('#pw-btn').addEventListener('click', tryAccess);
-$('#pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAccess(); });
 $('#who-btn').addEventListener('click', chooseIdentity);
 $('#switch-btn').addEventListener('click', switchUser);
+$('#build-btn').addEventListener('click', createSchedule);
+$('#clear-btn').addEventListener('click', clearPlan);
+$('#export-btn').addEventListener('click', exportExcel);
 $('#grid').addEventListener('click', e => {
   const b = e.target.closest('button.cell.editable'); if(!b) return;
   cycle(b.dataset.date, b.dataset.col);
 });
+$('#grid').addEventListener('change', e => {
+  const sel = e.target.closest('select.plan-sel'); if(!sel) return;
+  changePlan(sel.dataset.date, sel.value);
+});
 document.addEventListener('visibilitychange', () => { if(document.hidden) stopPolling(); else if(ME) startPolling(); });
 
-/* ── boot ── */
-if(sessionStorage.getItem('preachUnlocked') === '1'){ afterUnlock(); }
-else { show('gate'); $('#pw').focus(); }
+/* ── boot (no password gate) ── */
+boot();
 </script>
 </body>
 </html>
