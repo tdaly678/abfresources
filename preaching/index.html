@@ -137,6 +137,14 @@
   .tag-guest{ background:#e7ecef; color:var(--steel); }
   tr.row-fixed td.c-date, tr.row-fixed td.c-info{ opacity:.6; }
   tr.row-fixed{ background:#faf7f0; }
+  tr.row-problem{ background:#fbe9e5 !important; }
+  tr.row-problem td.c-date{ background:#fbe9e5; box-shadow:inset 4px 0 0 var(--red); }
+  tr.row-conflict{ background:#fdf3e3 !important; }
+  tr.row-conflict td.c-date{ background:#fdf3e3; box-shadow:inset 4px 0 0 var(--amber); }
+  .warn{ display:block; margin-top:.3rem; font-size:.67rem; font-weight:800; padding:.14rem .45rem; border-radius:6px; white-space:normal; }
+  .warn-gap{ background:#f6d9d1; color:var(--red); }
+  .warn-conflict{ background:#f6e6c8; color:#8a5a10; }
+  .attn{ font-weight:800; color:var(--red); }
   td.na{ color:#cdc6b8; }
   .note-badge{ display:inline-block; margin-left:.4rem; font-size:.66rem; font-weight:700; color:var(--muted); background:#f1ead9; border-radius:5px; padding:.08rem .35rem; }
   select.plan-sel{ padding:.35rem .5rem; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.8rem; font-weight:700; color:var(--text); max-width:130px; }
@@ -367,6 +375,23 @@ function findAvail(dateISO, colId){ const k = availKey(dateISO, colId); return s
 function statusOf(dateISO, colId){ const r = findAvail(dateISO, colId); return r ? (r.fields.Status || null) : null; }
 function isOpen(f){ return !((f.Speaker||'').trim()); }
 function assignedOf(f){ return (f['Assigned Preacher']||'').trim(); }
+/* A problem Sunday (admin view only):
+   - conflict: the planned preacher marked "not available" on that date.
+   - gap:      no plan yet, Tom said "not available", and nobody else is
+               available either → truly nobody can take it. */
+function problemOf(f){
+  if(!isOpen(f)) return null;
+  const iso = f.DateISO;
+  const planned = assignedOf(f);
+  const plannedP = ROSTER.find(p => p.name === planned);
+  if(plannedP && statusOf(iso, plannedP.id) === 'no')
+    return { type:'conflict', msg: planned.split(' ')[0] + ' marked this date unavailable' };
+  const anyPositive = PICKERS.some(p => { const s = statusOf(iso, p.id); return s && WEIGHT[s]; });
+  const tomNo = statusOf(iso, 'tom') === 'no';
+  if(!planned && tomNo && !anyPositive)
+    return { type:'gap', msg: 'No one available — needs a guest or a swap' };
+  return null;
+}
 
 /* ── render ── */
 function render(){
@@ -407,17 +432,21 @@ function render(){
     }).join('');
 
     let planCell = '';
+    let rowCls = open ? '' : 'row-fixed';
     if(admin){
       if(open){
         const cur = assignedOf(f);            // stored as name; map to id for the select
         const curId = (ROSTER.find(p=>p.name===cur)||{}).id || '';
-        planCell = '<td class="plan-cell"><select class="plan-sel'+(curId?' assigned':'')+'" data-date="'+esc(iso)+'">'+planOptions(curId)+'</select></td>';
+        const prob = problemOf(f);
+        if(prob) rowCls = prob.type==='gap' ? 'row-problem' : 'row-conflict';
+        const warn = prob ? '<div class="warn warn-'+(prob.type==='gap'?'gap':'conflict')+'">⚠ '+esc(prob.msg)+'</div>' : '';
+        planCell = '<td class="plan-cell"><select class="plan-sel'+(curId?' assigned':'')+'" data-date="'+esc(iso)+'">'+planOptions(curId)+'</select>'+warn+'</td>';
       } else {
         planCell = '<td class="c-assigned">'+assignedTag+'</td>';
       }
     }
 
-    return '<tr class="'+(open?'':'row-fixed')+'">'
+    return '<tr class="'+rowCls+'">'
       + '<td class="c-date">'+esc(f.DateLabel)+noteFlag+'</td>'
       + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
         + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
@@ -438,8 +467,10 @@ function renderProgress(){
     let planned = 0;
     openSundays.forEach(r=>{ const a=assignedOf(r.fields); if(a){ planned++; if(counts[a]!=null) counts[a]++; } });
     const summary = ROSTER.filter(p=>counts[p.name]).map(p=>p.name.split(' ')[0]+' ×'+counts[p.name]).join(' · ');
+    const problems = openSundays.filter(r=>problemOf(r.fields)).length;
     $('#progress').innerHTML = '<b>'+planned+'</b> of <b>'+openSundays.length+'</b> open Sundays planned'
-      + (summary ? ' — '+summary : ' — no plan yet');
+      + (summary ? ' — '+summary : ' — no plan yet')
+      + (problems ? ' · <span class="attn">⚠ '+problems+' need attention</span>' : '');
     return;
   }
   if(!ME.picks){ $('#progress').innerHTML = '<b>'+openSundays.length+'</b> open Sundays in the series.'; return; }
@@ -521,8 +552,10 @@ function buildSchedule(){
     });
   }
 
-  // PHASE 4 — Tom takes the rest.
-  openS.forEach(r=>{ const iso=r.fields.DateISO; if(!filled.has(iso)) assign[iso]=FILLER.name; });
+  // PHASE 4 — Tom takes the rest, EXCEPT dates he marked unavailable.
+  // Those are left unassigned so they surface as problem Sundays needing attention.
+  openS.forEach(r=>{ const iso=r.fields.DateISO;
+    if(!filled.has(iso) && statusOf(iso,'tom')!=='no') assign[iso]=FILLER.name; });
   return assign;
 }
 
