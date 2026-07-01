@@ -160,6 +160,38 @@
   .live-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green-bright); margin-right:.35rem; vertical-align:middle; animation:pulse 2s infinite; }
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
   .footer-note{ text-align:center; font-size:.74rem; color:var(--muted); margin-top:2rem; }
+
+  /* ── mobile ── */
+  @media (max-width:640px){
+    header.topbar{ padding:.7rem .85rem; gap:.5rem; }
+    .topbar .mark{ width:30px; height:30px; font-size:.72rem; }
+    .topbar h1{ font-size:.9rem; }
+    .topbar .sub{ font-size:.68rem; }
+    .switch-btn{ padding:.35rem .6rem; font-size:.76rem; }
+    .container{ padding:1rem .6rem 3rem; }
+    .intro{ font-size:.84rem; }
+    .legend{ gap:.5rem .9rem; padding:.75rem .8rem; border-radius:12px; }
+    .legend .lg-title{ width:100%; margin-bottom:.15rem; }
+    .lg-item{ font-size:.78rem; gap:.35rem; }
+    .legend .dot{ width:22px; height:22px; font-size:.72rem; }
+    .admin-bar{ padding:.75rem .8rem; gap:.5rem; }
+    .admin-bar .btn{ flex:1; text-align:center; }
+    .admin-bar .ab-note{ font-size:.76rem; }
+    .progress{ font-size:.8rem; }
+    table.grid{ font-size:.8rem; }
+    table.grid th, table.grid td{ padding:.4rem .4rem; }
+    table.grid thead th{ font-size:.66rem; padding:.45rem .4rem; }
+    th.c-date, td.c-date{ min-width:74px; }
+    td.c-date{ font-size:.8rem; }
+    td.c-info{ max-width:150px; }
+    td.c-info .subj{ font-size:.72rem; }
+    .note-badge{ font-size:.6rem; padding:.06rem .3rem; margin-left:.25rem; }
+    .dot{ width:32px; height:32px; }          /* keep taps easy */
+    button.cell{ padding:5px; }
+    select.plan-sel{ max-width:104px; font-size:.75rem; padding:.3rem .4rem; }
+    td.plan-cell{ min-width:104px; }
+    .warn{ font-size:.62rem; }
+  }
 </style>
 </head>
 <body>
@@ -258,11 +290,15 @@ const ROTATING = PICKERS.filter(p => p.id !== 'tom');    // Nick..Bob (1–2 eac
 const FILLER   = ROSTER.find(p => p.id === 'tom');       // takes the rest
 const byId = id => ROSTER.find(p => p.id === id);
 
-/* Extra calendar tags shown as badges on specific dates. */
+/* Extra calendar tags shown as badges on specific dates (array per date). */
 const DATE_TAGS = {
-  '2026-10-04': 'PMD Retreat',
-  '2026-11-29': 'Thanksgiving',
-  '2027-01-03': 'New Year’s',
+  '2026-10-04': ['PMD Retreat'],
+  '2026-11-08': ['Veterans Day'],
+  '2026-11-29': ['Thanksgiving', 'Advent Begins'],
+  '2027-01-03': ['New Year’s'],
+  '2027-03-21': ['Palm Sunday'],
+  '2027-03-28': ['Easter'],
+  '2027-05-09': ['Mother’s Day'],
 };
 
 const CYCLE = [null, 'available', 'desired', 'maybe', 'no'];
@@ -424,7 +460,7 @@ function render(){
     if(/family worship/i.test(notes)) noteFlag += '<span class="note-badge">Family Worship</span>';
     if(/christmas/i.test(notes))      noteFlag += '<span class="note-badge">Christmas</span>';
     if(/lent/i.test(notes))           noteFlag += '<span class="note-badge">Lent</span>';
-    if(DATE_TAGS[iso])                noteFlag += '<span class="note-badge">'+esc(DATE_TAGS[iso])+'</span>';
+    if(DATE_TAGS[iso])                noteFlag += DATE_TAGS[iso].map(t=>'<span class="note-badge">'+esc(t)+'</span>').join('');
     const assignedTag = open
       ? '<span class="tag tag-open">Open</span>'
       : (/guest/i.test(f.Speaker) ? '<span class="tag tag-guest">Guest</span>' : '<span class="tag tag-tony">'+esc(f.Speaker)+'</span>');
