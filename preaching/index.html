@@ -202,7 +202,7 @@
       <span class="lg-title">Key</span>
       <span class="lg-item"><span class="dot s-none"></span> <b>No response yet</b></span>
       <span class="lg-item"><span class="dot s-available">✓</span> <b>Available</b></span>
-      <span class="lg-item"><span class="dot s-desired">♥</span> <b>Available &amp; strongly want it</b></span>
+      <span class="lg-item"><span class="dot s-desired">♥</span> <b>Available &amp; Desired</b></span>
       <span class="lg-item"><span class="dot s-maybe">~</span> <b>Not ideal, but possible</b></span>
       <span class="lg-item"><span class="dot s-no">✕</span> <b>Not available</b></span>
     </div>
@@ -211,7 +211,6 @@
     <div class="admin-bar" id="admin-bar">
       <span class="ab-title">Schedule tools</span>
       <button id="build-btn" class="btn btn-gold btn-sm">⚡ Create schedule</button>
-      <button id="clear-btn" class="btn btn-ghost btn-sm">Clear plan</button>
       <button id="export-btn" class="btn btn-ghost btn-sm">⬇ Export Excel</button>
       <span class="ab-note">Auto-fills the open Sundays — hearts get priority, each preacher takes one or two, and you get the rest. Then fine-tune any date in the <b>Plan</b> column.</span>
     </div>
@@ -477,7 +476,7 @@ function renderProgress(){
   const done = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)).length;
   const desired = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)==='desired').length;
   $('#progress').innerHTML = 'You’ve responded to <b>'+done+'</b> of <b>'+openSundays.length+'</b> open Sundays'
-    + (desired?(' · <b>'+desired+'</b> marked “strongly want”'):'') + '.';
+    + (desired?(' · <b>'+desired+'</b> marked “desired”'):'') + '.';
 }
 
 /* ── click to cycle + self-save (own availability) ── */
@@ -576,15 +575,6 @@ async function createSchedule(){
   $('#build-btn').disabled = false;
 }
 
-async function clearPlan(){
-  if(!confirm('Clear the assigned preacher on all open Sundays?')) return;
-  const updates = [];
-  state.sundays.forEach(r=>{ if(isOpen(r.fields)){ r.fields['Assigned Preacher']=''; updates.push({ id:r.id, fields:{ 'Assigned Preacher':'' } }); } });
-  pausePollUntil = Date.now() + 6000; render();
-  try { await AT.patchMany(AT.TBL.sundays, updates); toast('Plan cleared.'); }
-  catch(e){ toast('Couldn’t clear the plan.'); }
-}
-
 async function changePlan(dateISO, preacherId){
   const rec = state.sundays.find(r=>r.fields.DateISO===dateISO); if(!rec) return;
   const name = preacherId ? byId(preacherId).name : '';
@@ -643,7 +633,6 @@ function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = nul
 $('#who-btn').addEventListener('click', chooseIdentity);
 $('#switch-btn').addEventListener('click', switchUser);
 $('#build-btn').addEventListener('click', createSchedule);
-$('#clear-btn').addEventListener('click', clearPlan);
 $('#export-btn').addEventListener('click', exportExcel);
 $('#grid').addEventListener('click', e => {
   const b = e.target.closest('button.cell.editable'); if(!b) return;
