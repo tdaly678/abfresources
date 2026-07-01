@@ -450,7 +450,6 @@ function render(){
   const head = '<thead><tr>'
     + '<th class="c-date">Date</th>'
     + '<th>Series / Passage</th>'
-    + (admin ? '' : '<th>Assigned</th>')
     + cols.map(c => '<th class="who-col">'+esc(c.name.split(' ')[0])+'</th>').join('')
     + (admin ? '<th class="plan-col">Plan</th>' : '')
     + '</tr></thead>';
@@ -503,8 +502,7 @@ function render(){
       + '<td class="c-date"><span class="d-main">'+esc(dParts[0])+'</span>'+(dParts[1]?'<span class="lil">'+esc(dParts[1])+'</span>':'')+'</td>'
       + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
         + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')
-        + (noteFlag?'<div class="badges">'+noteFlag+'</div>':'')+'</td>'
-      + (admin ? '' : '<td class="c-assigned">'+assignedTag+'</td>')
+        + (!admin ? '<div class="badges">'+assignedTag+noteFlag+'</div>' : (noteFlag?'<div class="badges">'+noteFlag+'</div>':''))+'</td>'
       + cells
       + planCell
       + '</tr>';
