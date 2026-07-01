@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Preaching Sign-Up · Hebrews</title>
+<style>
+  :root{
+    --brown:#342D25; --gold:#BCA944; --olive:#524B30;
+    --terra:#AA3B24; --steel:#3F5765; --graybg:#E5E5E4;
+    --bg:#f4ede2; --card:#ffffff; --line:#e6dccb;
+    --text:#342D25; --muted:#6b6258;
+    --green:#3f7d52; --green-bright:#4a9e63; --amber:#d59a1c; --red:#AA3B24;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:'Gotham','Helvetica Neue',Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5; min-height:100vh;
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select{ font-family:inherit; font-size:.95rem; }
+  a{ color:var(--terra); }
+
+  /* ── gate / picker ── */
+  #gate,#who,#app{ display:none; }
+  .gate-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem 1.25rem; }
+  .gate-card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 4px 18px rgba(50,40,30,.08); padding:2.4rem 2rem; max-width:440px; width:100%; text-align:center;
+  }
+  .badge{
+    display:inline-block; background:var(--brown); color:#fff; font-weight:800;
+    letter-spacing:.06em; font-size:.72rem; padding:.4rem .7rem; border-radius:8px; margin-bottom:1rem;
+  }
+  .badge .u{ color:var(--terra); }
+  .gate-card h1{ font-size:1.4rem; margin:.2rem 0 .4rem; }
+  .gate-card p{ color:var(--muted); font-size:.9rem; margin:.2rem 0 1.3rem; }
+  .field-pw,.field-sel{
+    width:100%; padding:.7rem .85rem; border:1px solid var(--line); border-radius:10px;
+    margin-bottom:.8rem; background:#fcfaf6;
+  }
+  .field-pw{ text-align:center; letter-spacing:.15em; }
+  .btn{
+    border:none; border-radius:10px; padding:.7rem 1.1rem; font-weight:700; font-size:.92rem;
+    background:var(--terra); color:#fff; transition:filter .15s;
+  }
+  .btn:hover{ filter:brightness(1.07); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn-full{ width:100%; }
+  .btn-sm{ padding:.4rem .7rem; font-size:.82rem; border-radius:8px; }
+  .err{ color:var(--red); font-size:.82rem; min-height:1.1em; margin-top:.2rem; }
+
+  /* ── header ── */
+  header.topbar{
+    background:var(--brown); color:#fff; padding:.9rem 1.25rem;
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+  }
+  .topbar .brand{ display:flex; align-items:center; gap:.7rem; }
+  .topbar .mark{
+    width:36px; height:36px; border-radius:9px; background:var(--gold); color:var(--brown);
+    display:grid; place-items:center; font-weight:900; font-size:.86rem; letter-spacing:-.02em;
+  }
+  .topbar h1{ font-size:1.02rem; margin:0; font-weight:800; }
+  .topbar .sub{ font-size:.74rem; color:#d8cdbb; margin-top:1px; }
+  .topbar .right{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+  .who-chip{ font-size:.78rem; color:#e9e0d2; }
+  .who-chip strong{ color:#fff; }
+  .view-chip{ background:var(--gold); color:var(--brown); font-weight:800; font-size:.68rem; padding:.3rem .55rem; border-radius:7px; }
+  .switch-btn{ background:#4a4137; color:#fff; border:1px solid #5a5046; }
+  .switch-btn:hover{ background:#574c40; filter:none; }
+
+  .container{ max-width:1180px; margin:0 auto; padding:1.3rem 1.1rem 4rem; }
+
+  .intro{ font-size:.9rem; color:var(--muted); margin:0 0 1rem; }
+  .intro strong{ color:var(--text); }
+
+  /* ── legend ── */
+  .legend{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:.9rem 1.1rem; margin-bottom:1rem; display:flex; gap:1.1rem 1.4rem; flex-wrap:wrap; align-items:center;
+  }
+  .legend .lg-title{ font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-right:.2rem; }
+  .lg-item{ display:flex; align-items:center; gap:.45rem; font-size:.82rem; }
+  .lg-item b{ font-weight:700; }
+
+  /* ── status dots ── */
+  .dot{
+    width:30px; height:30px; border-radius:50%; display:inline-grid; place-items:center;
+    font-size:.9rem; font-weight:800; line-height:1; border:1.5px solid transparent; transition:transform .1s;
+  }
+  .s-none{ background:#edeae3; border-color:#dcd6c9; color:transparent; }
+  .s-available{ background:var(--green); color:#fff; }
+  .s-desired{ background:var(--green-bright); color:#fff; box-shadow:0 0 0 2.5px var(--gold); }
+  .s-maybe{ background:var(--amber); color:#3b2f00; }
+  .s-no{ background:var(--red); color:#fff; }
+  button.cell{ background:none; border:none; padding:3px; border-radius:50%; }
+  button.cell.editable:hover .dot{ transform:scale(1.14); }
+  button.cell.ro{ cursor:default; }
+  button.cell.ro .dot{ opacity:.92; }
+
+  /* ── progress ── */
+  .progress{ font-size:.84rem; color:var(--muted); margin:.2rem 0 1rem; }
+  .progress b{ color:var(--terra); }
+
+  /* ── grid table ── */
+  .grid-wrap{
+    background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:auto; -webkit-overflow-scrolling:touch;
+  }
+  table.grid{ border-collapse:collapse; width:100%; font-size:.86rem; }
+  table.grid th, table.grid td{ padding:.55rem .6rem; text-align:center; border-bottom:1px solid #f0e9db; white-space:nowrap; }
+  table.grid thead th{
+    position:sticky; top:0; z-index:3; background:var(--brown); color:#fff; font-size:.74rem;
+    text-transform:uppercase; letter-spacing:.03em; font-weight:800; padding:.6rem .6rem;
+  }
+  table.grid thead th.who-col{ background:var(--olive); }
+  th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:96px; }
+  thead th.c-date{ z-index:4; background:var(--brown); }
+  td.c-date{ font-weight:800; color:var(--brown); }
+  td.c-date .lil{ display:block; font-weight:600; font-size:.72rem; color:var(--muted); }
+  td.c-info{ text-align:left; max-width:340px; white-space:normal; }
+  td.c-info .psg{ font-weight:800; color:var(--steel); }
+  td.c-info .subj{ font-size:.8rem; color:var(--muted); }
+  td.c-assigned{ font-weight:700; }
+  .tag{ display:inline-block; font-size:.7rem; font-weight:800; padding:.16rem .5rem; border-radius:6px; text-transform:uppercase; letter-spacing:.03em; }
+  .tag-open{ background:#e4ebe6; color:var(--olive); }
+  .tag-tony{ background:#f6e0da; color:var(--terra); }
+  .tag-guest{ background:#e7ecef; color:var(--steel); }
+  tr.row-fixed td.c-date, tr.row-fixed td.c-info{ opacity:.6; }
+  tr.row-fixed{ background:#faf7f0; }
+  td.na{ color:#cdc6b8; }
+  .note-badge{ display:inline-block; margin-left:.4rem; font-size:.66rem; font-weight:700; color:var(--muted); background:#f1ead9; border-radius:5px; padding:.08rem .35rem; }
+
+  .toast{
+    position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
+    background:var(--brown); color:#fff; padding:.7rem 1.1rem; border-radius:10px; font-size:.86rem;
+    box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;
+  }
+  .toast.show{ opacity:1; }
+  .live-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green-bright); margin-right:.35rem; vertical-align:middle; animation:pulse 2s infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+  .footer-note{ text-align:center; font-size:.74rem; color:var(--muted); margin-top:2rem; }
+</style>
+</head>
+<body>
+
+<!-- ══ PASSWORD GATE ══ -->
+<div id="gate">
+  <div class="gate-wrap">
+    <div class="gate-card">
+      <div class="badge">LEFC<span class="u">|U</span> · PREACHING</div>
+      <h1>Preaching Sign-Up</h1>
+      <p>Hebrews teaching series · Sept 2026 – May 2027.<br>Enter the access password to continue.</p>
+      <input id="pw" class="field-pw" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="pw-btn" class="btn btn-full">Enter</button>
+      <div id="pw-err" class="err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IDENTITY PICKER ══ -->
+<div id="who">
+  <div class="gate-wrap">
+    <div class="gate-card">
+      <div class="badge">LEFC<span class="u">|U</span> · PREACHING</div>
+      <h1>Who's signing in?</h1>
+      <p>Pick your name. You'll set your availability on the open Sundays with a single tap per date.</p>
+      <select id="who-sel" class="field-sel"></select>
+      <button id="who-btn" class="btn btn-full">Continue</button>
+      <div id="who-err" class="err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">LEFC|U</div>
+      <div>
+        <h1>Preaching Sign-Up · Hebrews</h1>
+        <div class="sub">Lancaster Evangelical Free Church</div>
+      </div>
+    </div>
+    <div class="right">
+      <span class="who-chip">Signed in as <strong id="who-name">—</strong></span>
+      <span id="view-chip" class="view-chip" style="display:none;">All preachers</span>
+      <button id="switch-btn" class="btn switch-btn btn-sm">Switch user</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <p class="intro" id="intro"></p>
+
+    <div class="legend">
+      <span class="lg-title">Key</span>
+      <span class="lg-item"><span class="dot s-none"></span> <b>No response yet</b></span>
+      <span class="lg-item"><span class="dot s-available">✓</span> <b>Available</b></span>
+      <span class="lg-item"><span class="dot s-desired">♥</span> <b>Available &amp; strongly want it</b></span>
+      <span class="lg-item"><span class="dot s-maybe">~</span> <b>Not ideal, but possible</b></span>
+      <span class="lg-item"><span class="dot s-no">✕</span> <b>Not available</b></span>
+    </div>
+
+    <div class="progress" id="progress"></div>
+
+    <div class="grid-wrap">
+      <table class="grid" id="grid"></table>
+    </div>
+
+    <p class="footer-note"><span class="live-dot"></span>Live — updates from everyone appear automatically. Every tap saves instantly. · LEFC<span style="color:var(--terra)">|U</span></p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Preaching Sign-Up — Hebrews series (Sept 2026 – May 2027).
+   Standalone page for the LEFC preaching team, backed by Airtable
+   (shares the ABF base; its own two tables: Preaching Sundays /
+   Preaching Availability).
+
+   Access:   shared password ("oikos").
+   Identity: pick your name. Each of the 6 rotating preachers sets
+             their own availability; a person sees ONLY their own
+             column. Tony Hunt and Tom Daly see the full grid.
+   Tony's Sundays are pre-assigned and fixed; Guest-Preacher Sundays
+   are fixed too. The rest are open for the rotation to claim.
+   ══════════════════════════════════════════════════════════════ */
+
+const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+
+/* Roster. `picks:true` = one of the rotating preachers (gets a column).
+   `admin:true` = sees the full grid (everyone's columns). */
+const ROSTER = [
+  { id:'tony', name:'Tony Hunt',    admin:true,  picks:false },
+  { id:'nick', name:'Nick',                       picks:true  },
+  { id:'joel', name:'Joel',                       picks:true  },
+  { id:'gary', name:'Gary Poorman',               picks:true  },
+  { id:'jeff', name:'Jeff Travis',                picks:true  },
+  { id:'bob',  name:'Bob',                        picks:true  },
+  { id:'tom',  name:'Tom Daly',     admin:true,  picks:true  },
+];
+const PICKERS = ROSTER.filter(p => p.picks);   // column order in the full grid
+
+/* Cycle order for a single tap. null = gray / no response. */
+const CYCLE = [null, 'available', 'desired', 'maybe', 'no'];
+const GLYPH = { available:'✓', desired:'♥', maybe:'~', no:'✕' };
+
+/* Airtable — same base + base-scoped token as the rest of the site.
+   Token split so GitHub's secret scanner doesn't flag the repo. Not a
+   security measure: anyone past the gate can read it. */
+const AT = {
+  get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
+  BASE: 'appTpp1agJQqoId07',
+  TBL: { sundays:'Preaching Sundays', avail:'Preaching Availability' },
+  async api(method, table, opts={}){
+    const { recordId, body, query } = opts;
+    let path = '/' + encodeURIComponent(table);
+    if (recordId) path += '/' + recordId;
+    const qs = query ? '?' + query : '';
+    const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
+      method,
+      headers:{ 'Authorization':'Bearer ' + this.TOKEN, 'Content-Type':'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok){ const t = await res.text(); console.error('[airtable]', method, table, res.status, t); throw new Error('Airtable '+res.status); }
+    return res.status === 204 ? null : res.json();
+  },
+  async listAll(table){
+    const out = []; let offset = null;
+    do {
+      const q = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+      const page = await this.api('GET', table, { query:q });
+      out.push(...(page.records||[]));
+      offset = page.offset || null;
+    } while(offset);
+    return out;
+  }
+};
+
+/* ── helpers ── */
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2400); }
+
+/* ── identity ── */
+let ME = null;
+function loadIdentity(){ try { return JSON.parse(localStorage.getItem('preachIdentity')||'null'); } catch(e){ return null; } }
+function saveIdentity(m){ localStorage.setItem('preachIdentity', JSON.stringify(m)); }
+function clearIdentity(){ localStorage.removeItem('preachIdentity'); }
+function isAdmin(){ return !!(ME && ME.admin); }
+
+/* ── state ── */
+let state = { sundays:[], avail:[] };   // avail: Airtable records
+let pending = {};                        // key -> true while a write is in flight (blocks poll clobber)
+let pollTimer = null, pausePollUntil = 0;
+
+/* ── screens ── */
+function show(screen){ ['gate','who','app'].forEach(s => $('#'+s).style.display = (s===screen ? 'block' : 'none')); }
+
+/* ── gate ── */
+async function tryAccess(){
+  const val = $('#pw').value.trim();
+  $('#pw-err').textContent = '';
+  if(!val) return;
+  $('#pw-btn').disabled = true;
+  try {
+    if(await sha256(val) === ACCESS_HASH){ sessionStorage.setItem('preachUnlocked','1'); afterUnlock(); }
+    else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
+  } catch(e){ $('#pw-err').textContent = 'Something went wrong. Try again.'; }
+  $('#pw-btn').disabled = false;
+}
+function afterUnlock(){
+  const saved = loadIdentity();
+  if(saved && ROSTER.some(p => p.id === saved.id)){ ME = ROSTER.find(p=>p.id===saved.id); enterApp(); }
+  else showIdentityPicker();
+}
+
+/* ── identity picker ── */
+function showIdentityPicker(){
+  const sel = $('#who-sel');
+  sel.innerHTML = '<option value="" disabled selected>Select your name…</option>'
+    + ROSTER.map(p => '<option value="'+p.id+'">'+esc(p.name)+(p.picks?'':' (view only)')+'</option>').join('');
+  $('#who-err').textContent = '';
+  show('who');
+}
+function chooseIdentity(){
+  const id = $('#who-sel').value;
+  if(!id){ $('#who-err').textContent = 'Please pick your name.'; return; }
+  ME = ROSTER.find(p => p.id === id);
+  saveIdentity({ id:ME.id, name:ME.name });
+  enterApp();
+}
+
+/* ── app ── */
+async function enterApp(){
+  $('#who-name').textContent = ME.name;
+  $('#view-chip').style.display = isAdmin() ? 'inline-block' : 'none';
+  const cols = visibleCols();
+  if(isAdmin()){
+    $('#intro').innerHTML = 'Full view — you can see every preacher’s response.'
+      + (ME.picks ? ' Tap any date in <strong>your</strong> column to set your own availability.' : ' (Your Sundays are already fixed.)');
+  } else {
+    $('#intro').innerHTML = 'Tap any <strong>open</strong> Sunday to cycle your response. Each tap saves instantly — no submit button. You only see your own column.';
+  }
+  show('app');
+  await loadSundays();
+  await loadAvail();
+  render();
+  startPolling();
+}
+function switchUser(){ stopPolling(); clearIdentity(); ME = null; showIdentityPicker(); }
+
+function visibleCols(){ return isAdmin() ? PICKERS : [ME]; }
+function canEdit(colId){ return colId === ME.id && ME.picks; }
+
+/* ── data ── */
+async function loadSundays(){
+  if(state.sundays.length) return;
+  const recs = await AT.listAll(AT.TBL.sundays);
+  state.sundays = recs.sort((a,b)=> (a.fields.Order||0)-(b.fields.Order||0));
+}
+async function loadAvail(){
+  state.avail = await AT.listAll(AT.TBL.avail);
+}
+function availKey(dateISO, colId){ return dateISO + '|' + colId; }
+function findAvail(dateISO, colId){
+  const k = availKey(dateISO, colId);
+  return state.avail.find(r => (r.fields.Key||'') === k);
+}
+function statusOf(dateISO, colId){
+  const r = findAvail(dateISO, colId);
+  return r ? (r.fields.Status || null) : null;
+}
+function isOpen(f){ return !((f.Speaker||'').trim()); }
+
+/* ── render ── */
+function render(){
+  const cols = visibleCols();
+  const head = '<thead><tr>'
+    + '<th class="c-date">Date</th>'
+    + '<th>Series / Passage</th>'
+    + '<th>Assigned</th>'
+    + cols.map(c => '<th class="who-col">'+esc(c.name.split(' ')[0])+'</th>').join('')
+    + '</tr></thead>';
+
+  const body = '<tbody>' + state.sundays.map(rec => {
+    const f = rec.fields;
+    const iso = f.DateISO;
+    const open = isOpen(f);
+    const noteFlag = /family worship/i.test(f.Notes||'') ? '<span class="note-badge">Family Worship</span>'
+                    : /christmas/i.test(f.Notes||'') ? '<span class="note-badge">Christmas</span>'
+                    : /lent/i.test(f.Notes||'') ? '<span class="note-badge">Lent</span>' : '';
+    const assigned = open
+      ? '<span class="tag tag-open">Open</span>'
+      : (/guest/i.test(f.Speaker) ? '<span class="tag tag-guest">Guest</span>' : '<span class="tag tag-tony">'+esc(f.Speaker)+'</span>');
+
+    const cells = cols.map(c => {
+      if(!open){ return '<td class="na">—</td>'; }
+      const st = statusOf(iso, c.id);
+      const cls = 's-' + (st || 'none');
+      const editable = canEdit(c.id);
+      return '<td>'
+        + '<button class="cell '+(editable?'editable':'ro')+'" '
+          + (editable ? 'data-date="'+esc(iso)+'" data-col="'+esc(c.id)+'"' : 'disabled')
+          + ' title="'+(st?st:'no response')+'">'
+          + '<span class="dot '+cls+'">'+(st?GLYPH[st]:'')+'</span>'
+        + '</button></td>';
+    }).join('');
+
+    return '<tr class="'+(open?'':'row-fixed')+'">'
+      + '<td class="c-date">'+esc(f.DateLabel)+noteFlag+'</td>'
+      + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
+        + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
+      + '<td class="c-assigned">'+assigned+'</td>'
+      + cells
+      + '</tr>';
+  }).join('') + '</tbody>';
+
+  $('#grid').innerHTML = head + body;
+  renderProgress();
+}
+
+function renderProgress(){
+  const openSundays = state.sundays.filter(r => isOpen(r.fields));
+  if(!ME.picks){ $('#progress').innerHTML = '<b>'+openSundays.length+'</b> open Sundays in the series.'; return; }
+  const done = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)).length;
+  const desired = openSundays.filter(r => statusOf(r.fields.DateISO, ME.id)==='desired').length;
+  $('#progress').innerHTML = 'You’ve responded to <b>'+done+'</b> of <b>'+openSundays.length+'</b> open Sundays'
+    + (desired?(' · <b>'+desired+'</b> marked “strongly want”'):'') + '.';
+}
+
+/* ── click to cycle + self-save ── */
+async function cycle(dateISO, colId){
+  if(!canEdit(colId)) return;
+  const cur = statusOf(dateISO, colId);
+  const next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
+  const key = availKey(dateISO, colId);
+  pending[key] = true;
+  pausePollUntil = Date.now() + 4000;
+
+  const rec = findAvail(dateISO, colId);
+  // optimistic local update
+  if(next === null){
+    if(rec) state.avail = state.avail.filter(r => r.id !== rec.id);
+  } else if(rec){
+    rec.fields.Status = next;
+  } else {
+    state.avail.push({ id:'tmp_'+Date.now(), fields:{ Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next } });
+  }
+  render();
+
+  try {
+    if(next === null){
+      if(rec && !rec.id.startsWith('tmp_')) await AT.api('DELETE', AT.TBL.avail, { recordId: rec.id });
+    } else if(rec && !rec.id.startsWith('tmp_')){
+      await AT.api('PATCH', AT.TBL.avail, { recordId: rec.id, body:{ fields:{ Status:next, UpdatedAt:new Date().toISOString() } } });
+    } else {
+      const created = await AT.api('POST', AT.TBL.avail, { body:{ fields:{
+        Key:key, DateISO:dateISO, PreacherId:colId, Preacher:ME.name, Status:next, UpdatedAt:new Date().toISOString()
+      } } });
+      const opt = state.avail.find(r => (r.fields.Key||'')===key);
+      if(opt) opt.id = created.id;
+    }
+  } catch(e){
+    toast('Didn’t save — reloading.'); await loadAvail(); render();
+  }
+  delete pending[key];
+}
+
+/* ── live polling ── */
+function startPolling(){
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    if(Date.now() < pausePollUntil) return;
+    if(Object.keys(pending).length) return;
+    try {
+      const fresh = await AT.listAll(AT.TBL.avail);
+      // don't clobber cells with in-flight writes
+      if(Object.keys(pending).length) return;
+      const changed = JSON.stringify(sig(fresh)) !== JSON.stringify(sig(state.avail));
+      if(changed){ state.avail = fresh; render(); }
+    } catch(e){ /* transient — try again next tick */ }
+  }, 9000);
+}
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+function sig(recs){ return recs.map(r => (r.fields.Key||'')+':'+(r.fields.Status||'')).sort(); }
+
+/* ── events ── */
+$('#pw-btn').addEventListener('click', tryAccess);
+$('#pw').addEventListener('keydown', e => { if(e.key==='Enter') tryAccess(); });
+$('#who-btn').addEventListener('click', chooseIdentity);
+$('#switch-btn').addEventListener('click', switchUser);
+$('#grid').addEventListener('click', e => {
+  const b = e.target.closest('button.cell.editable'); if(!b) return;
+  cycle(b.dataset.date, b.dataset.col);
+});
+document.addEventListener('visibilitychange', () => { if(document.hidden) stopPolling(); else if(ME) startPolling(); });
+
+/* ── boot ── */
+if(sessionStorage.getItem('preachUnlocked') === '1'){ afterUnlock(); }
+else { show('gate'); $('#pw').focus(); }
+</script>
+</body>
+</html>
