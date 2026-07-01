@@ -323,7 +323,7 @@ function show(screen){ ['who','app'].forEach(s => $('#'+s).style.display = (s===
 function showIdentityPicker(){
   const sel = $('#who-sel');
   sel.innerHTML = '<option value="" disabled selected>Select your name…</option>'
-    + ROSTER.map(p => '<option value="'+p.id+'">'+esc(p.name)+(p.picks?'':' (view only)')+'</option>').join('');
+    + ROSTER.map(p => '<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
   $('#who-err').textContent = '';
   show('who');
 }
