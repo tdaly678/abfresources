@@ -124,12 +124,17 @@
   }
   table.grid thead th.who-col{ background:var(--olive); }
   table.grid thead th.plan-col{ background:var(--steel); }
-  th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:96px; }
+  th.c-date, td.c-date{ position:sticky; left:0; z-index:2; background:var(--card); text-align:left; min-width:56px; white-space:normal; }
   thead th.c-date{ z-index:4; background:var(--brown); }
-  td.c-date{ font-weight:800; color:var(--brown); }
+  td.c-date{ font-weight:800; color:var(--brown); line-height:1.2; }
+  td.c-date .d-main{ display:block; }
+  td.c-date .lil{ display:block; font-weight:600; font-size:.7rem; color:var(--muted); }
   td.c-info{ text-align:left; max-width:320px; white-space:normal; }
+  .grid-solo td.c-info{ max-width:none; }
   td.c-info .psg{ font-weight:800; color:var(--steel); }
   td.c-info .subj{ font-size:.8rem; color:var(--muted); }
+  td.c-info .badges{ display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.3rem; }
+  td.c-info .badges .note-badge{ margin-left:0; }
   td.c-assigned{ font-weight:700; }
   .tag{ display:inline-block; font-size:.7rem; font-weight:800; padding:.16rem .5rem; border-radius:6px; text-transform:uppercase; letter-spacing:.03em; }
   .tag-open{ background:#e4ebe6; color:var(--olive); }
@@ -181,9 +186,11 @@
     table.grid{ font-size:.8rem; }
     table.grid th, table.grid td{ padding:.4rem .4rem; }
     table.grid thead th{ font-size:.66rem; padding:.45rem .4rem; }
-    th.c-date, td.c-date{ min-width:74px; }
-    td.c-date{ font-size:.8rem; }
+    th.c-date, td.c-date{ min-width:50px; }
+    td.c-date{ font-size:.82rem; }
+    td.c-date .lil{ font-size:.66rem; }
     td.c-info{ max-width:150px; }
+    .grid-solo td.c-info{ max-width:none; }
     td.c-info .subj{ font-size:.72rem; }
     .note-badge{ font-size:.6rem; padding:.06rem .3rem; margin-left:.25rem; }
     .dot{ width:32px; height:32px; }          /* keep taps easy */
@@ -455,6 +462,7 @@ function render(){
     const f = rec.fields;
     const iso = f.DateISO;
     const open = isOpen(f);
+    const dParts = (f.DateLabel||'').split(', ');   // ["Sep 13","2026"]
     const notes = f.Notes||'';
     let noteFlag = '';
     if(/family worship/i.test(notes)) noteFlag += '<span class="note-badge">Family Worship</span>';
@@ -492,15 +500,17 @@ function render(){
     }
 
     return '<tr class="'+rowCls+'">'
-      + '<td class="c-date">'+esc(f.DateLabel)+noteFlag+'</td>'
+      + '<td class="c-date"><span class="d-main">'+esc(dParts[0])+'</span>'+(dParts[1]?'<span class="lil">'+esc(dParts[1])+'</span>':'')+'</td>'
       + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
-        + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
+        + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')
+        + (noteFlag?'<div class="badges">'+noteFlag+'</div>':'')+'</td>'
       + (admin ? '' : '<td class="c-assigned">'+assignedTag+'</td>')
       + cells
       + planCell
       + '</tr>';
   }).join('') + '</tbody>';
 
+  $('#grid').className = 'grid' + (admin ? '' : ' grid-solo');
   $('#grid').innerHTML = head + body;
   renderProgress();
 }
