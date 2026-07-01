@@ -173,7 +173,7 @@
     <div class="gate-card">
       <div class="badge">LEFC<span class="u">|U</span> · PREACHING</div>
       <h1>Preaching Sign-Up</h1>
-      <p>Hebrews teaching series · Sept 2026 – May 2027.<br>Pick your name. You'll set your availability on the open Sundays with a single tap per date.</p>
+      <p id="picker-sub">Pick your name. You'll set your availability on the open Sundays with a single tap per date.</p>
       <select id="who-sel" class="field-sel"></select>
       <button id="who-btn" class="btn btn-full">Continue</button>
       <div id="who-err" class="err"></div>
@@ -280,7 +280,7 @@ const WEIGHT = { desired:3, available:2, maybe:1 };       // assignable positive
 const AT = {
   get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
   BASE: 'appTpp1agJQqoId07',
-  TBL: { sundays:'Preaching Sundays', avail:'Preaching Availability' },
+  TBL: { sundays:'Preaching Sundays', avail:'Preaching Availability', config:'Preaching Config' },
   async api(method, table, opts={}){
     const { recordId, body, query } = opts;
     let path = '/' + encodeURIComponent(table);
@@ -347,7 +347,38 @@ function chooseIdentity(){
   saveIdentity({ id:ME.id, name:ME.name });
   enterApp();
 }
-function boot(){
+/* ── series config (name + passage prefix, driven by Airtable) ── */
+let SERIES = { name:'', prefix:'' };
+async function loadConfig(){
+  try {
+    const recs = await AT.listAll(AT.TBL.config);
+    const c = recs[0];
+    if(c){ SERIES.name = (c.fields.SeriesName||'').trim(); SERIES.prefix = (c.fields.BookAbbrev||'').trim(); }
+  } catch(e){ /* table may not exist yet — fall back to generic labels */ }
+}
+function seriesRange(){
+  if(!state.sundays.length) return '';
+  const shorten = s => { const p=(s||'').split(', '); return (p[0]||'').split(' ')[0]+' '+(p[1]||''); };
+  const a = shorten(state.sundays[0].fields.DateLabel);
+  const b = shorten(state.sundays[state.sundays.length-1].fields.DateLabel);
+  return a && b ? a+' – '+b : '';
+}
+function applySeriesText(){
+  const nm = SERIES.name;
+  const label = 'Preaching Sign-Up' + (nm ? ' · '+nm : '');
+  document.title = label;
+  const h1 = document.querySelector('.topbar h1'); if(h1) h1.textContent = label;
+  const sub = $('#picker-sub');
+  if(sub){
+    const range = seriesRange();
+    sub.innerHTML = (nm ? esc(nm)+' teaching series' : 'Preaching schedule')
+      + (range ? ' · '+esc(range) : '')
+      + '.<br>Pick your name. You’ll set your availability on the open Sundays with a single tap per date.';
+  }
+}
+async function boot(){
+  try { await loadConfig(); await loadSundays(); } catch(e){}
+  applySeriesText();
   const saved = loadIdentity();
   if(saved && byId(saved.id)){ ME = byId(saved.id); enterApp(); }
   else showIdentityPicker();
@@ -464,7 +495,7 @@ function render(){
 
     return '<tr class="'+rowCls+'">'
       + '<td class="c-date"><span class="d-lbl">'+esc(f.DateLabel)+'</span>'+(noteFlag?'<span class="d-tags">'+noteFlag+'</span>':'')+'</td>'
-      + '<td class="c-info"><span class="psg">'+(f.Passage?('Heb '+esc(f.Passage)):esc(f.Subject))+'</span>'
+      + '<td class="c-info"><span class="psg">'+(f.Passage?((SERIES.prefix?SERIES.prefix+' ':'')+esc(f.Passage)):esc(f.Subject))+'</span>'
         + (f.Passage?'<div class="subj">'+esc(f.Subject)+'</div>':'')+'</td>'
       + (admin ? '' : '<td class="c-assigned">'+assignedTag+'</td>')
       + cells
@@ -619,7 +650,7 @@ function exportExcel(){
   for(let i=2;i<=aoa.length;i++){ const c = ws['A'+i]; if(c && c.t==='d'){ c.z = 'm/d/yyyy'; } }
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-  XLSX.writeFile(wb, 'Hebrews series - preaching schedule.xlsx');
+  XLSX.writeFile(wb, (SERIES.name||'Preaching')+' series - preaching schedule.xlsx');
   toast('Excel downloaded.');
 }
 
