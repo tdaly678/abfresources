@@ -114,6 +114,22 @@
   .progress{ font-size:.84rem; color:var(--muted); margin:.2rem 0 1rem; }
   .progress b{ color:var(--terra); }
 
+  /* ── series tracker (admins) ── */
+  .tracker{
+    display:none; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:.9rem 1.1rem; margin-bottom:1rem; gap:.5rem .6rem; flex-wrap:wrap; align-items:center;
+  }
+  .tracker .tk-title{ font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-right:.3rem; }
+  .tk-chip{
+    display:inline-flex; align-items:baseline; gap:.35rem; background:#faf6ee; border:1px solid var(--line);
+    border-radius:9px; padding:.32rem .6rem; font-size:.8rem; font-weight:700; color:var(--text); white-space:nowrap;
+  }
+  .tk-chip b{ color:var(--brown); font-weight:800; }
+  .tk-chip .tk-pct{ font-size:.72rem; font-weight:800; color:var(--terra); }
+  .tk-chip.tk-zero{ opacity:.55; }
+  .tk-chip.tk-guest{ background:#e7ecef; border-color:#cfdae0; }
+  .tk-chip.tk-guest b{ color:var(--steel); }
+
   /* ── grid ── */
   .grid-wrap{ background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:auto; -webkit-overflow-scrolling:touch; }
   table.grid{ border-collapse:collapse; width:100%; font-size:.86rem; }
@@ -201,6 +217,9 @@
   <div class="container">
     <p class="intro" id="intro"></p>
 
+    <!-- admin-only realtime series tracker -->
+    <div class="tracker" id="tracker"></div>
+
     <div class="legend">
       <span class="lg-title">Key</span>
       <span class="lg-item"><span class="dot s-none"></span> <b>No response yet</b></span>
@@ -259,7 +278,10 @@ const ROSTER = [
 const PICKERS  = ROSTER.filter(p => p.picks);            // grid columns
 const ROTATING = PICKERS.filter(p => p.id !== 'tom');    // Nick..Bob (1–2 each)
 const FILLER   = ROSTER.find(p => p.id === 'tom');       // takes the rest
-const byId = id => ROSTER.find(p => p.id === id);
+/* Guest Preacher — assignable in the Plan dropdown, not part of the roster
+   (no availability column, no identity). Stored by name like everyone else. */
+const GUEST = { id:'guest', name:'Guest Preacher' };
+const byId = id => id === GUEST.id ? GUEST : ROSTER.find(p => p.id === id);
 
 /* Extra calendar tags shown as badges on specific dates (array per date). */
 const DATE_TAGS = {
@@ -451,7 +473,8 @@ function render(){
     + '</tr></thead>';
 
   const planOptions = sel => '<option value="">— open —</option>'
-    + ROSTER.map(p => '<option value="'+p.id+'"'+(sel===p.id?' selected':'')+'>'+esc(p.name)+'</option>').join('');
+    + ROSTER.map(p => '<option value="'+p.id+'"'+(sel===p.id?' selected':'')+'>'+esc(p.name)+'</option>').join('')
+    + '<option value="'+GUEST.id+'"'+(sel===GUEST.id?' selected':'')+'>'+esc(GUEST.name)+'</option>';
 
   const body = '<tbody>' + state.sundays.map(rec => {
     const f = rec.fields;
@@ -483,7 +506,7 @@ function render(){
     if(admin){
       if(open){
         const cur = assignedOf(f);            // stored as name; map to id for the select
-        const curId = (ROSTER.find(p=>p.name===cur)||{}).id || '';
+        const curId = (ROSTER.find(p=>p.name===cur)||{}).id || (cur===GUEST.name ? GUEST.id : '');
         const prob = problemOf(f);
         if(prob) rowCls = prob.type==='gap' ? 'row-problem' : 'row-conflict';
         const warn = prob ? '<div class="warn warn-'+(prob.type==='gap'?'gap':'conflict')+'">⚠ '+esc(prob.msg)+'</div>' : '';
@@ -504,16 +527,43 @@ function render(){
   }).join('') + '</tbody>';
 
   $('#grid').innerHTML = head + body;
+  renderTracker();
   renderProgress();
+}
+
+/* ── realtime series tracker (Tom & Tony only) ──
+   Counts EVERY Sunday in the series: fixed rows by their Speaker
+   (Tony / Guest), open rows by the planned preacher. */
+function renderTracker(){
+  const el = $('#tracker'); if(!el) return;
+  if(!isAdmin()){ el.style.display = 'none'; return; }
+  const total = state.sundays.length;
+  const counts = {}; ROSTER.forEach(p => counts[p.name] = 0); counts[GUEST.name] = 0;
+  state.sundays.forEach(r => {
+    const f = r.fields;
+    let name;
+    if(isOpen(f)) name = assignedOf(f);
+    else name = /guest/i.test(f.Speaker||'') ? GUEST.name : (f.Speaker||'').trim();
+    if(name && counts[name] != null) counts[name]++;
+  });
+  el.innerHTML = '<span class="tk-title">Series tracker</span>'
+    + ROSTER.concat(GUEST).map(p => {
+        const n = counts[p.name];
+        const pct = total ? Math.round(n / total * 100) : 0;
+        return '<span class="tk-chip'+(n ? '' : ' tk-zero')+(p.id===GUEST.id ? ' tk-guest' : '')+'">'
+          + '<b>'+esc(p.name.split(' ')[0])+'</b> '+n+'/'+total
+          + ' <span class="tk-pct">'+pct+'%</span></span>';
+      }).join('');
+  el.style.display = 'flex';
 }
 
 function renderProgress(){
   const openSundays = state.sundays.filter(r => isOpen(r.fields));
   if(isAdmin()){
-    const counts = {}; ROSTER.forEach(p=>counts[p.name]=0);
+    const counts = {}; ROSTER.forEach(p=>counts[p.name]=0); counts[GUEST.name]=0;
     let planned = 0;
     openSundays.forEach(r=>{ const a=assignedOf(r.fields); if(a){ planned++; if(counts[a]!=null) counts[a]++; } });
-    const summary = ROSTER.filter(p=>counts[p.name]).map(p=>p.name.split(' ')[0]+' ×'+counts[p.name]).join(' · ');
+    const summary = ROSTER.concat(GUEST).filter(p=>counts[p.name]).map(p=>p.name.split(' ')[0]+' ×'+counts[p.name]).join(' · ');
     const problems = openSundays.filter(r=>problemOf(r.fields)).length;
     $('#progress').innerHTML = '<b>'+planned+'</b> of <b>'+openSundays.length+'</b> open Sundays planned'
       + (summary ? ' — '+summary : ' — no plan yet')
