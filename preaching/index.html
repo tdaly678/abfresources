@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex" />
 <title>Preaching Sign-Up · Hebrews</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root{
     --brown:#342D25; --gold:#BCA944; --olive:#524B30;
@@ -682,26 +682,82 @@ async function changePlan(dateISO, preacherId){
   catch(e){ toast('Change didn’t save — reloading.'); await loadSundays(true); render(); }
 }
 
-/* ══ EXCEL EXPORT — mirrors the uploaded workbook exactly ══
-   Columns: Date | Subject | Text | Speaker | Notes, one row per Sunday.
-   Speaker = fixed speaker for Tony/Guest rows, else the planned preacher. */
-function exportExcel(){
-  const aoa = [['Date','Subject','Text','Speaker','Notes']];
-  state.sundays.forEach(r=>{
-    const f = r.fields;
-    const speaker = isOpen(f) ? assignedOf(f) : (f.Speaker||'');
-    const [y,m,d] = (f.DateISO||'').split('-').map(Number);
-    const dateVal = (y? new Date(y, m-1, d) : (f.DateLabel||''));
-    aoa.push([ dateVal, f.Subject||'', f.Passage||'', speaker, f.Notes||'' ]);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates:true });
-  ws['!cols'] = [{wch:12},{wch:52},{wch:12},{wch:16},{wch:60}];
-  // format the date column (col A, skip header)
-  for(let i=2;i<=aoa.length;i++){ const c = ws['A'+i]; if(c && c.t==='d'){ c.z = 'm/d/yyyy'; } }
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-  XLSX.writeFile(wb, (SERIES.name||'Preaching')+' series - preaching schedule.xlsx');
-  toast('Excel downloaded.');
+/* ══ EXCEL EXPORT ══
+   Columns A–E: Date | Subject | Text | Speaker | Notes (header on row 1 so the
+   sheet re-imports cleanly), one row per Sunday. Speaker = fixed speaker for
+   Tony/Guest rows, else the planned preacher — with a DROPDOWN on every
+   Speaker cell (same options as the website's Plan column).
+   Columns G–I: live stats block — per-person COUNTIF totals + % of series,
+   plus Total / Assigned / Still open. All formula-driven, so switching a name
+   in a dropdown updates the stats instantly. */
+async function exportExcel(){
+  try{
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Schedule');
+    const names = ROSTER.map(p=>p.name).concat(GUEST.name);
+    const n = state.sundays.length;
+    const lastRow = n + 1;                       // data = rows 2..lastRow
+    const spk = '$D$2:$D$' + lastRow;
+
+    // schedule table (A–E)
+    ws.getRow(1).values = ['Date','Subject','Text','Speaker','Notes'];
+    state.sundays.forEach((r,i)=>{
+      const f = r.fields;
+      const speaker = isOpen(f) ? assignedOf(f) : (f.Speaker||'');
+      const [y,m,d] = (f.DateISO||'').split('-').map(Number);
+      ws.getRow(i+2).values = [
+        y ? new Date(Date.UTC(y, m-1, d)) : (f.DateLabel||null),
+        f.Subject || null, f.Passage || null, speaker || null, f.Notes || null,
+      ];
+    });
+    // speaker dropdowns — same options as the site's Plan column (blank = open)
+    const listRef = '"' + names.join(',') + '"';
+    for(let r=2; r<=lastRow; r++){
+      ws.getCell('D'+r).dataValidation = {
+        type:'list', allowBlank:true, formulae:[listRef],
+        showErrorMessage:true, errorTitle:'Pick from the list',
+        error:'Choose a preacher from the roster (or Guest Preacher), or clear the cell to leave the Sunday open.',
+      };
+    }
+
+    // stats block (G–I) — all formulas, live off the Speaker column
+    const totalR = 2 + names.length, assignedR = totalR + 1, openR = totalR + 2;
+    ws.getCell('G1').value = 'Preacher';
+    ws.getCell('H1').value = 'Sundays';
+    ws.getCell('I1').value = '% of Series';
+    names.forEach((name,i)=>{
+      const r = 2 + i;
+      ws.getCell('G'+r).value = name;
+      ws.getCell('H'+r).value = { formula:'COUNTIF('+spk+',$G'+r+')' };
+      ws.getCell('I'+r).value = { formula:'IF($H$'+totalR+'=0,0,$H'+r+'/$H$'+totalR+')' };
+      ws.getCell('I'+r).numFmt = '0%';
+    });
+    ws.getCell('G'+totalR).value = 'Total Sundays';
+    ws.getCell('H'+totalR).value = { formula:'COUNTA($A$2:$A$'+lastRow+')' };
+    ws.getCell('G'+assignedR).value = 'Assigned';
+    ws.getCell('H'+assignedR).value = { formula:'COUNTA('+spk+')' };
+    ws.getCell('I'+assignedR).value = { formula:'IF($H$'+totalR+'=0,0,$H'+assignedR+'/$H$'+totalR+')' };
+    ws.getCell('I'+assignedR).numFmt = '0%';
+    ws.getCell('G'+openR).value = 'Still open';
+    ws.getCell('H'+openR).value = { formula:'$H$'+totalR+'-$H$'+assignedR };
+    [totalR, assignedR, openR].forEach(r => ws.getCell('G'+r).font = { bold:true });
+
+    // presentation
+    ws.getRow(1).font = { bold:true };
+    [12,52,12,18,60,2,17,10,12].forEach((w,i)=> ws.getColumn(i+1).width = w);
+    for(let r=2; r<=lastRow; r++) ws.getCell('A'+r).numFmt = 'm/d/yyyy';
+    ws.views = [{ state:'frozen', ySplit:1 }];
+
+    // download
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (SERIES.name||'Preaching')+' series - preaching schedule.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Excel downloaded.');
+  } catch(e){ console.error('[export]', e); toast('Export failed — try again.'); }
 }
 
 /* ── live polling ── */
