@@ -2571,6 +2571,63 @@
       line-height: 1.5;
     }
 
+    /* ─── Construction update card (home) ───────────────────────── */
+    .construction-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border-top: 3px solid var(--gold);
+      overflow: hidden;
+    }
+    .construction-body { padding: 1.1rem 1.25rem .35rem; }
+    .construction-body h3 {
+      font-size: 1.15rem; font-weight: 800;
+      color: var(--dark-brown);
+      line-height: 1.25;
+      margin-bottom: .35rem;
+    }
+    .construction-body p {
+      font-size: .85rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      max-width: 62ch;
+    }
+    .construction-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .6rem;
+      padding: 1rem 1.25rem 1.25rem;
+    }
+    .construction-gallery figure {
+      position: relative;
+      margin: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      background: var(--dark-brown);
+    }
+    .construction-gallery figure.hero {
+      grid-column: 1 / -1;
+      aspect-ratio: 21 / 9;
+    }
+    .construction-gallery img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform .4s ease;
+    }
+    .construction-gallery figure:hover img { transform: scale(1.045); }
+    .construction-gallery figcaption {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 1.2rem .7rem .5rem;
+      font-size: .7rem; font-weight: 600; letter-spacing: .01em;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(30, 20, 10, .78));
+    }
+    @media (max-width: 700px) {
+      .construction-gallery { grid-template-columns: 1fr; }
+      .construction-gallery figure.hero { aspect-ratio: 16 / 10; }
+    }
+
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2711,30 +2768,31 @@
       <!-- ── KEY ANNOUNCEMENTS ──────────────────────────────── -->
       <div class="announcements-section">
         <div class="section-title">Key Announcements</div>
-        <div class="announcements-grid">
 
-          <div class="announcement-card">
-            <div class="announcement-embed">
-              <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="announcement-body">
-              <span class="announcement-eyebrow">For ABF Leaders</span>
-              <h3>Scheduling Tutorial — ABF Leaders</h3>
-              <p>A walkthrough of the new in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year. Watch this first before using the Scheduling tab.</p>
-            </div>
+        <div class="construction-card">
+          <div class="construction-body">
+            <span class="announcement-eyebrow">Construction Update &mdash; July 2026</span>
+            <h3>Our New ABF Spaces Are Taking Shape</h3>
+            <p>Fresh paint, new carpet, and ceilings going in &mdash; the new wing is coming together fast. Here's a first look at the rooms and commons area your ABFs will call home this fall, including <strong>Room D6 (Mosaic)</strong> and <strong>Room D7 (Roots)</strong>.</p>
           </div>
-
-          <div class="announcement-card steel">
-            <div class="announcement-embed">
-              <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="announcement-body">
-              <span class="announcement-eyebrow">For ABF Teachers</span>
-              <h3>Scheduling Tutorial — ABF Teachers</h3>
-              <p>How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders. Quick orientation to your side of the scheduling tool.</p>
-            </div>
+          <div class="construction-gallery">
+            <figure class="hero">
+              <img src="photos/construction/commons.jpg" alt="New commons area under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
+              <figcaption>The new commons area &mdash; gathering space just outside the classrooms</figcaption>
+            </figure>
+            <figure>
+              <img src="photos/construction/hallway.jpg" alt="New classroom hallway under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
+              <figcaption>The new classroom hallway</figcaption>
+            </figure>
+            <figure>
+              <img src="photos/construction/room-d6.jpg" alt="Room D6 under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
+              <figcaption>Room D6 &mdash; Mosaic's new home</figcaption>
+            </figure>
+            <figure>
+              <img src="photos/construction/room-d7.jpg" alt="Room D7 under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
+              <figcaption>Room D7 &mdash; Roots' new home</figcaption>
+            </figure>
           </div>
-
         </div>
       </div>
 
@@ -3810,7 +3868,7 @@
         </div>
 
         <!-- Resources for New Teachers -->
-        <div class="training-section">
+        <div class="training-section" id="training-new-teachers">
           <div class="training-section-header">
             <h3>Resources for New Teachers</h3>
             <span class="audience-badge prospe">New Teachers</span>
@@ -3850,6 +3908,34 @@
               <div class="video-body">
                 <h4>Discussion-Based Teaching</h4>
                 <p>Moving away from sermon-style monologue toward teaching that invites participation, asks good questions, and creates genuine engagement with Scripture in the room.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scheduling Tool Tutorials -->
+        <div class="training-section">
+          <div class="training-section-header">
+            <h3>Scheduling Tool Tutorials</h3>
+            <span class="audience-badge exist">Leaders &amp; Teachers</span>
+          </div>
+          <div class="video-grid">
+            <div class="video-card">
+              <div class="video-embed">
+                <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              </div>
+              <div class="video-body">
+                <h4>Scheduling Tutorial — ABF Leaders</h4>
+                <p>A walkthrough of the in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year. Watch this first before using the Scheduling tab.</p>
+              </div>
+            </div>
+            <div class="video-card">
+              <div class="video-embed">
+                <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              </div>
+              <div class="video-body">
+                <h4>Scheduling Tutorial — ABF Teachers</h4>
+                <p>How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders. Quick orientation to your side of the scheduling tool.</p>
               </div>
             </div>
           </div>
