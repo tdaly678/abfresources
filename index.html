@@ -7156,7 +7156,9 @@
 
     const services = ['1st Service', '2nd Service'];
     services.forEach(service => {
-      const sectionClasses = classes.filter(c => c.service === service && c.active !== false);
+      const sectionClasses = classes
+        .filter(c => c.service === service && c.active !== false)
+        .sort((a, b) => (a.room || 'zzz').localeCompare(b.room || 'zzz', undefined, { numeric: true }) || (a.name || '').localeCompare(b.name || ''));
       if (!sectionClasses.length) return;
       const sec = document.createElement('div');
       sec.className = 'service-section';
