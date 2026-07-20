@@ -376,9 +376,9 @@
         </div>
 
         <div class="card">
-          <h3>Q4 · Most valuable parts of the time together</h3>
-          <div class="q-prompt">Each respondent picked up to 3. Bars show pick frequency.</div>
-          <div id="q4-tally" class="tally"></div>
+          <h3>Q4 · How useful was each part of the time together?</h3>
+          <div class="q-prompt">Average usefulness (1 = not useful, 5 = very useful) for each part.</div>
+          <div id="q4-wrap"></div>
           <div style="margin-top:14px">
             <div class="q-prompt" style="margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Comments on Q4:</div>
             <div id="q4-comments" class="answer-list"></div>
@@ -393,6 +393,12 @@
         <div class="card">
           <h3>Feedback on the gathering</h3>
           <div id="gfb-list" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Creative ideas for congregation engagement</h3>
+          <div class="q-prompt">Ideas to help the congregation engage more fully with the Hebrews series.</div>
+          <div id="ideas-list" class="answer-list"></div>
         </div>
 
         <div class="section-band"><span class="pill">Section 2</span><h2>The Homework</h2></div>
@@ -510,15 +516,15 @@
     const TABLE = 'tbl5Hhks33h8eWX3B';   // Field Follow-Up
     const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
 
-    const Q4_OPTIONS = [
-      'One-word exercise — summarizing Hebrews in a single word',
-      'Opening comments (Tom & Tony)',
-      'Table discussion of Text #1',
-      'Table discussion of Text #2',
-      'Landing on a single-sentence answer to Q6 as a table',
-      'Large-group session — surfacing themes & categories',
-      'The breakout-and-regroup rhythm itself',
-      'The mix of people in the room',
+    // [field, label, opt, shortLabel]
+    const Q4_ITEMS = [
+      ['Q4 Use One-Word Exercise', 'One-word exercise — summarizing Hebrews in a single word', null, 'One-word'],
+      ['Q4 Use Text 1 Discussion', 'Table discussion of Text #1', null, 'Text #1'],
+      ['Q4 Use Text 2 Discussion', 'Table discussion of Text #2', null, 'Text #2'],
+      ['Q4 Use Q6 Sentence', 'Landing on a single-sentence answer to Q6 as a table', null, 'Q6 sentence'],
+      ['Q4 Use Large Group', 'Large-group session — surfacing themes & categories', null, 'Large group'],
+      ['Q4 Use Breakout Rhythm', 'The breakout-and-regroup rhythm itself', null, 'Rhythm'],
+      ['Q4 Use Mix Of People', 'The mix of people in the room', null, 'Mix'],
     ];
     const NOTICE_OPTIONS = ['Yes — plenty of time','Enough, but it was tight','Not quite enough','No — I needed more notice'];
     const HWTIME_OPTIONS = ['Less than 1 hour','1–2 hours','2–4 hours','4–6 hours','More than 6 hours'];
@@ -680,10 +686,10 @@
       return options.map(o => ({ label: o, count: counts.get(o) || 0 }));
     }
 
-    function renderClarity(records) {
-      const wrap = document.getElementById('clarity-wrap');
+    function renderMiniScales(hostId, items, records) {
+      const wrap = document.getElementById(hostId);
       wrap.innerHTML = '';
-      CLARITY.forEach(([field, label, opt]) => {
+      items.forEach(([field, label, opt]) => {
         const block = document.createElement('div');
         block.className = 'clarity-block';
         const lbl = document.createElement('div');
@@ -764,8 +770,6 @@
         const name = clean(f['Submitter Name']) || 'Anonymous';
         const email = clean(f['Submitter Email']);
         const dateStr = rec.createdTime ? fmtDate(rec.createdTime) : '';
-        const q4picks = Array.isArray(f['Q4 Most Valuable Parts']) ? f['Q4 Most Valuable Parts'] : [];
-
         const block = (label, val, opts={}) => {
           if (val === undefined || val === null || val === '' ||
               (Array.isArray(val) && val.length === 0)) {
@@ -775,6 +779,16 @@
           if (Array.isArray(val)) return `<div class="resp-q"><div class="label">${label}</div><div class="val chips">${val.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join('')}</div></div>`;
           return `<div class="resp-q"><div class="label">${label}</div><div class="val">${escapeHtml(String(val))}</div></div>`;
         };
+
+        // Q4 usefulness inline row
+        const q4Cells = Q4_ITEMS.map(([field, label, opt, short]) => {
+          const v = f[field];
+          if (typeof v !== 'number') return '';
+          return `<span class="cc">${escapeHtml(short)} <b>${v}</b></span>`;
+        }).filter(Boolean).join('');
+        const q4Block = q4Cells
+          ? `<div class="resp-q"><div class="label">Q4 · Usefulness of each part (1–5)</div><div class="val"><div class="clarity-inline">${q4Cells}</div></div></div>`
+          : '';
 
         // Clarity inline row
         const clarityCells = CLARITY.map(([field, label]) => {
@@ -800,10 +814,11 @@
             ${block('Q1 · Good use of time', f['Q1 Time Well Spent'], {numeric:true, hideIfEmpty:true})}
             ${block('Q2 · Personally edifying', f['Q2 Personally Edifying'], {numeric:true, hideIfEmpty:true})}
             ${block('Q3 · One thing they walked away with', clean(f['Q3 Single Takeaway']), {hideIfEmpty:true})}
-            ${block('Q4 · Most valuable parts', q4picks, {hideIfEmpty:true})}
+            ${q4Block}
             ${block('Q4 · Comment', clean(f['Q4 Comment']), {hideIfEmpty:true})}
             ${block('Advance notice adequate?', clean(f['Advance Notice Adequate']), {hideIfEmpty:true})}
             ${block('Gathering feedback', clean(f['Gathering Feedback']), {hideIfEmpty:true})}
+            ${block('Creative engagement ideas', clean(f['Engagement Ideas']), {hideIfEmpty:true})}
             <div class="resp-sub">Section 2 · The Homework</div>
             ${block('Time to complete', clean(f['HW Time To Complete']), {hideIfEmpty:true})}
             ${block('Usefulness', f['HW Usefulness'], {numeric:true, hideIfEmpty:true})}
@@ -828,19 +843,18 @@
       renderScale('q1-scale', q1);
       renderScale('q2-scale', nums(records, 'Q2 Personally Edifying'));
       renderTextList('q3-list', pluck(records, 'Q3 Single Takeaway'));
-      renderTally('q4-tally',
-        tallyMulti(records, 'Q4 Most Valuable Parts', Q4_OPTIONS).sort((a,b)=>b.count-a.count),
-        () => 'gold');
+      renderMiniScales('q4-wrap', Q4_ITEMS, records);
       renderTextList('q4-comments', pluck(records, 'Q4 Comment'));
       renderTally('notice-tally',
         tallySingle(records, 'Advance Notice Adequate', NOTICE_OPTIONS),
         (label) => label.startsWith('No') || label.startsWith('Not') ? 'muted' : '');
       renderTextList('gfb-list', pluck(records, 'Gathering Feedback'));
+      renderTextList('ideas-list', pluck(records, 'Engagement Ideas'));
 
       // Section 2
       renderTally('hwtime-tally', tallySingle(records, 'HW Time To Complete', HWTIME_OPTIONS), () => 'olive');
       renderScale('hwuseful-scale', nums(records, 'HW Usefulness'));
-      renderClarity(records);
+      renderMiniScales('clarity-wrap', CLARITY, records);
       renderTextList('hwfb-list', pluck(records, 'HW Feedback'));
 
       renderIndividual(records);

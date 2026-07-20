@@ -26,10 +26,17 @@ must match exactly — the form writes to them by name.
 | `Q1 Time Well Spent` | Number (integer) | 1–5 |
 | `Q2 Personally Edifying` | Number (integer) | 1–5 |
 | `Q3 Single Takeaway` | Long text | |
-| `Q4 Most Valuable Parts` | Multiple select | options auto-create via typecast |
+| `Q4 Use One-Word Exercise` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Text 1 Discussion` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Text 2 Discussion` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Q6 Sentence` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Large Group` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Breakout Rhythm` | Number (integer) | 1–5 usefulness |
+| `Q4 Use Mix Of People` | Number (integer) | 1–5 usefulness |
 | `Q4 Comment` | Long text | |
 | `Advance Notice Adequate` | Single select | options auto-create via typecast |
 | `Gathering Feedback` | Long text | |
+| `Engagement Ideas` | Long text | creative ideas for congregation engagement |
 | **Section 2 — the homework** | | |
 | `HW Time To Complete` | Single select | options auto-create via typecast |
 | `HW Usefulness` | Number (integer) | 1–5 |
@@ -43,7 +50,11 @@ must match exactly — the form writes to them by name.
 | `HW Feedback` | Long text | |
 
 Notes:
-- The form sends `typecast: true`, so `Multiple select` / `Single select` option values
+- Q4 changed from a "pick up to 3" multi-select to a **1–5 usefulness rating per part**
+  (7 number fields above). A leftover `Q4 Most Valuable Parts` multi-select field may still
+  exist in the table from the first build — it's unused and can be deleted in the Airtable UI
+  (the API can't delete fields).
+- The form sends `typecast: true`, so `Single select` option values
   are created automatically on first submit — you can leave those fields with no options.
 - Empty fields are stripped before submit, so blank answers won't create empty rows/options.
 - Number fields: set precision to **1** (integer). Values are always 1–5.
@@ -65,8 +76,9 @@ The clarity matrix mirrors the **Field Worksheet v6.24.26**:
 ## What's on the form
 
 **Section 1 — The Gathering:** Name*, Email*, Q1 time well spent (1–5), Q2 personally
-edifying (1–5), Q3 single takeaway (text), Q4 most valuable parts (pick up to 3, from the
-July 14 agenda) + comment, advance-notice question, open feedback.
+edifying (1–5), Q3 single takeaway (text), Q4 usefulness of each part of the evening
+(1–5 per part, from the July 14 agenda) + comment, advance-notice question, open feedback,
+and creative ideas for congregation engagement.
 
 **Section 2 — The Homework:** time to complete, usefulness (1–5), per-question clarity
 matrix (7 questions, 1–5 each), open feedback.

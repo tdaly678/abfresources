@@ -407,15 +407,19 @@
       <div class="q">
         <div class="q-number">QUESTION 3</div>
         <div class="q-text">One thing you personally walked away with?</div>
-        <textarea class="text-area tall" data-field="q3" placeholder="A sentence or two is plenty — no need to summarize everything."></textarea>
+        <textarea class="text-area tall" data-field="q3" placeholder="A sentence or two is plenty."></textarea>
       </div>
 
-      <!-- Q4 — agenda-based -->
+      <!-- Q4 — usefulness of each part -->
       <div class="q">
         <div class="q-number">QUESTION 4</div>
-        <div class="q-text">Which parts of our time together were most valuable to you?</div>
-        <div class="q-help">Pick <strong>up to three.</strong> <span id="q4-counter" style="color:var(--terra);font-weight:700"></span></div>
-        <div id="q4-pills" class="pill-list"></div>
+        <div class="q-text">How useful was each part of our time together?</div>
+        <div class="q-help">Rate each 1–5. Skip any you're unsure about.</div>
+        <div class="matrix-legend">
+          <span><span class="chip">1</span>Not useful</span>
+          <span>Very useful<span class="chip" style="margin-left:6px;margin-right:0">5</span></span>
+        </div>
+        <div id="q4-matrix"></div>
         <div style="margin-top:14px">
           <label class="q-help" style="display:block;margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Anything to add — why these stood out?</label>
           <textarea class="text-area" data-field="q4comment" placeholder="A line or two if anything comes to mind."></textarea>
@@ -434,6 +438,13 @@
         <div class="q-number">FEEDBACK</div>
         <div class="q-text">Anything else about the gathering — thoughts or ideas to improve it?</div>
         <textarea class="text-area tall" data-field="gatheringFeedback" placeholder="Format, structure, pacing, who's invited, the exercises, logistics — anything welcome."></textarea>
+      </div>
+
+      <!-- Creative engagement ideas -->
+      <div class="q">
+        <div class="q-number">IDEAS</div>
+        <div class="q-text">Any creative ideas to help the congregation engage more fully with the Hebrews series?</div>
+        <textarea class="text-area tall" data-field="engagementIdeas" placeholder="Reading plans, family devotionals, memory verses, art, music, events, small-group tie-ins, sermon-series touches — dream a little."></textarea>
       </div>
 
       <!-- ═══════ SECTION 2 ═══════ -->
@@ -504,24 +515,25 @@
     const state = {
       name: '', email: '',
       q1: null, q2: null,
-      q3: '', q4comment: '', q4picks: [],
+      q3: '', q4comment: '', q4use: {},   // { u1..u7 : 1-5 }
       notice: '',
       gatheringFeedback: '',
+      engagementIdeas: '',
       hwTime: '',
       hwUseful: null,
       clarity: {},           // { c1..c7 : 1-5 }
       hwFeedback: '',
     };
 
-    const q4Options = [
-      'One-word exercise — summarizing Hebrews in a single word',
-      'Opening comments (Tom & Tony)',
-      'Table discussion of Text #1',
-      'Table discussion of Text #2',
-      'Landing on a single-sentence answer to Q6 as a table',
-      'Large-group session — surfacing themes & categories',
-      'The breakout-and-regroup rhythm itself',
-      'The mix of people in the room',
+    // Q4 — usefulness of each part of the time together (Opening comments removed per Tom)
+    const q4Items = [
+      ['u1', 'One-word exercise — summarizing Hebrews in a single word'],
+      ['u2', 'Table discussion of Text #1'],
+      ['u3', 'Table discussion of Text #2'],
+      ['u4', 'Landing on a single-sentence answer to Q6 as a table'],
+      ['u5', 'Large-group session — surfacing themes & categories'],
+      ['u6', 'The breakout-and-regroup rhythm itself'],
+      ['u7', 'The mix of people in the room'],
     ];
 
     const noticeOptions = [
@@ -570,47 +582,34 @@
       makeScale(row, row.dataset.scale, state);
     });
 
-    // ─── Q4 pick-up-to-3 pills ───────────────────────────────
-    const q4El = document.getElementById('q4-pills');
-    const q4Counter = document.getElementById('q4-counter');
-    const MAX_Q4 = 3;
-    function updateQ4Counter() {
-      const n = state.q4picks.length;
-      q4Counter.textContent = n ? `(${n} of ${MAX_Q4})` : '';
-    }
-    function refreshQ4Pills() {
-      q4El.querySelectorAll('.pill').forEach(p => {
-        const v = p.dataset.val;
-        const sel = state.q4picks.includes(v);
-        p.classList.toggle('selected', sel);
-        p.classList.toggle('disabled', !sel && state.q4picks.length >= MAX_Q4);
+    // ─── Reusable 1–5 matrix builder (Q4 usefulness, HW clarity) ──
+    function buildMatrix(hostEl, items, store) {
+      items.forEach(([key, label, opt]) => {
+        const row = document.createElement('div');
+        row.className = 'matrix-row';
+        const lbl = document.createElement('div');
+        lbl.className = 'm-label';
+        lbl.innerHTML = label + (opt ? ` <span class="m-opt">${opt}</span>` : '');
+        const scale = document.createElement('div');
+        scale.className = 'scale-row';
+        for (let i = 1; i <= 5; i++) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'scale-btn';
+          btn.textContent = i;
+          btn.dataset.val = i;
+          btn.addEventListener('click', () => {
+            store[key] = i;
+            scale.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('selected', +b.dataset.val === i));
+          });
+          scale.appendChild(btn);
+        }
+        row.appendChild(lbl);
+        row.appendChild(scale);
+        hostEl.appendChild(row);
       });
-      updateQ4Counter();
     }
-    q4Options.forEach(label => {
-      const wrap = document.createElement('label');
-      wrap.className = 'pill';
-      wrap.dataset.val = label;
-      const marker = document.createElement('div');
-      marker.className = 'marker';
-      const span = document.createElement('span');
-      span.textContent = label;
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.value = label;
-      wrap.appendChild(marker);
-      wrap.appendChild(span);
-      wrap.appendChild(input);
-      wrap.addEventListener('click', (e) => {
-        e.preventDefault();
-        const idx = state.q4picks.indexOf(label);
-        if (idx > -1) state.q4picks.splice(idx, 1);
-        else if (state.q4picks.length < MAX_Q4) state.q4picks.push(label);
-        refreshQ4Pills();
-      });
-      q4El.appendChild(wrap);
-    });
-    updateQ4Counter();
+    buildMatrix(document.getElementById('q4-matrix'), q4Items, state.q4use);
 
     // ─── Single-select radio lists (notice, hw time) ─────────
     function buildRadioList(containerId, options, key) {
@@ -710,10 +709,17 @@
         'Q1 Time Well Spent': state.q1,
         'Q2 Personally Edifying': state.q2,
         'Q3 Single Takeaway': state.q3.trim(),
-        'Q4 Most Valuable Parts': state.q4picks,
+        'Q4 Use One-Word Exercise': state.q4use.u1 || null,
+        'Q4 Use Text 1 Discussion': state.q4use.u2 || null,
+        'Q4 Use Text 2 Discussion': state.q4use.u3 || null,
+        'Q4 Use Q6 Sentence': state.q4use.u4 || null,
+        'Q4 Use Large Group': state.q4use.u5 || null,
+        'Q4 Use Breakout Rhythm': state.q4use.u6 || null,
+        'Q4 Use Mix Of People': state.q4use.u7 || null,
         'Q4 Comment': state.q4comment.trim(),
         'Advance Notice Adequate': state.notice,
         'Gathering Feedback': state.gatheringFeedback.trim(),
+        'Engagement Ideas': state.engagementIdeas.trim(),
         // Section 2 — the homework
         'HW Time To Complete': state.hwTime,
         'HW Usefulness': state.hwUseful,
