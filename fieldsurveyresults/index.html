@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Field — Follow-Up Results | LEFC|U</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-brown: #342D25;
+      --gold: #BCA944;
+      --olive: #524B30;
+      --terra: #AA3B24;
+      --light-gray: #E5E5E4;
+      --white: #FFFFFF;
+      --text: #2a2318;
+      --text-muted: #6b6050;
+      --cream: #f7eed7;
+      --cream-border: #ddcca5;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(52,45,37,.10);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light-gray);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Password gate ─────────────────────────────────────── */
+    #pw-screen {
+      position: fixed; inset: 0;
+      background: var(--dark-brown);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; z-index: 100;
+    }
+    #pw-screen.hidden { display: none; }
+    .pw-card {
+      background: var(--white); border-radius: var(--radius);
+      padding: 32px 28px; max-width: 420px; width: 100%;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .pw-card h1 { color: var(--dark-brown); font-size: 1.3rem; margin-bottom: 6px; letter-spacing: -.01em; }
+    .pw-card h1 span { color: var(--gold); }
+    .pw-card p { color: var(--text-muted); font-size: .9rem; margin-bottom: 18px; line-height: 1.45; }
+    .pw-input {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--cream-border); border-radius: 8px;
+      font-family: inherit; font-size: 1rem; color: var(--text);
+      text-align: center; letter-spacing: .04em;
+    }
+    .pw-input:focus { outline: none; border-color: var(--gold); }
+    .pw-input.error { border-color: var(--terra); }
+    .pw-btn {
+      width: 100%; margin-top: 12px; padding: 12px 14px;
+      background: var(--terra); color: var(--white);
+      border: none; border-radius: 8px;
+      font-family: inherit; font-size: .98rem; font-weight: 800;
+      letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+    }
+    .pw-btn:hover { background: #8a2f1c; }
+    .pw-error { color: var(--terra); font-size: .85rem; margin-top: 10px; min-height: 1em; }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    header {
+      background: var(--dark-brown); color: var(--white);
+      padding: 22px 24px; border-bottom: 4px solid var(--gold);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .brand-stack { line-height: 1.15; }
+    .brand-stack .top { font-weight: 800; letter-spacing: .04em; font-size: 1rem; }
+    .brand-stack .top span { color: var(--gold); }
+    .brand-stack .sub {
+      font-size: .74rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cream); opacity: .85; margin-top: 3px;
+    }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+    .hdr-btn {
+      background: transparent; border: 1px solid rgba(247,238,215,.4);
+      color: var(--cream); padding: 7px 12px; border-radius: 6px;
+      font-family: inherit; font-size: .8rem; font-weight: 600;
+      cursor: pointer; letter-spacing: .04em; transition: all .15s;
+      text-decoration: none;
+    }
+    .hdr-btn:hover { background: rgba(247,238,215,.1); }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 18px 60px; }
+
+    .topline { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .topcard {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-radius: var(--radius); padding: 14px 18px;
+      flex: 1; min-width: 160px; box-shadow: var(--shadow);
+    }
+    .topcard .label {
+      color: var(--text-muted); font-size: .72rem; letter-spacing: .12em;
+      text-transform: uppercase; font-weight: 700; margin-bottom: 6px;
+    }
+    .topcard .value { color: var(--dark-brown); font-size: 1.85rem; font-weight: 800; line-height: 1; }
+    .topcard .sub { color: var(--text-muted); font-size: .82rem; margin-top: 4px; }
+
+    .tabs { display: flex; gap: 6px; border-bottom: 2px solid var(--cream-border); margin-bottom: 18px; }
+    .tab-btn {
+      background: transparent; border: none; padding: 12px 18px;
+      font-family: inherit; font-size: .92rem; font-weight: 700;
+      color: var(--text-muted); cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      letter-spacing: .02em; transition: all .15s;
+    }
+    .tab-btn:hover { color: var(--dark-brown); }
+    .tab-btn.active { color: var(--terra); border-bottom-color: var(--terra); }
+
+    .section-band {
+      margin: 26px 0 14px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--gold);
+      display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    }
+    .section-band:first-child { margin-top: 4px; }
+    .section-band .pill {
+      background: var(--dark-brown); color: var(--gold);
+      font-size: .72rem; font-weight: 800; letter-spacing: .14em;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 99px;
+    }
+    .section-band h2 { color: var(--dark-brown); font-size: 1.12rem; font-weight: 800; }
+
+    /* ─── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-radius: var(--radius); padding: 18px 20px;
+      margin-bottom: 14px; box-shadow: var(--shadow);
+    }
+    .card h3 { color: var(--dark-brown); font-size: 1.04rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -.005em; }
+    .card .q-prompt { color: var(--text-muted); font-size: .88rem; margin-bottom: 12px; line-height: 1.4; }
+
+    /* ─── Scale viz ──────────────────────────────────────────── */
+    .scale-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+    .scale-avg {
+      background: var(--cream); color: var(--dark-brown);
+      padding: 6px 14px; border-radius: 99px; font-weight: 800; font-size: 1.05rem;
+      border: 1px solid var(--cream-border);
+    }
+    .scale-avg .n { font-size: .75rem; color: var(--text-muted); font-weight: 600; margin-left: 6px; }
+    .dist {
+      display: flex; align-items: stretch; height: 32px;
+      border-radius: 6px; overflow: hidden; border: 1px solid var(--cream-border);
+      flex: 1; min-width: 220px;
+    }
+    .dist-bar { display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 800; font-size: .78rem; min-width: 0; }
+    .dist-bar.b1 { background: #d97b6c; }
+    .dist-bar.b2 { background: #c75e4a; }
+    .dist-bar.b3 { background: #aa3b24; }
+    .dist-bar.b4 { background: #8c6b21; }
+    .dist-bar.b5 { background: var(--gold); color: var(--dark-brown); }
+    .dist-bar.empty { background: transparent; }
+    .scale-anchors { display: flex; justify-content: space-between; color: var(--text-muted); font-size: .72rem; margin-top: 6px; font-weight: 600; }
+
+    /* ─── Clarity mini-scales ────────────────────────────────── */
+    .clarity-block { padding: 14px 0; border-top: 1px dashed var(--cream-border); }
+    .clarity-block:first-child { border-top: none; padding-top: 2px; }
+    .clarity-block .c-label { color: var(--dark-brown); font-weight: 700; font-size: .95rem; margin-bottom: 8px; }
+    .clarity-block .c-label .c-opt { color: var(--text-muted); font-weight: 500; font-size: .82rem; }
+
+    /* ─── Tally bars ─────────────────────────────────────────── */
+    .tally { display: flex; flex-direction: column; gap: 8px; }
+    .tally-label {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+      font-size: .9rem; color: var(--dark-brown); font-weight: 600; margin-bottom: 3px; line-height: 1.3;
+    }
+    .tally-label .count { color: var(--terra); font-weight: 800; font-size: .85rem; white-space: nowrap; }
+    .tally-track { height: 12px; background: var(--light-gray); border-radius: 99px; overflow: hidden; }
+    .tally-fill { height: 100%; background: var(--terra); border-radius: 99px; transition: width .25s; }
+    .tally-fill.gold { background: var(--gold); }
+    .tally-fill.olive { background: var(--olive); }
+    .tally-fill.muted { background: var(--text-muted); opacity: .55; }
+
+    /* ─── Long-text answer list ──────────────────────────────── */
+    .answer-list { display: flex; flex-direction: column; gap: 10px; }
+    .answer {
+      background: var(--cream); border-left: 3px solid var(--gold);
+      padding: 10px 14px; border-radius: 6px;
+      font-size: .94rem; line-height: 1.5; color: var(--text); white-space: pre-wrap;
+    }
+    .answer .who {
+      display: block; color: var(--text-muted); font-size: .75rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px;
+    }
+
+    /* ─── Individual response card ───────────────────────────── */
+    .resp {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--terra); border-radius: var(--radius);
+      padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow);
+    }
+    .resp-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--cream-border);
+    }
+    .resp-name { color: var(--dark-brown); font-size: 1.08rem; font-weight: 800; }
+    .resp-email { color: var(--text-muted); font-size: .82rem; font-weight: 500; }
+    .resp-date { color: var(--text-muted); font-size: .75rem; letter-spacing: .04em; }
+    .resp-sub {
+      font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--olive); margin: 14px 0 8px;
+    }
+    .resp-q { margin-bottom: 12px; }
+    .resp-q:last-child { margin-bottom: 0; }
+    .resp-q .label {
+      color: var(--text-muted); font-size: .72rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .resp-q .val { color: var(--text); font-size: .94rem; line-height: 1.5; white-space: pre-wrap; }
+    .resp-q .val.numeric {
+      display: inline-block; background: var(--cream); padding: 3px 10px; border-radius: 99px;
+      font-weight: 800; color: var(--dark-brown); font-size: .88rem;
+    }
+    .resp-q .val.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .resp-q .val.chips .chip {
+      background: var(--gold); color: var(--dark-brown); padding: 3px 9px; border-radius: 99px;
+      font-weight: 700; font-size: .78rem;
+    }
+    .resp-q .val.muted { color: var(--text-muted); font-style: italic; }
+    .clarity-inline { display: flex; flex-wrap: wrap; gap: 6px; }
+    .clarity-inline .cc {
+      background: var(--cream); border: 1px solid var(--cream-border);
+      padding: 3px 9px; border-radius: 6px; font-size: .8rem; color: var(--dark-brown); font-weight: 600;
+    }
+    .clarity-inline .cc b { color: var(--terra); }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: .92rem; line-height: 1.5; }
+    .empty-state strong { color: var(--dark-brown); }
+
+    /* ─── Response tracker ──────────────────────────────────── */
+    .tracker-headline { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tracker-big { color: var(--dark-brown); font-size: 2rem; font-weight: 800; line-height: 1; }
+    .tracker-big .pct { color: var(--terra); font-size: 1rem; margin-left: 6px; font-weight: 700; }
+    .tracker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 640px) { .tracker-grid { grid-template-columns: 1fr; } }
+    .tracker-col h4 { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .tracker-col.done h4 { color: var(--olive); }
+    .tracker-col.pending h4 { color: var(--text-muted); }
+    .tracker-col h4 .badge { background: var(--cream); color: var(--dark-brown); padding: 2px 8px; border-radius: 99px; font-size: .72rem; letter-spacing: .04em; font-weight: 800; }
+    .tracker-col.done h4 .badge { background: #d6e4cf; color: #3d5a35; }
+    .tracker-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .tracker-list li { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; font-size: .9rem; line-height: 1.3; }
+    .tracker-col.done .tracker-list li { background: #eef4ea; color: #2f4828; }
+    .tracker-col.pending .tracker-list li { background: var(--light-gray); color: var(--text-muted); }
+    .tracker-list .icon { width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 800; }
+    .tracker-col.done .tracker-list .icon { background: #6a8b5a; color: var(--white); }
+    .tracker-col.pending .tracker-list .icon { background: var(--cream-border); color: var(--text-muted); }
+    .tracker-list .who { flex: 1; min-width: 0; }
+    .tracker-list .who .name { font-weight: 700; }
+    .tracker-list .who .em { display: block; color: var(--text-muted); font-size: .76rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tracker-col.done .tracker-list .who .em { color: #6f8367; }
+    .tracker-outside { margin-top: 16px; padding: 10px 14px; background: #fff7e6; border: 1px solid #f0d99a; border-radius: 8px; }
+    .tracker-outside .lbl { font-size: .74rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #8a6d23; margin-bottom: 6px; }
+    .tracker-outside ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tracker-outside li { background: var(--white); border: 1px solid #f0d99a; padding: 4px 10px; border-radius: 99px; font-size: .82rem; color: #5a4514; font-weight: 600; }
+
+    .status-banner { padding: 10px 14px; border-radius: 8px; font-size: .9rem; margin-bottom: 14px; }
+    .status-banner.loading { background: var(--cream); color: var(--olive); border: 1px solid var(--cream-border); }
+    .status-banner.error { background: #fdecea; color: #7a1d0e; border: 1px solid #e8a59a; }
+
+    @media (max-width: 540px) {
+      .topcard .value { font-size: 1.45rem; }
+      .scale-summary { gap: 10px; }
+      .dist { height: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Password gate -->
+  <div id="pw-screen">
+    <div class="pw-card">
+      <h1>The Field · <span>Follow-Up Results</span></h1>
+      <p>Enter the leader password to view survey results.</p>
+      <input type="password" id="pw-input" class="pw-input" placeholder="Password" autocomplete="current-password" autofocus />
+      <button class="pw-btn" id="pw-btn">Unlock</button>
+      <div id="pw-error" class="pw-error"></div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="brand-stack">
+          <div class="top">LEFC<span>|U</span></div>
+          <div class="sub">The Field · Follow-Up Results</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="hdr-btn" id="refresh-btn">Refresh</button>
+        <a class="hdr-btn" href="/fieldsurvey/" target="_blank">View the survey</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <div id="status" class="status-banner loading">Loading responses…</div>
+    <div id="content" style="display:none">
+
+      <div class="topline">
+        <div class="topcard">
+          <div class="label">Total Responses</div>
+          <div class="value" id="stat-total">—</div>
+        </div>
+        <div class="topcard">
+          <div class="label">Good Use of Time</div>
+          <div class="value" id="stat-q1">—</div>
+          <div class="sub">avg · out of 5</div>
+        </div>
+        <div class="topcard">
+          <div class="label">Homework Usefulness</div>
+          <div class="value" id="stat-hw">—</div>
+          <div class="sub">avg · out of 5</div>
+        </div>
+        <div class="topcard">
+          <div class="label">Last Response</div>
+          <div class="value" id="stat-latest" style="font-size:1.05rem">—</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="agg">Aggregate</button>
+        <button class="tab-btn" data-tab="indiv">Individual</button>
+      </div>
+
+      <!-- ─── Aggregate view ──────────────────────────────────── -->
+      <div id="tab-agg">
+        <div class="card" id="tracker-card">
+          <h3>Response Tracker</h3>
+          <div class="q-prompt">Compared to the invite list. Matches by email (case-insensitive).</div>
+          <div class="tracker-headline">
+            <div class="tracker-big"><span id="tracker-done">0</span> / <span id="tracker-total">0</span><span class="pct" id="tracker-pct"></span></div>
+          </div>
+          <div class="tracker-grid">
+            <div class="tracker-col done">
+              <h4>Responded <span class="badge" id="tracker-done-badge">0</span></h4>
+              <ul class="tracker-list" id="tracker-done-list"></ul>
+            </div>
+            <div class="tracker-col pending">
+              <h4>Awaiting response <span class="badge" id="tracker-pending-badge">0</span></h4>
+              <ul class="tracker-list" id="tracker-pending-list"></ul>
+            </div>
+          </div>
+          <div class="tracker-outside" id="tracker-outside-wrap" style="display:none">
+            <div class="lbl">Submitted but not on invite list</div>
+            <ul id="tracker-outside-list"></ul>
+          </div>
+        </div>
+
+        <div class="section-band"><span class="pill">Section 1</span><h2>The Gathering</h2></div>
+
+        <div class="card">
+          <h3>Q1 · Overall, was the evening a good use of your time?</h3>
+          <div id="q1-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q2 · How personally edifying was the time?</h3>
+          <div id="q2-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q3 · One thing they walked away with</h3>
+          <div id="q3-list" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Q4 · Most valuable parts of the time together</h3>
+          <div class="q-prompt">Each respondent picked up to 3. Bars show pick frequency.</div>
+          <div id="q4-tally" class="tally"></div>
+          <div style="margin-top:14px">
+            <div class="q-prompt" style="margin-bottom:6px;font-weight:600;color:var(--dark-brown)">Comments on Q4:</div>
+            <div id="q4-comments" class="answer-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Advance notice — enough to do homework &amp; clear schedules?</h3>
+          <div id="notice-tally" class="tally"></div>
+        </div>
+
+        <div class="card">
+          <h3>Feedback on the gathering</h3>
+          <div id="gfb-list" class="answer-list"></div>
+        </div>
+
+        <div class="section-band"><span class="pill">Section 2</span><h2>The Homework</h2></div>
+
+        <div class="card">
+          <h3>How long the worksheet took</h3>
+          <div id="hwtime-tally" class="tally"></div>
+        </div>
+
+        <div class="card">
+          <h3>How useful was the homework for the time together?</h3>
+          <div id="hwuseful-scale"></div>
+        </div>
+
+        <div class="card">
+          <h3>Clarity of instructions — per worksheet question</h3>
+          <div class="q-prompt">Average clarity (1 = unclear, 5 = clear) for each question on the Field Worksheet.</div>
+          <div id="clarity-wrap"></div>
+        </div>
+
+        <div class="card">
+          <h3>Feedback on the homework</h3>
+          <div id="hwfb-list" class="answer-list"></div>
+        </div>
+      </div>
+
+      <!-- ─── Individual view ─────────────────────────────────── -->
+      <div id="tab-indiv" style="display:none">
+        <div id="indiv-list"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+  /* ════════════════════════════════════════════════════════════
+     Password gate (mirrors main site pattern)
+  ════════════════════════════════════════════════════════════════ */
+  (function(){
+    const DEFAULT_PW_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+    const SESSION_KEY = 'abf_auth';
+    const BASE = 'appTpp1agJQqoId07';
+    const SETTINGS_TBL = 'tblU0XGRCrWQJBPH6';
+    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+
+    const pwScreen = document.getElementById('pw-screen');
+    const pwInput = document.getElementById('pw-input');
+    const pwBtn = document.getElementById('pw-btn');
+    const pwError = document.getElementById('pw-error');
+
+    async function sha256Hex(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    let hashPromise = null;
+    function getHash() {
+      if (hashPromise) return hashPromise;
+      hashPromise = (async () => {
+        try {
+          const r = await fetch(`https://api.airtable.com/v0/${BASE}/${SETTINGS_TBL}?pageSize=100`, {
+            headers: { Authorization: 'Bearer ' + TOKEN },
+          });
+          if (!r.ok) throw new Error();
+          const j = await r.json();
+          const row = (j.records || []).find(rec => (rec.fields || {}).Key === 'passwordHash');
+          const v = row && row.fields && row.fields.Value ? String(row.fields.Value).trim().toLowerCase() : '';
+          return /^[0-9a-f]{64}$/.test(v) ? v : DEFAULT_PW_HASH;
+        } catch {
+          return DEFAULT_PW_HASH;
+        }
+      })();
+      return hashPromise;
+    }
+
+    function unlock() {
+      pwScreen.classList.add('hidden');
+      sessionStorage.setItem(SESSION_KEY, '1');
+      window.__bootResults && window.__bootResults();
+    }
+    function hexEq(a, b) {
+      if (a.length !== b.length) return false;
+      let d = 0;
+      for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return d === 0;
+    }
+    async function tryPw() {
+      const v = pwInput.value;
+      if (!v) return;
+      pwBtn.disabled = true;
+      try {
+        const [eh, ch] = await Promise.all([sha256Hex(v), getHash()]);
+        if (hexEq(eh, ch)) { pwError.textContent = ''; unlock(); }
+        else {
+          pwInput.classList.add('error');
+          pwError.textContent = 'Incorrect password. Please try again.';
+          pwInput.value = ''; pwInput.focus();
+        }
+      } catch (e) {
+        pwError.textContent = 'Could not verify password.';
+      } finally { pwBtn.disabled = false; }
+    }
+    pwBtn.addEventListener('click', tryPw);
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPw(); });
+
+    if (sessionStorage.getItem(SESSION_KEY) === '1') unlock();
+    getHash(); // warm
+  })();
+
+  /* ════════════════════════════════════════════════════════════
+     Results dashboard
+  ════════════════════════════════════════════════════════════════ */
+  (function(){
+    const BASE = 'appTpp1agJQqoId07';
+    const TABLE = 'tbl5Hhks33h8eWX3B';   // Field Follow-Up
+    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+
+    const Q4_OPTIONS = [
+      'One-word exercise — summarizing Hebrews in a single word',
+      'Opening comments (Tom & Tony)',
+      'Table discussion of Text #1',
+      'Table discussion of Text #2',
+      'Landing on a single-sentence answer to Q6 as a table',
+      'Large-group session — surfacing themes & categories',
+      'The breakout-and-regroup rhythm itself',
+      'The mix of people in the room',
+    ];
+    const NOTICE_OPTIONS = ['Yes — plenty of time','Enough, but it was tight','Not quite enough','No — I needed more notice'];
+    const HWTIME_OPTIONS = ['Less than 1 hour','1–2 hours','2–4 hours','4–6 hours','More than 6 hours'];
+    const CLARITY = [
+      ['HW Clarity Q1 Context',        'Q1 — Key context (prior/present scripture & extra-Biblical context)'],
+      ['HW Clarity Q2 Structure',      'Q2 — What the structure reveals about the main point', '(optional)'],
+      ['HW Clarity Q3 Author Intent',  'Q3 — What the original author hoped to convey'],
+      ['HW Clarity Q4 Christ Gospel',  'Q4 — How the passage connects to Christ / the gospel'],
+      ['HW Clarity Q5 Truths Troubles','Q5 — Timeless truths and/or temporary troubles'],
+      ['HW Clarity Q6 Main Point',     'Q6 — The main point you might make from the passage'],
+      ['HW Clarity Q7 Applications',   'Q7 — Two or three practical applications for today'],
+    ];
+
+    // Invite list — same community as the July 14 gathering.
+    const INVITEES = [
+      { name: 'Adam Timmins',         email: 'adamjtimmins@gmail.com' },
+      { name: 'Beverly Mahoney',      email: 'bmahoney119@gmail.com' },
+      { name: 'Bob Travis',           email: 'btravis@lefc.net' },
+      { name: 'Brianna Kauffman',     email: 'kauffman@lefc.net', aliases: ['briannakauff@gmail.com'] },
+      { name: 'Brianna Roberts',      email: 'brianna.roberts@lefc.net' },
+      { name: 'Caleb Roberts',        email: 'roberts@lefc.net' },
+      { name: 'Christie Hess',        email: 'scottchristie07@gmail.com' },
+      { name: 'Corey Mitchell',       email: 'cormitchell@gmail.com' },
+      { name: 'Dan Gallagher',        email: 'daniel.gallagher0502@outlook.com' },
+      { name: 'Darryl & Michele Preziosi', email: 'dmprez@ptd.net' },
+      { name: 'Dave Cox',             email: 'dcrdcox@gmail.com' },
+      { name: 'Drew Huber',           email: 'dbhrock@gmail.com', aliases: ['andrewbhuber@gmail.com'] },
+      { name: 'Dylan Weaver',         email: 'dylan.weaver29@gmail.com' },
+      { name: 'Ed Scheuerman',        email: 'edncarol2010@gmail.com' },
+      { name: 'Erin Shenk',           email: 'erinlrhodes@gmail.com' },
+      { name: 'Ethan Zook',           email: 'ethanzook@cedarville.edu' },
+      { name: 'Gary Hoover',          email: 'ghp5353@gmail.com' },
+      { name: 'Gary Poorman',         email: 'g.poorman@lefc.net' },
+      { name: 'Janet Travis',         email: 'jtravisinpa@gmail.com' },
+      { name: 'Jeff Travis',          email: 'travis@lefc.net' },
+      { name: 'Jenny Hoover',         email: 'hoover@lefc.net' },
+      { name: 'Jessica Daly',         email: 'daly.team@gmail.com' },
+      { name: 'Joel Lingenfelter',    email: 'lingenfelter@lefc.net' },
+      { name: 'Johnny Grisbacher',    email: 'jigrisbacher@gmail.com' },
+      { name: 'Josh Bailey',          email: 'baileyjoshua313@gmail.com' },
+      { name: 'Justin Neyer',         email: 'jneyer6113@gmail.com' },
+      { name: 'Kurt Zimmerman',       email: 'kurt@tntyouthministry.com', aliases: ['kurtisw.zimmerman@gmail.com'] },
+      { name: 'Lauren Timmins',       email: 'ajlmtimmins@gmail.com' },
+      { name: 'Linsey Smoker',        email: 'linsey.smoker@lefc.net', aliases: ['linseysmoker@gmail.com'] },
+      { name: 'Mark Spead',           email: 'markspead@gmail.com' },
+      { name: 'Nick Vargas',          email: 'vargas@lefc.net' },
+      { name: 'Paige Huber',          email: 'pnburke12@gmail.com' },
+      { name: 'Pam Kulp',             email: 'pkulp531@gmail.com' },
+      { name: 'Phillip True',         email: 'philiptrue127@gmail.com' },
+      { name: 'Sam Shoe',             email: 'sam@samshoe.com' },
+      { name: 'T. Hahn',              email: 'thahn720@gmail.com' },
+      { name: 'Tom Daly',             email: 'daly@lefc.net', aliases: ['tdaly678@gmail.com'] },
+      { name: 'Tony Hunt',            email: 'hunt@lefc.net' },
+      { name: 'Tyler Morris',         email: 'tylermmorris94@gmail.com' },
+    ];
+    const INVITEE_EMAIL_SET = new Set();
+    INVITEES.forEach(i => {
+      INVITEE_EMAIL_SET.add(i.email.toLowerCase());
+      (i.aliases || []).forEach(a => INVITEE_EMAIL_SET.add(a.toLowerCase()));
+    });
+
+    const statusEl = document.getElementById('status');
+    const contentEl = document.getElementById('content');
+
+    async function fetchAll() {
+      const out = [];
+      let offset = null;
+      do {
+        const qs = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}?${qs}`, {
+          headers: { Authorization: 'Bearer ' + TOKEN },
+        });
+        if (!r.ok) throw new Error('Airtable ' + r.status);
+        const j = await r.json();
+        out.push(...(j.records || []));
+        offset = j.offset || null;
+      } while (offset);
+      return out;
+    }
+
+    function clean(s) { return (typeof s === 'string') ? s.trim() : (s == null ? '' : String(s)); }
+    function fmtDate(iso) {
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      } catch { return iso; }
+    }
+    function avg(nums) { return nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : null; }
+    function nums(records, field) { return records.map(r => (r.fields||{})[field]).filter(v => typeof v === 'number'); }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function renderScale(target, values) {
+      const el = typeof target === 'string' ? document.getElementById(target) : target;
+      if (!values.length) { el.innerHTML = '<div class="empty-state">No responses yet.</div>'; return; }
+      const a = avg(values);
+      const dist = [0,0,0,0,0];
+      values.forEach(v => { if (v >= 1 && v <= 5) dist[v-1]++; });
+      const bars = dist.map((c, i) =>
+        `<div class="dist-bar ${c ? 'b'+(i+1) : 'empty'}" style="flex: ${c || 0.01} 0 0">${c || ''}</div>`
+      ).join('');
+      el.innerHTML = `
+        <div class="scale-summary">
+          <div class="scale-avg">${a.toFixed(1)} <span class="n">avg · ${values.length} ${values.length===1?'response':'responses'}</span></div>
+          <div class="dist">${bars}</div>
+        </div>
+        <div class="scale-anchors"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      `;
+    }
+
+    function renderTally(targetId, items, colorClassFn) {
+      const el = document.getElementById(targetId);
+      const anySel = items.some(i => i.count > 0);
+      if (!anySel) { el.innerHTML = '<div class="empty-state">No responses yet.</div>'; return; }
+      const max = Math.max(...items.map(i => i.count));
+      el.innerHTML = items.map(item => {
+        const pct = max ? (item.count / max * 100) : 0;
+        const cls = colorClassFn ? colorClassFn(item.label, item.count) : '';
+        return `
+          <div class="tally-row">
+            <div class="tally-label"><span>${escapeHtml(item.label)}</span><span class="count">${item.count}</span></div>
+            <div class="tally-track"><div class="tally-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderTextList(targetId, items) {
+      const el = document.getElementById(targetId);
+      if (!items.length) { el.innerHTML = '<div class="empty-state">No answers yet.</div>'; return; }
+      el.innerHTML = items.map(({who, text}) => `
+        <div class="answer">
+          <span class="who">${escapeHtml(who || 'Anonymous')}</span>
+          ${escapeHtml(text)}
+        </div>`).join('');
+    }
+
+    function pluck(records, field) {
+      return records
+        .map(r => ({ who: clean((r.fields||{})['Submitter Name']), text: clean((r.fields||{})[field]) }))
+        .filter(x => x.text);
+    }
+
+    function tallyMulti(records, field, options) {
+      const counts = new Map(options.map(o => [o, 0]));
+      records.forEach(r => {
+        const arr = (r.fields||{})[field] || [];
+        (Array.isArray(arr) ? arr : []).forEach(v => { if (counts.has(v)) counts.set(v, counts.get(v)+1); });
+      });
+      return options.map(o => ({ label: o, count: counts.get(o) || 0 }));
+    }
+    function tallySingle(records, field, options) {
+      const counts = new Map(options.map(o => [o, 0]));
+      records.forEach(r => {
+        const v = (r.fields||{})[field];
+        if (v && counts.has(v)) counts.set(v, counts.get(v)+1);
+      });
+      return options.map(o => ({ label: o, count: counts.get(o) || 0 }));
+    }
+
+    function renderClarity(records) {
+      const wrap = document.getElementById('clarity-wrap');
+      wrap.innerHTML = '';
+      CLARITY.forEach(([field, label, opt]) => {
+        const block = document.createElement('div');
+        block.className = 'clarity-block';
+        const lbl = document.createElement('div');
+        lbl.className = 'c-label';
+        lbl.innerHTML = escapeHtml(label) + (opt ? ` <span class="c-opt">${escapeHtml(opt)}</span>` : '');
+        const scaleHost = document.createElement('div');
+        block.appendChild(lbl);
+        block.appendChild(scaleHost);
+        wrap.appendChild(block);
+        renderScale(scaleHost, nums(records, field));
+      });
+    }
+
+    function renderTracker(records) {
+      const submittedEmails = new Set();
+      records.forEach(r => {
+        const e = clean((r.fields || {})['Submitter Email']).toLowerCase();
+        if (e) submittedEmails.add(e);
+      });
+      const matched = (invitee) => {
+        const all = [invitee.email, ...(invitee.aliases || [])].map(x => x.toLowerCase());
+        return all.some(e => submittedEmails.has(e));
+      };
+      const done = INVITEES.filter(matched).sort((a, b) => a.name.localeCompare(b.name));
+      const pending = INVITEES.filter(i => !matched(i)).sort((a, b) => a.name.localeCompare(b.name));
+      const outsiders = [];
+      records.forEach(r => {
+        const e = clean((r.fields || {})['Submitter Email']).toLowerCase();
+        const name = clean((r.fields || {})['Submitter Name']);
+        if (e && !INVITEE_EMAIL_SET.has(e)) outsiders.push({ name: name || '(no name)', email: e });
+      });
+
+      document.getElementById('tracker-total').textContent = INVITEES.length;
+      document.getElementById('tracker-done').textContent = done.length;
+      const pct = INVITEES.length ? Math.round((done.length / INVITEES.length) * 100) : 0;
+      document.getElementById('tracker-pct').textContent = ` (${pct}%)`;
+      document.getElementById('tracker-done-badge').textContent = done.length;
+      document.getElementById('tracker-pending-badge').textContent = pending.length;
+
+      const doneEl = document.getElementById('tracker-done-list');
+      const pendingEl = document.getElementById('tracker-pending-list');
+      const liHtml = (icon, name, email, viaAlias) => `
+        <li>
+          <span class="icon">${icon}</span>
+          <div class="who">
+            <div class="name">${escapeHtml(name)}${viaAlias ? ' <span style="color:var(--text-muted);font-weight:500;font-size:.72rem">(via alias)</span>' : ''}</div>
+            <div class="em">${escapeHtml(email)}</div>
+          </div>
+        </li>`;
+      const doneRendered = done.map(p => {
+        const all = [p.email, ...(p.aliases || [])].map(x => x.toLowerCase());
+        const usedPrimary = submittedEmails.has(p.email.toLowerCase());
+        if (usedPrimary) return liHtml('&#10003;', p.name, p.email, false);
+        const actual = all.find(e => submittedEmails.has(e)) || p.email;
+        return liHtml('&#10003;', p.name, actual, true);
+      });
+      doneEl.innerHTML = doneRendered.length ? doneRendered.join('')
+        : '<li style="background:transparent;color:var(--text-muted);font-style:italic">No responses yet.</li>';
+      pendingEl.innerHTML = pending.length ? pending.map(p => liHtml('&middot;', p.name, p.email, false)).join('')
+        : '<li style="background:transparent;color:var(--text-muted);font-style:italic">Everyone has responded.</li>';
+
+      const outsideWrap = document.getElementById('tracker-outside-wrap');
+      const outsideList = document.getElementById('tracker-outside-list');
+      if (outsiders.length) {
+        outsideWrap.style.display = 'block';
+        outsideList.innerHTML = outsiders.map(o => `<li>${escapeHtml(o.name)} — ${escapeHtml(o.email)}</li>`).join('');
+      } else {
+        outsideWrap.style.display = 'none';
+      }
+    }
+
+    function renderIndividual(records) {
+      const el = document.getElementById('indiv-list');
+      if (!records.length) { el.innerHTML = '<div class="empty-state">No responses yet.</div>'; return; }
+      const sorted = [...records].sort((a,b) => (b.createdTime || '').localeCompare(a.createdTime || ''));
+      el.innerHTML = sorted.map(rec => {
+        const f = rec.fields || {};
+        const name = clean(f['Submitter Name']) || 'Anonymous';
+        const email = clean(f['Submitter Email']);
+        const dateStr = rec.createdTime ? fmtDate(rec.createdTime) : '';
+        const q4picks = Array.isArray(f['Q4 Most Valuable Parts']) ? f['Q4 Most Valuable Parts'] : [];
+
+        const block = (label, val, opts={}) => {
+          if (val === undefined || val === null || val === '' ||
+              (Array.isArray(val) && val.length === 0)) {
+            return opts.hideIfEmpty ? '' : `<div class="resp-q"><div class="label">${label}</div><div class="val muted">No answer</div></div>`;
+          }
+          if (opts.numeric) return `<div class="resp-q"><div class="label">${label}</div><div class="val numeric">${escapeHtml(String(val))}</div></div>`;
+          if (Array.isArray(val)) return `<div class="resp-q"><div class="label">${label}</div><div class="val chips">${val.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join('')}</div></div>`;
+          return `<div class="resp-q"><div class="label">${label}</div><div class="val">${escapeHtml(String(val))}</div></div>`;
+        };
+
+        // Clarity inline row
+        const clarityCells = CLARITY.map(([field, label]) => {
+          const v = f[field];
+          if (typeof v !== 'number') return '';
+          const qnum = label.split(' ')[0]; // "Q1"
+          return `<span class="cc">${escapeHtml(qnum)} <b>${v}</b></span>`;
+        }).filter(Boolean).join('');
+        const clarityBlock = clarityCells
+          ? `<div class="resp-q"><div class="label">HW clarity (per question, 1–5)</div><div class="val"><div class="clarity-inline">${clarityCells}</div></div></div>`
+          : '';
+
+        return `
+          <div class="resp">
+            <div class="resp-head">
+              <div>
+                <div class="resp-name">${escapeHtml(name)}</div>
+                <div class="resp-email">${escapeHtml(email)}</div>
+              </div>
+              <div class="resp-date">${escapeHtml(dateStr)}</div>
+            </div>
+            <div class="resp-sub">Section 1 · The Gathering</div>
+            ${block('Q1 · Good use of time', f['Q1 Time Well Spent'], {numeric:true, hideIfEmpty:true})}
+            ${block('Q2 · Personally edifying', f['Q2 Personally Edifying'], {numeric:true, hideIfEmpty:true})}
+            ${block('Q3 · One thing they walked away with', clean(f['Q3 Single Takeaway']), {hideIfEmpty:true})}
+            ${block('Q4 · Most valuable parts', q4picks, {hideIfEmpty:true})}
+            ${block('Q4 · Comment', clean(f['Q4 Comment']), {hideIfEmpty:true})}
+            ${block('Advance notice adequate?', clean(f['Advance Notice Adequate']), {hideIfEmpty:true})}
+            ${block('Gathering feedback', clean(f['Gathering Feedback']), {hideIfEmpty:true})}
+            <div class="resp-sub">Section 2 · The Homework</div>
+            ${block('Time to complete', clean(f['HW Time To Complete']), {hideIfEmpty:true})}
+            ${block('Usefulness', f['HW Usefulness'], {numeric:true, hideIfEmpty:true})}
+            ${clarityBlock}
+            ${block('Homework feedback', clean(f['HW Feedback']), {hideIfEmpty:true})}
+          </div>`;
+      }).join('');
+    }
+
+    function renderAll(records) {
+      renderTracker(records);
+
+      document.getElementById('stat-total').textContent = records.length;
+      const q1 = nums(records, 'Q1 Time Well Spent');
+      const hw = nums(records, 'HW Usefulness');
+      document.getElementById('stat-q1').textContent = q1.length ? avg(q1).toFixed(1) : '—';
+      document.getElementById('stat-hw').textContent = hw.length ? avg(hw).toFixed(1) : '—';
+      const latest = records.reduce((best, r) => (!best || (r.createdTime||'') > best.createdTime ? r : best), null);
+      document.getElementById('stat-latest').textContent = latest ? fmtDate(latest.createdTime) : '—';
+
+      // Section 1
+      renderScale('q1-scale', q1);
+      renderScale('q2-scale', nums(records, 'Q2 Personally Edifying'));
+      renderTextList('q3-list', pluck(records, 'Q3 Single Takeaway'));
+      renderTally('q4-tally',
+        tallyMulti(records, 'Q4 Most Valuable Parts', Q4_OPTIONS).sort((a,b)=>b.count-a.count),
+        () => 'gold');
+      renderTextList('q4-comments', pluck(records, 'Q4 Comment'));
+      renderTally('notice-tally',
+        tallySingle(records, 'Advance Notice Adequate', NOTICE_OPTIONS),
+        (label) => label.startsWith('No') || label.startsWith('Not') ? 'muted' : '');
+      renderTextList('gfb-list', pluck(records, 'Gathering Feedback'));
+
+      // Section 2
+      renderTally('hwtime-tally', tallySingle(records, 'HW Time To Complete', HWTIME_OPTIONS), () => 'olive');
+      renderScale('hwuseful-scale', nums(records, 'HW Usefulness'));
+      renderClarity(records);
+      renderTextList('hwfb-list', pluck(records, 'HW Feedback'));
+
+      renderIndividual(records);
+    }
+
+    async function load() {
+      statusEl.style.display = 'block';
+      statusEl.className = 'status-banner loading';
+      statusEl.textContent = 'Loading responses…';
+      contentEl.style.display = 'none';
+      try {
+        const records = await fetchAll();
+        renderAll(records);
+        statusEl.style.display = 'none';
+        contentEl.style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        statusEl.className = 'status-banner error';
+        statusEl.textContent = 'Could not load results: ' + (err.message || err);
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        const tab = btn.dataset.tab;
+        document.getElementById('tab-agg').style.display = tab === 'agg' ? 'block' : 'none';
+        document.getElementById('tab-indiv').style.display = tab === 'indiv' ? 'block' : 'none';
+      });
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', load);
+    window.__bootResults = load;
+  })();
+  </script>
+</body>
+</html>
