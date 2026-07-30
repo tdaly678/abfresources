@@ -27,7 +27,7 @@ For all ABF / adult-ministry materials (presentations, flyers, social, docs), us
 ABF training, walkthrough, and onboarding materials are produced **separately for leaders and teachers** — not one combined piece. Their workflows differ:
 
 - **Leaders** view the Teacher Availability grid, send teaching requests, track My Requests.
-- **Teachers** manage My Availability (Sept–June Sunday grid), respond to Incoming Requests, edit My Courses, fill out My Profile.
+- **Teachers** manage My Availability (Sept–June Sunday grid), respond to Incoming Requests (both on the Scheduling tab), edit their courses on the Courses tab, and fill out My Profile on the Teachers tab.
 
 A combined video forces both audiences to sit through content that isn't theirs. Default: split. The user has confirmed this preference.
 
@@ -37,11 +37,12 @@ A combined video forces both audiences to sit through content that isn't theirs.
 
 1. **ABF Classes** — directory of current classes by service (1st: Philippians, Faith Builders, Koinonia, Branches, Roots; 2nd: Agape, Mosaic, Synago).
 2. **Key Dates** — no-meeting Sundays, summer break, Easter, ABF resume dates.
-3. **Resources** — Training Videos (For New Leaders / For Existing Leaders / For New Teachers), Articles, Online Courses (Joshua WBF Spring 2026, plus Tutorials). *Default subsection on load: Training Videos.*
-4. **Teachers** — roster organized by stage (Veterans, Active, Up & Comers Years 2–3, Up & Comers Year 1).
-5. **Teacher Scheduling** — the heart of the tool. See architecture below.
-6. **Feedback** — class feedback surveys with three templates (Class Standard, Topical, End-of-Series), public form (`?f=slug`), aggregate dashboard, printable PDFs. Architecture lives in `feedback/README.md`.
-7. **Contact** — Tom Daly, daly@lefc.net.
+3. **Resources** — Training Videos (For New Leaders / For Existing Leaders / For New Teachers), Articles, Online Studies (renamed from "Online Courses" July 2026; Joshua WBF Spring 2026, plus Tutorials). *Default subsection on load: Training Videos.*
+4. **Teachers** — roster organized by stage (Veterans, Active, Up & Comers Years 2–3, Up & Comers Year 1). Also hosts **My Profile** (inline form, shown when signed in as a teacher; moved here from Scheduling July 2026).
+5. **Courses** (tab id `catalog`) — top-level shared course catalog (added July 2026). Flat list with sort / teacher / weeks / topic-tag filters. Signed-in teachers see Edit/Remove on their own courses plus the add/edit form below the catalog ("Manage Your Courses"). Signed-in leaders see a **"Request this course"** button on each card that jumps to Scheduling → New Request with teacher + course pre-filled.
+6. **Scheduling** (renamed from "Teacher Scheduling") — now purely send/receive: teachers get My Availability + Incoming Requests; leaders get Teacher Availability grid, New Request, My Requests. My Courses / My Profile / Available Courses moved out (see above).
+7. **Feedback** — class feedback surveys with three templates (Class Standard, Topical, End-of-Series), public form (`?f=slug`), aggregate dashboard, printable PDFs. Architecture lives in `feedback/README.md`.
+8. **Contact** — Tom Daly, daly@lefc.net.
 
 ---
 
@@ -51,18 +52,12 @@ A combined video forces both audiences to sit through content that isn't theirs.
 - **Backend (scheduling + feedback)**: Airtable. Schema is documented in `SCHEDULING_TOOL_AIRTABLE_SETUP.md`.
 - **Auth**: Password gate on the front page (one shared leader/teacher password Tom shares directly). Past the gate, the site **defaults to read-only**. To edit profile / availability / courses, or to send/respond to teaching requests, the user signs in as a specific person using **the last 4 digits of the phone number** stored in Airtable (Teachers table or ABF Leaders table). No separate accounts, no passwords to manage, no email confirmations.
 
-### Teacher Scheduling Tool
+### Teacher Scheduling Tool (restructured July 2026)
 
 - Sept–June calendar grid; summer shaded out; no-meeting Sundays diagonally striped.
-- **Teacher view** (4 tabs):
-  1. **My Availability** — click each Sunday to cycle through Available (green) / Tentative (gold) / Unavailable (red) / blank.
-  2. **Incoming Requests** — accept/decline teaching requests from leaders.
-  3. **My Courses** — title, description, **min/max weeks** (helps leaders plan how a series fits their slot).
-  4. **My Profile** — bio, training, venues, "get to know me" 140-char tagline, doctrinal alignment checkbox.
-- **Leader view**:
-  - **Teacher Availability grid** — rows = teachers, columns = Sundays. Green/gold/red/blue (booked).
-  - **New Request** form — pick teacher, course (filtered to their courses), Sundays, message.
-  - **My Requests** tab — track pending/accepted/declined.
+- **Teacher view** (2 tabs): **My Availability** (click each Sunday to cycle Available/Tentative/Unavailable/blank) and **Incoming Requests** (accept/decline).
+- **Leader view**: **Teacher Availability grid** (rows = teachers, columns = Sundays, green/gold/red/blue booked), **New Request** form (pick teacher, course filtered to their courses, Sundays, message), **My Requests** (track pending/accepted/declined).
+- **My Courses** editing → now in the top-level **Courses** tab; **My Profile** → now on the **Teachers** tab. Course browsing → the **Courses** tab catalog, which also supports course-first requests (`requestCourseFromCatalog()`).
 
 Architecture details in memory: `project_scheduling_tool.md`.
 
@@ -77,6 +72,14 @@ Architecture details in memory: `project_scheduling_tool.md`.
 Architecture details in memory: `project_feedback_tab.md`.
 
 ---
+
+## Recent changes (July 2026)
+
+Shipped 2026-07-30 in one batch:
+
+- **Tab restructure (Courses / Scheduling / Teachers)** — see the Site sections list above and the Scheduling Tool section below. New top-level Courses tab (id `catalog`); Scheduling slimmed to send/receive; My Profile now on Teachers tab; "Online Courses" → "Online Studies" under Resources. Course-first requests via `requestCourseFromCatalog()`.
+- **ABF Classes cards are text-only** — leader photos and "[ Leader Photo ]" placeholders removed. Each card now opens with a colored `abf-banner` (class name in bold italic; olive/terra/steel/gold/brown rotation). The `Photo` field in the Airtable ABF Classes table and the JS seed data is no longer displayed.
+- **Facility map on Home** — `facility-map.pdf` (LEFC Facility Map 2027) at site root, with a thumbnail card (`.map-card`, `photos/facility-map-thumb.jpg`) in Key Announcements linking to the PDF.
 
 ## Recent changes (April 2026)
 
@@ -96,7 +99,7 @@ Tom shipped a batch of profile/registration changes — see `SCHEDULING_TODO_TOM
 
 ### Vimeo (embedded on the site)
 
-Two Vimeo videos walk through the scheduling tool. They're embedded in two places: the Home tab "Key Announcements" section (side-by-side, leaders left / teachers right) and the Resources → Online Courses → "Tutorials" detail page.
+Two Vimeo videos walk through the scheduling tool. They're embedded in two places: the Home tab "Key Announcements" section (side-by-side, leaders left / teachers right) and the Resources → Online Studies → "Tutorials" detail page. **Note:** both videos predate the July 2026 restructure (they show My Courses / My Profile / Available Courses inside the Scheduling tab) — re-record when convenient.
 
 - ABF Leaders walkthrough: Vimeo `1188153596`
 - ABF Teachers walkthrough: Vimeo `1188153632`
@@ -139,8 +142,9 @@ ABF Resources/
 │   └── walkthrough_combined.md            ← original combined source pack
 ├── ABF Class Rosters.xlsx
 ├── Joshua Week N - *.pdf                  ← slide files for Joshua online course
-├── photos/                                ← leader photos
-└── *.jpg                                  ← additional leader photos at root
+├── facility-map.pdf                       ← LEFC Facility Map 2027 (linked from Home)
+├── photos/                                ← leader photos (no longer shown on class cards) + facility-map-thumb.jpg
+└── *.jpg                                  ← additional leader photos at root (unused on site)
 ```
 
 ---

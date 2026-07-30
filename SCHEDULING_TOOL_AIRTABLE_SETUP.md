@@ -30,7 +30,7 @@ The classes that meet on Sunday mornings. Pre-existing data will be copied here.
 | Name              | Single line text    | Primary field. e.g. "Mosaic", "Philippians"        |
 | Service           | Single select       | Options: `1st Service`, `2nd Service`              |
 | Leaders           | Long text           | Comma-separated leader names (matches current site)|
-| Photo             | Attachment          | One leader photo per class (optional)              |
+| Photo             | Attachment          | One leader photo per class (optional; no longer displayed on the site as of July 2026 — class cards are text-only) |
 | Room              | Single line text    | "Room TBD" is fine for now                         |
 | Active            | Checkbox            | Default: checked                                   |
 

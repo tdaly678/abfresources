@@ -2,6 +2,17 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## What changed on 2026-07-30 — Tab restructure (no action required)
+
+Purely a frontend reorganization; no Airtable changes:
+
+- New top-level **Courses** tab = the shared course catalog (formerly the leader-only "Available Courses" sub-tab). Same sort/teacher/weeks/topic filters. Signed-in teachers now edit their courses there ("Manage Your Courses" form below the catalog); signed-in leaders get a **"Request this course"** button on each card that pre-fills New Request.
+- **Scheduling** (renamed from "Teacher Scheduling") is now just: My Availability + Incoming Requests (teachers); Teacher Availability grid + New Request + My Requests (leaders).
+- **My Profile** moved to the **Teachers** tab (inline form when signed in as a teacher; clicking your roster card still opens the edit modal).
+- Resources → "Online Courses" renamed to **"Online Studies"**.
+- Also that day: ABF Classes cards are now text-only with colored class-name banners (leader photos removed), and the **facility map** PDF is linked from Home → Key Announcements.
+- **Heads-up:** the two Vimeo walkthrough videos show the old tab layout — worth re-recording eventually (see `walkthroughs/INDEX.md`).
+
 ## What changed on 2026-05-01 — Course Topic Tags + filterable catalog
 
 The Available Courses tab now has sort, teacher filter, weeks filter (1–12), and topic-tag filter chips. Teachers see a 2–3 tag picker on the My Courses form. **Both setup steps are already done** — no action required from you for the rollout itself:
@@ -52,10 +63,19 @@ Until a person's phone is on file they can still browse but they can't sign in. 
 
 **Heads up — security caveat.** Last-4-of-phone is a low-friction barrier, not a real auth system. Anyone who can read a teacher's phone number (printed church directories, public bulletins, Realm/Rock if those are visible to attendees) can sign in as them. The same shared site password ("oikos") is still the main perimeter. The Change Log audit trail (section 6 below) tells you who edited what after the fact, so a bad actor can be traced and rolled back.
 
-## 1. Set up the two email Automations (15 min)
+## 1. Set up the two email Automations via SendGrid (~25 min)
 
 Open the base: <https://airtable.com/appTpp1agJQqoId07>
 Click **Automations** (top right), then **Create automation** twice.
+
+> **Why SendGrid instead of Airtable's built-in Send Email?** Better deliverability, branded sender (`daly@lefc.net` instead of `automations@airtable.com`), HTML templating control. Same Airtable triggers — just a different action.
+
+### Pre-flight: SendGrid sender + API key
+
+Before building either automation, in your existing SendGrid account:
+
+1. **Settings → Sender Authentication → Verify a Single Sender** → add `daly@lefc.net` (From Name: `LEFC|U ABF Scheduling`). Click the verification link SendGrid sends to that inbox.
+2. **Settings → API Keys → Create API Key** → name `lefc-airtable-automations`, permission **Restricted Access** with only **Mail Send → Full Access** checked. Copy the key. You'll paste it into the script below.
 
 ### Automation A — "New request → email teacher"
 
@@ -63,71 +83,208 @@ Click **Automations** (top right), then **Create automation** twice.
 
 **Action 1:** *Find records*
 - Table: **Teachers**
-- Condition: where the record ID is `{{Trigger record → Teacher}}`
-- Use this so you can read the teacher's email in the email step.
+- Condition: record ID is `{{Trigger record → Teacher}}`
 
-**Action 2:** *Send email*
-- **To:** the **Email** field from the "Find records" step (Action 1 output → first record → Email)
-- **Subject:**
-  ```
-  New teaching request from {{Trigger record → Requesting Leader → Name}}
-  ```
-- **Message body** (use rich-text mode — paste this in):
-  ```
-  Hi {{Find Teachers → first record → Name}},
+**Action 2:** *Find records*
+- Table: **ABF Leaders**
+- Condition: record ID is `{{Trigger record → Requesting Leader}}`
 
-  {{Trigger record → Requesting Leader → Name}} just asked you to teach in
-  {{Trigger record → ABF Class → Name}} ({{Trigger record → Service}}) on:
+**Action 3:** *Find records*
+- Table: **ABF Classes**
+- Condition: record ID is `{{Trigger record → ABF Class}}`
 
-  {{Trigger record → Requested Sundays}}
+**Action 4:** *Run a script*
 
-  Their message:
-  {{Trigger record → Leader Message}}
+In the **Input variables** panel on the left of the script editor, add these (left-side name → right-side mapping):
 
-  Open the portal to respond:
-  https://www.abfresources.com/?tab=scheduling
+| Input variable name | Value (drag from previous steps) |
+|---|---|
+| `teacherName` | Find Teachers → First record → Name |
+| `teacherEmail` | Find Teachers → First record → Email |
+| `leaderName` | Find ABF Leaders → First record → Name |
+| `className` | Find ABF Classes → First record → Name |
+| `service` | Find ABF Classes → First record → Service |
+| `requestedSundays` | Trigger record → Requested Sundays *(formatted as comma-separated text)* |
+| `leaderMessage` | Trigger record → Leader Message |
 
-  — ABF Scheduling
-  ```
-- **Test step**: click **Test** with a real Request record (you can create a throwaway one). Confirm the email lands. Then **Turn on automation**.
+Then paste this into the script body:
+
+```javascript
+const SENDGRID_API_KEY = "REPLACE_WITH_YOUR_SENDGRID_KEY";
+const FROM_EMAIL = "daly@lefc.net";
+const FROM_NAME = "LEFC|U ABF Scheduling";
+const PORTAL_URL = "https://www.abfresources.com/?tab=scheduling";
+
+const { teacherName, teacherEmail, leaderName, className, service,
+        requestedSundays, leaderMessage } = input.config();
+
+const msgPlain = leaderMessage || "(no message)";
+const sundaysText = (requestedSundays || "").toString().trim() || "(no Sundays specified)";
+
+const subject = `New teaching request from ${leaderName}`;
+
+const plain = `Hi ${teacherName},
+
+${leaderName} just asked you to teach in ${className} (${service}) on:
+
+${sundaysText}
+
+Their message:
+${msgPlain}
+
+Open the portal to respond:
+${PORTAL_URL}
+
+— ABF Scheduling`;
+
+const html = `<!DOCTYPE html><html><body style="font-family:Helvetica,Arial,sans-serif;color:#342D25;line-height:1.55;max-width:560px;margin:0 auto;padding:24px;background:#fff;">
+  <div style="border-bottom:3px solid #BCA944;padding-bottom:10px;margin-bottom:18px;">
+    <span style="color:#AA3B24;letter-spacing:.12em;font-size:11px;font-weight:800;text-transform:uppercase;">LEFC|U · ABF Scheduling</span>
+  </div>
+  <p>Hi <strong>${teacherName}</strong>,</p>
+  <p><strong>${leaderName}</strong> just asked you to teach in <strong>${className}</strong> (${service}) on:</p>
+  <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:14px 0;font-weight:600;">${sundaysText}</p>
+  <p style="margin-top:18px;"><strong>Their message:</strong></p>
+  <p style="background:#f7eed7;border-left:3px solid #524B30;padding:10px 14px;margin:6px 0 18px;">${msgPlain.replace(/\n/g, "<br>")}</p>
+  <p style="margin-top:22px;">
+    <a href="${PORTAL_URL}" style="display:inline-block;background:#AA3B24;color:#fff;padding:10px 22px;text-decoration:none;border-radius:4px;font-weight:700;">Open the portal to respond</a>
+  </p>
+  <p style="margin-top:32px;color:#6b6050;font-size:12px;">— ABF Scheduling · Lancaster Evangelical Free Church</p>
+</body></html>`;
+
+const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    personalizations: [{ to: [{ email: teacherEmail, name: teacherName }] }],
+    from: { email: FROM_EMAIL, name: FROM_NAME },
+    reply_to: { email: FROM_EMAIL, name: FROM_NAME },
+    subject,
+    content: [
+      { type: "text/plain", value: plain },
+      { type: "text/html",  value: html }
+    ]
+  })
+});
+
+if (res.status !== 202) {
+  throw new Error(`SendGrid failed: ${res.status} ${await res.text()}`);
+}
+console.log(`Sent teaching-request email to ${teacherEmail}`);
+```
+
+**Test:** click **Test** with a real Request record (create a throwaway one if needed). Confirm the email lands at the teacher's inbox. Then **Turn on automation**.
 
 ### Automation B — "Teacher responded → email leader"
 
 **Trigger:** *When a record matches conditions* → Table: **Requests**
 - Condition: **Status** is any of `Accepted`, `Declined`, `Counter-Proposed`
-- (This fires every time a request transitions out of Pending.)
 
-**Action 1:** *Find records*
-- Table: **ABF Leaders**
-- Condition: record ID is `{{Trigger record → Requesting Leader}}`
+**Action 1:** *Find records* → Table: **ABF Leaders**, condition: record ID is `{{Trigger record → Requesting Leader}}`
 
-**Action 2:** *Send email*
-- **To:** Email field from the "Find records" step
-- **Subject:**
-  ```
-  {{Trigger record → Teacher → Name}} {{Trigger record → Status}} your request
-  ```
-- **Message body:**
-  ```
-  Hi {{Find ABF Leaders → first record → Name}},
+**Action 2:** *Find records* → Table: **Teachers**, condition: record ID is `{{Trigger record → Teacher}}`
 
-  {{Trigger record → Teacher → Name}} responded "{{Trigger record → Status}}" to your
-  request to teach in {{Trigger record → ABF Class → Name}}.
+**Action 3:** *Find records* → Table: **ABF Classes**, condition: record ID is `{{Trigger record → ABF Class}}`
 
-  Their note:
-  {{Trigger record → Teacher Response}}
+**Action 4:** *Run a script*
 
-  Counter-proposed Sundays (if any):
-  {{Trigger record → Counter Sundays}}
+Input variables:
 
-  Open the portal to see the full request:
-  https://www.abfresources.com/?tab=scheduling
+| Input variable name | Value |
+|---|---|
+| `leaderName` | Find ABF Leaders → First record → Name |
+| `leaderEmail` | Find ABF Leaders → First record → Email |
+| `teacherName` | Find Teachers → First record → Name |
+| `className` | Find ABF Classes → First record → Name |
+| `status` | Trigger record → Status |
+| `teacherResponse` | Trigger record → Teacher Response |
+| `counterSundays` | Trigger record → Counter Sundays *(formatted as comma-separated text)* |
 
-  — ABF Scheduling
-  ```
-- Test, then **Turn on automation**.
+Script body:
 
-> **Heads up:** the free Airtable plan gives you ~100 automation runs/month. The volume here (a handful of requests/responses per week) will fit comfortably.
+```javascript
+const SENDGRID_API_KEY = "REPLACE_WITH_YOUR_SENDGRID_KEY";
+const FROM_EMAIL = "daly@lefc.net";
+const FROM_NAME = "LEFC|U ABF Scheduling";
+const PORTAL_URL = "https://www.abfresources.com/?tab=scheduling";
+
+const { leaderName, leaderEmail, teacherName, className,
+        status, teacherResponse, counterSundays } = input.config();
+
+const responseText = teacherResponse || "(no note from the teacher)";
+const counterText  = (counterSundays || "").toString().trim();
+
+// Pick subject + accent color by status
+const isAccepted = status === "Accepted";
+const isDeclined = status === "Declined";
+const accent = isAccepted ? "#524B30" : isDeclined ? "#AA3B24" : "#BCA944";
+
+const subject = `${teacherName} ${status.toLowerCase()} your teaching request`;
+
+const plain = `Hi ${leaderName},
+
+${teacherName} responded "${status}" to your request to teach in ${className}.
+
+Their note:
+${responseText}
+${counterText ? `\nCounter-proposed Sundays:\n${counterText}\n` : ""}
+Open the portal to see the full request:
+${PORTAL_URL}
+
+— ABF Scheduling`;
+
+const counterHtml = counterText
+  ? `<p style="margin-top:18px;"><strong>Counter-proposed Sundays:</strong></p>
+     <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${counterText}</p>`
+  : "";
+
+const html = `<!DOCTYPE html><html><body style="font-family:Helvetica,Arial,sans-serif;color:#342D25;line-height:1.55;max-width:560px;margin:0 auto;padding:24px;background:#fff;">
+  <div style="border-bottom:3px solid #BCA944;padding-bottom:10px;margin-bottom:18px;">
+    <span style="color:#AA3B24;letter-spacing:.12em;font-size:11px;font-weight:800;text-transform:uppercase;">LEFC|U · ABF Scheduling</span>
+  </div>
+  <p>Hi <strong>${leaderName}</strong>,</p>
+  <p><strong>${teacherName}</strong> responded <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${status}</span> to your request to teach in <strong>${className}</strong>.</p>
+  <p style="margin-top:18px;"><strong>Their note:</strong></p>
+  <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${responseText.replace(/\n/g, "<br>")}</p>
+  ${counterHtml}
+  <p style="margin-top:22px;">
+    <a href="${PORTAL_URL}" style="display:inline-block;background:#AA3B24;color:#fff;padding:10px 22px;text-decoration:none;border-radius:4px;font-weight:700;">Open the portal</a>
+  </p>
+  <p style="margin-top:32px;color:#6b6050;font-size:12px;">— ABF Scheduling · Lancaster Evangelical Free Church</p>
+</body></html>`;
+
+const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    personalizations: [{ to: [{ email: leaderEmail, name: leaderName }] }],
+    from: { email: FROM_EMAIL, name: FROM_NAME },
+    reply_to: { email: FROM_EMAIL, name: FROM_NAME },
+    subject,
+    content: [
+      { type: "text/plain", value: plain },
+      { type: "text/html",  value: html }
+    ]
+  })
+});
+
+if (res.status !== 202) {
+  throw new Error(`SendGrid failed: ${res.status} ${await res.text()}`);
+}
+console.log(`Sent ${status} response email to ${leaderEmail}`);
+```
+
+**Test** with an existing Request record by flipping its Status to `Accepted` (then back to Pending if you want to test again). Confirm the leader's inbox gets the email. Then **Turn on automation**.
+
+> **API key handling:** the `SENDGRID_API_KEY` constant at the top of each script is hardcoded — anyone with collaborator access to the Airtable base can read it. If you ever add other Airtable collaborators, treat this base's "Edit" access as equivalent to handing out the SendGrid key. Rotate the key (SendGrid → API Keys → trash icon → create new) and update both scripts if you suspect exposure.
+
+> **Free-tier limits:** Airtable free plan ≈ 100 automation runs/month, SendGrid free tier ≈ 100 emails/day. Combined volume here (a handful of requests + responses per week) sits well below either ceiling.
 
 ## 2. Update teacher email addresses
 
