@@ -3465,6 +3465,10 @@
         <h2>Courses</h2>
         <div class="gold-rule"></div>
         <p class="page-sub">Every course our teachers are offering &mdash; browse, filter, and plan your year. Teachers add and edit their courses right here.</p>
+        <div id="catalog-add-course-cta" style="margin-top:.85rem;display:none;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" id="catalog-add-course-btn" type="button">+ Add a course</button>
+          <span style="font-size:.75rem;color:var(--text-muted);">Add the courses you're ready to teach &mdash; leaders browse this catalog when planning their year. Your existing courses show Edit buttons below.</span>
+        </div>
       </div>
 
       <div class="sched-notice">
@@ -6373,6 +6377,16 @@
       }
     });
     document.getElementById('course-form-cancel').addEventListener('click', () => setCourseFormMode('add'));
+
+    // "+ Add a course" button in the Courses tab header: reset the form to
+    // add-mode, jump to it, and focus the title field.
+    const addBtn = document.getElementById('catalog-add-course-btn');
+    if (addBtn) addBtn.addEventListener('click', () => {
+      setCourseFormMode('add');
+      const form = document.getElementById('course-form');
+      if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.getElementById('course-form-titletext')?.focus({ preventScroll: true }), 450);
+    });
   }
 
   /* ════════════════════════════════════════════════════════
@@ -7063,10 +7077,14 @@
     const list = document.getElementById('l-courses-list');
     if (!list) return;
 
-    // Teacher tools (the add/edit course form in the Courses tab) only
-    // show for a signed-in teacher (or an admin acting as one).
+    // Teacher tools (the add/edit course form in the Courses tab) and the
+    // "+ Add a course" header button only show for a signed-in teacher
+    // (or an admin acting as one).
+    const isTeacher = !!Identity.asTeacher();
     const tools = document.getElementById('catalog-teacher-tools');
-    if (tools) tools.style.display = Identity.asTeacher() ? '' : 'none';
+    if (tools) tools.style.display = isTeacher ? '' : 'none';
+    const addCta = document.getElementById('catalog-add-course-cta');
+    if (addCta) addCta.style.display = isTeacher ? 'flex' : 'none';
 
     // Build the filter bar (idempotent — we re-bind each render so DataStore
     // refreshes pick up new teachers in the dropdown).
