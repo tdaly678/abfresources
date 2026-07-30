@@ -3459,15 +3459,30 @@
 
     </div>
 
+    <!-- ── Locked / sign-in prompt modal (shared: Scheduling subnav + Courses
+         tab "+ Add a course"). Lives OUTSIDE the tab panes so it can appear
+         over any tab. ─────────────────────────────────────── -->
+    <div class="sched-modal" id="locked-tab-modal">
+      <div class="sched-modal-card">
+        <div class="sched-modal-icon">🔒</div>
+        <h3 id="locked-tab-title">Sign in to use this</h3>
+        <p id="locked-tab-msg">This area is for signed-in teachers and leaders. Sign in to manage your availability and requests.</p>
+        <div class="sched-modal-actions">
+          <button class="btn btn-primary" id="locked-tab-signin">Sign in</button>
+          <button class="btn btn-ghost" id="locked-tab-close">Not now</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── COURSES (shared catalog) ──────────────────────── -->
     <div class="tab-pane" id="tab-catalog">
       <div class="page-header">
         <h2>Courses</h2>
         <div class="gold-rule"></div>
         <p class="page-sub">Every course our teachers are offering &mdash; browse, filter, and plan your year. Teachers add and edit their courses right here.</p>
-        <div id="catalog-add-course-cta" style="margin-top:.85rem;display:none;gap:.5rem;flex-wrap:wrap;align-items:center;">
+        <div id="catalog-add-course-cta" style="margin-top:.85rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-primary" id="catalog-add-course-btn" type="button">+ Add a course</button>
-          <span style="font-size:.75rem;color:var(--text-muted);">Add the courses you're ready to teach &mdash; leaders browse this catalog when planning their year. Your existing courses show Edit buttons below.</span>
+          <span id="catalog-add-course-hint" style="font-size:.75rem;color:var(--text-muted);">Teachers: sign in to add the courses you're ready to teach.</span>
         </div>
       </div>
 
@@ -3676,19 +3691,6 @@
         <!-- Leader: My Requests -->
         <div class="sched-pane" id="sched-l-mine">
           <div id="l-requests-list"></div>
-        </div>
-      </div>
-
-      <!-- ── Locked-tab sign-in prompt modal ────────────────── -->
-      <div class="sched-modal" id="locked-tab-modal">
-        <div class="sched-modal-card">
-          <div class="sched-modal-icon">🔒</div>
-          <h3 id="locked-tab-title">Sign in to use this</h3>
-          <p id="locked-tab-msg">This area is for signed-in teachers and leaders. Sign in to manage your availability and requests.</p>
-          <div class="sched-modal-actions">
-            <button class="btn btn-primary" id="locked-tab-signin">Sign in</button>
-            <button class="btn btn-ghost" id="locked-tab-close">Not now</button>
-          </div>
         </div>
       </div>
 
@@ -5795,6 +5797,11 @@
       if (document.getElementById('tab-teachers').classList.contains('active')) {
         renderTeachersRoster();
       }
+      // Re-render the Courses catalog so Edit/Request buttons + the add-course
+      // tools pick up the new identity
+      if (document.getElementById('tab-catalog')?.classList.contains('active')) {
+        renderAvailableCoursesGrid();
+      }
       // Re-render Leaders roster so edit affordances pick up the new identity
       if (document.getElementById('tab-leaders').classList.contains('active')) {
         renderLeadersRoster();
@@ -6378,10 +6385,18 @@
     });
     document.getElementById('course-form-cancel').addEventListener('click', () => setCourseFormMode('add'));
 
-    // "+ Add a course" button in the Courses tab header: reset the form to
-    // add-mode, jump to it, and focus the title field.
+    // "+ Add a course" button in the Courses tab header. Teachers: reset the
+    // form to add-mode, jump to it, focus the title field. Everyone else:
+    // pop the sign-in prompt with course-specific copy.
     const addBtn = document.getElementById('catalog-add-course-btn');
     if (addBtn) addBtn.addEventListener('click', () => {
+      if (!Identity.asTeacher()) {
+        openLockedTabPrompt('teacher', {
+          title: 'Sign in to add courses',
+          msg: 'Adding courses to the catalog is for teachers. Sign in with the last 4 digits of your phone number, then add the courses you’re ready to teach. Not on the teacher roster yet? Use “Add yourself as a teacher” on the Teachers tab first.',
+        });
+        return;
+      }
       setCourseFormMode('add');
       const form = document.getElementById('course-form');
       if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7077,14 +7092,16 @@
     const list = document.getElementById('l-courses-list');
     if (!list) return;
 
-    // Teacher tools (the add/edit course form in the Courses tab) and the
-    // "+ Add a course" header button only show for a signed-in teacher
-    // (or an admin acting as one).
+    // Teacher tools (the add/edit course form) only show for a signed-in
+    // teacher (or an admin acting as one). The "+ Add a course" button shows
+    // for EVERYONE — non-teachers get a sign-in prompt when they click it.
     const isTeacher = !!Identity.asTeacher();
     const tools = document.getElementById('catalog-teacher-tools');
     if (tools) tools.style.display = isTeacher ? '' : 'none';
-    const addCta = document.getElementById('catalog-add-course-cta');
-    if (addCta) addCta.style.display = isTeacher ? 'flex' : 'none';
+    const addHint = document.getElementById('catalog-add-course-hint');
+    if (addHint) addHint.textContent = isTeacher
+      ? 'Add the courses you’re ready to teach — leaders browse this catalog when planning their year. Your existing courses show Edit buttons below.'
+      : 'Teachers: sign in to add the courses you’re ready to teach.';
 
     // Build the filter bar (idempotent — we re-bind each render so DataStore
     // refreshes pick up new teachers in the dropdown).
@@ -7997,12 +8014,20 @@
     });
   }
 
-  /* Open the "you need to sign in" prompt with role-appropriate copy. */
-  function openLockedTabPrompt(role) {
+  /* Open the "you need to sign in" prompt with role-appropriate copy.
+     Pass custom = { title, msg } to override the defaults (e.g. the
+     "+ Add a course" button on the Courses tab). */
+  function openLockedTabPrompt(role, custom) {
     const modal = document.getElementById('locked-tab-modal');
     if (!modal) return;
     const title = document.getElementById('locked-tab-title');
     const msg   = document.getElementById('locked-tab-msg');
+    if (custom && custom.title) {
+      title.textContent = custom.title;
+      msg.textContent = custom.msg || '';
+      modal.classList.add('visible');
+      return;
+    }
     if (role === 'teacher') {
       title.textContent = 'Sign in as a teacher';
       msg.textContent = 'This area is for teachers \u2014 manage your availability and respond to teaching requests after signing in.';
