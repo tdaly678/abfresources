@@ -2821,6 +2821,7 @@
       <button class="tab-btn" data-tab="dates">Key Dates</button>
       <button class="tab-btn" data-tab="courses">Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
+      <button class="tab-btn" data-tab="catalog">Courses</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
       <button class="tab-btn" data-tab="feedback">Feedback</button>
     </div>
@@ -3166,6 +3167,90 @@
         </div>
       </div>
 
+      <!-- My Profile (visible when signed in as a teacher) -->
+      <div id="teachers-my-profile" style="display:none;margin-bottom:1.75rem;">
+        <div class="section-title">My Profile</div>
+        <div class="sched-notice">
+          <strong>Why this matters:</strong> ABF leaders click your name on the availability grid to see your background. Filling this out helps them match you with the right class and topic.
+        </div>
+        <form class="sched-form" id="profile-form" autocomplete="off">
+          <div class="form-row row-2">
+            <div>
+              <label class="form-label" for="prof-name">Your name</label>
+              <input type="text" id="prof-name" class="form-input" required />
+            </div>
+            <div>
+              <label class="form-label" for="prof-email">Email</label>
+              <input type="email" id="prof-email" class="form-input" required />
+            </div>
+          </div>
+          <div class="form-row row-2">
+            <div>
+              <label class="form-label" for="prof-phone">Phone (optional)</label>
+              <input type="tel" id="prof-phone" class="form-input" />
+            </div>
+            <div>
+              <label class="form-label" for="prof-year">Year you began attending LEFC</label>
+              <input type="number" id="prof-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Are you a member of LEFC?</label>
+            <label class="form-toggle" id="prof-member-toggle">
+              <input type="checkbox" id="prof-member" />
+              <span>Yes, I'm a member</span>
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="prof-weeks-taught">Approximately how many weeks have you taught?</label>
+            <select id="prof-weeks-taught" class="form-input">
+              <option value="">— Select —</option>
+              <option value="0">0</option>
+              <option value="1-9">1–9</option>
+              <option value="10-24">10–24</option>
+              <option value="25+">25+</option>
+            </select>
+            <p class="form-help">A rough estimate is fine — counts every Sunday or session you've taught, here or anywhere else. Your stage (Up &amp; Comer / Active / Veteran) is set automatically from this answer.</p>
+          </div>
+          <div class="form-row">
+            <label class="form-label">In what venues have you taught in the past?</label>
+            <div class="chip-list" id="prof-venues"></div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Other venues you've taught in</label>
+            <div class="chip-list" id="prof-other-venues"></div>
+            <label class="form-label" for="prof-other-venues-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+            <input type="text" id="prof-other-venues-extra" class="form-input" placeholder="Add any venues not listed above…" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Relevant training (formal & informal)</label>
+            <div class="chip-list" id="prof-training"></div>
+            <label class="form-label" for="prof-training-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
+            <input type="text" id="prof-training-extra" class="form-input" placeholder="Add any training not listed above…" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="prof-tagline">Get to know me <span style="font-weight:400;color:var(--text-muted);">(140 characters)</span></label>
+            <input type="text" id="prof-tagline" class="form-input" maxlength="140" placeholder="A short, fun line about you — hobbies, family, where you're from, etc." />
+            <p class="form-help"><span id="prof-tagline-count">0</span>/140</p>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="prof-bio">Short bio (optional)</label>
+            <textarea id="prof-bio" class="form-textarea" placeholder="A sentence or two leaders will see when they're choosing teachers."></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Doctrinal alignment</label>
+            <label class="form-toggle" id="prof-sof-toggle">
+              <input type="checkbox" id="prof-sof" />
+              <span>I have read and affirm LEFC's <a href="https://lancasterefree.com/about/what-we-believe/" target="_blank" rel="noopener" style="color:var(--steel-blue);text-decoration:underline;">Statement of Faith</a> and Matters of Faith &amp; Practice, and will teach in alignment with both.</span>
+            </label>
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <button type="button" class="btn btn-primary" id="profile-form-save">Save profile</button>
+            <span id="profile-form-status" style="font-size:.78rem;color:var(--text-muted);"></span>
+          </div>
+        </form>
+      </div>
+
       <div id="teachers-roster"></div>
 
       <!-- Static fallback content (hidden once Airtable loads) -->
@@ -3374,12 +3459,94 @@
 
     </div>
 
+    <!-- ── COURSES (shared catalog) ──────────────────────── -->
+    <div class="tab-pane" id="tab-catalog">
+      <div class="page-header">
+        <h2>Courses</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Every course our teachers are offering &mdash; browse, filter, and plan your year. Teachers add and edit their courses right here.</p>
+      </div>
+
+      <div class="sched-notice">
+        <strong>Browse the courses our teachers are ready to bring.</strong> Each card shows what the teacher is offering, a short description, and how many weeks they&rsquo;d ideally spend on it. ABF leaders: sign in and you can send a teaching request straight from a course.
+      </div>
+      <div class="course-filter-bar" id="l-courses-filter">
+        <div class="filter-row filter-row-controls">
+          <div class="filter-field">
+            <label class="filter-label" for="l-courses-sort">Sort</label>
+            <select id="l-courses-sort" class="form-select">
+              <option value="title-asc">Title (A&ndash;Z)</option>
+              <option value="teacher-asc">Teacher (A&ndash;Z)</option>
+              <option value="weeks-asc">Weeks (shortest first)</option>
+              <option value="weeks-desc">Weeks (longest first)</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="l-courses-teacher">Teacher</label>
+            <select id="l-courses-teacher" class="form-select">
+              <option value="">All teachers</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="l-courses-weeks">Fits in <span id="l-courses-weeks-val">12+</span> weeks</label>
+            <input type="range" id="l-courses-weeks" min="1" max="12" value="12" />
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="l-courses-reset">Reset</button>
+        </div>
+        <div class="filter-row filter-row-tags">
+          <div class="filter-label" style="white-space:nowrap;">Topics</div>
+          <div class="course-tag-filter" id="l-courses-tag-filter"></div>
+        </div>
+        <div class="filter-summary" id="l-courses-summary"></div>
+      </div>
+      <div id="l-courses-list" class="course-list"></div>
+
+      <!-- Teacher tools: manage your own courses (signed-in teachers only) -->
+      <div id="catalog-teacher-tools" style="display:none;">
+        <div class="section-title" style="margin-top:2rem;">Manage Your Courses</div>
+        <div class="sched-notice">
+          <strong>Why this matters:</strong> ABF leaders browse this catalog when they&rsquo;re choosing who to request. The min/max weeks helps them plan how a series fits their schedule. Your own courses appear above with Edit and Remove buttons.
+        </div>
+        <div class="sched-form" id="course-form">
+          <h3 style="font-size:.95rem;font-weight:800;color:var(--dark-brown);margin-bottom:1rem;" id="course-form-title">Add a course</h3>
+          <input type="hidden" id="course-form-id" />
+          <div class="form-row">
+            <label class="form-label">Course title</label>
+            <input type="text" id="course-form-titletext" class="form-input" placeholder="e.g. Genesis, Sermon on the Mount" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Description</label>
+            <textarea id="course-form-desc" class="form-textarea" placeholder="A short description of what the course covers."></textarea>
+          </div>
+          <div class="form-row row-2">
+            <div>
+              <label class="form-label">Min weeks</label>
+              <input type="number" id="course-form-min" class="form-input" min="1" max="40" placeholder="6" />
+            </div>
+            <div>
+              <label class="form-label">Max weeks</label>
+              <input type="number" id="course-form-max" class="form-input" min="1" max="40" placeholder="12" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Topic tags <span style="font-weight:400;color:var(--text-muted);">(pick 2&ndash;3)</span></label>
+            <div class="chip-list" id="course-form-tags"></div>
+            <p class="form-help">Tags help leaders filter the course catalog. Pick the 2&ndash;3 that fit best.</p>
+          </div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-primary" id="course-form-save">Save course</button>
+            <button class="btn btn-ghost" id="course-form-cancel" style="display:none;">Cancel edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── SCHEDULING ─────────────────────────────────────── -->
     <div class="tab-pane" id="tab-scheduling">
       <div class="page-header">
-        <h2>Teacher Scheduling</h2>
+        <h2>Scheduling</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub" id="sched-page-sub">Sign in as a teacher or ABF leader to manage availability and requests.</p>
+        <p class="page-sub" id="sched-page-sub">Sign in as a teacher or ABF leader to manage availability and send or respond to teaching requests.</p>
       </div>
 
       <!-- If no identity selected — kept for potential reuse but hidden -->
@@ -3397,8 +3564,6 @@
           <div class="sched-subnav">
             <button class="sched-subnav-btn active" data-sub="t-availability" data-role="teacher">My Availability</button>
             <button class="sched-subnav-btn" data-sub="t-requests" data-role="teacher">Incoming Requests <span id="t-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
-            <button class="sched-subnav-btn" data-sub="t-courses" data-role="teacher">My Courses</button>
-            <button class="sched-subnav-btn" data-sub="t-profile" data-role="teacher">My Profile</button>
           </div>
         </div>
 
@@ -3430,128 +3595,7 @@
           <div id="t-requests-list"></div>
         </div>
 
-        <!-- Teacher: My Courses -->
-        <div class="sched-pane" id="sched-t-courses">
-          <div class="sched-notice">
-            <strong>Why this matters:</strong> ABF leaders see your courses when they're choosing who to request. The min/max weeks helps them plan how a series fits their schedule.
-          </div>
-          <div id="t-courses-list" class="course-list"></div>
-
-          <div class="sched-form" id="course-form">
-            <h3 style="font-size:.95rem;font-weight:800;color:var(--dark-brown);margin-bottom:1rem;" id="course-form-title">Add a course</h3>
-            <input type="hidden" id="course-form-id" />
-            <div class="form-row">
-              <label class="form-label">Course title</label>
-              <input type="text" id="course-form-titletext" class="form-input" placeholder="e.g. Genesis, Sermon on the Mount" />
-            </div>
-            <div class="form-row">
-              <label class="form-label">Description</label>
-              <textarea id="course-form-desc" class="form-textarea" placeholder="A short description of what the course covers."></textarea>
-            </div>
-            <div class="form-row row-2">
-              <div>
-                <label class="form-label">Min weeks</label>
-                <input type="number" id="course-form-min" class="form-input" min="1" max="40" placeholder="6" />
-              </div>
-              <div>
-                <label class="form-label">Max weeks</label>
-                <input type="number" id="course-form-max" class="form-input" min="1" max="40" placeholder="12" />
-              </div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Topic tags <span style="font-weight:400;color:var(--text-muted);">(pick 2&ndash;3)</span></label>
-              <div class="chip-list" id="course-form-tags"></div>
-              <p class="form-help">Tags help leaders filter the course catalog. Pick the 2&ndash;3 that fit best.</p>
-            </div>
-            <div style="display:flex;gap:.5rem;">
-              <button class="btn btn-primary" id="course-form-save">Save course</button>
-              <button class="btn btn-ghost" id="course-form-cancel" style="display:none;">Cancel edit</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Teacher: My Profile -->
-        <div class="sched-pane" id="sched-t-profile">
-          <div class="sched-notice">
-            <strong>Why this matters:</strong> ABF leaders click your name on the availability grid to see your background. Filling this out helps them match you with the right class and topic.
-          </div>
-          <form class="sched-form" id="profile-form" autocomplete="off">
-            <div class="form-row row-2">
-              <div>
-                <label class="form-label" for="prof-name">Your name</label>
-                <input type="text" id="prof-name" class="form-input" required />
-              </div>
-              <div>
-                <label class="form-label" for="prof-email">Email</label>
-                <input type="email" id="prof-email" class="form-input" required />
-              </div>
-            </div>
-            <div class="form-row row-2">
-              <div>
-                <label class="form-label" for="prof-phone">Phone (optional)</label>
-                <input type="tel" id="prof-phone" class="form-input" />
-              </div>
-              <div>
-                <label class="form-label" for="prof-year">Year you began attending LEFC</label>
-                <input type="number" id="prof-year" class="form-input" min="1900" max="2100" placeholder="e.g. 2014" />
-              </div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Are you a member of LEFC?</label>
-              <label class="form-toggle" id="prof-member-toggle">
-                <input type="checkbox" id="prof-member" />
-                <span>Yes, I'm a member</span>
-              </label>
-            </div>
-            <div class="form-row">
-              <label class="form-label" for="prof-weeks-taught">Approximately how many weeks have you taught?</label>
-              <select id="prof-weeks-taught" class="form-input">
-                <option value="">— Select —</option>
-                <option value="0">0</option>
-                <option value="1-9">1–9</option>
-                <option value="10-24">10–24</option>
-                <option value="25+">25+</option>
-              </select>
-              <p class="form-help">A rough estimate is fine — counts every Sunday or session you've taught, here or anywhere else. Your stage (Up &amp; Comer / Active / Veteran) is set automatically from this answer.</p>
-            </div>
-            <div class="form-row">
-              <label class="form-label">In what venues have you taught in the past?</label>
-              <div class="chip-list" id="prof-venues"></div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Other venues you've taught in</label>
-              <div class="chip-list" id="prof-other-venues"></div>
-              <label class="form-label" for="prof-other-venues-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
-              <input type="text" id="prof-other-venues-extra" class="form-input" placeholder="Add any venues not listed above…" />
-            </div>
-            <div class="form-row">
-              <label class="form-label">Relevant training (formal & informal)</label>
-              <div class="chip-list" id="prof-training"></div>
-              <label class="form-label" for="prof-training-extra" style="margin-top:.5rem;">Anything else? (optional)</label>
-              <input type="text" id="prof-training-extra" class="form-input" placeholder="Add any training not listed above…" />
-            </div>
-            <div class="form-row">
-              <label class="form-label" for="prof-tagline">Get to know me <span style="font-weight:400;color:var(--text-muted);">(140 characters)</span></label>
-              <input type="text" id="prof-tagline" class="form-input" maxlength="140" placeholder="A short, fun line about you — hobbies, family, where you're from, etc." />
-              <p class="form-help"><span id="prof-tagline-count">0</span>/140</p>
-            </div>
-            <div class="form-row">
-              <label class="form-label" for="prof-bio">Short bio (optional)</label>
-              <textarea id="prof-bio" class="form-textarea" placeholder="A sentence or two leaders will see when they're choosing teachers."></textarea>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Doctrinal alignment</label>
-              <label class="form-toggle" id="prof-sof-toggle">
-                <input type="checkbox" id="prof-sof" />
-                <span>I have read and affirm LEFC's <a href="https://lancasterefree.com/about/what-we-believe/" target="_blank" rel="noopener" style="color:var(--steel-blue);text-decoration:underline;">Statement of Faith</a> and Matters of Faith &amp; Practice, and will teach in alignment with both.</span>
-              </label>
-            </div>
-            <div style="display:flex;gap:.5rem;align-items:center;">
-              <button type="button" class="btn btn-primary" id="profile-form-save">Save profile</button>
-              <span id="profile-form-status" style="font-size:.78rem;color:var(--text-muted);"></span>
-            </div>
-          </form>
-        </div>
+        <!-- (My Courses and My Profile moved to the Courses and Teachers tabs) -->
       </div>
 
       <!-- LEADER VIEW -->
@@ -3560,7 +3604,6 @@
           <div class="sched-subnav-group-label">For ABF Leaders</div>
           <div class="sched-subnav">
             <button class="sched-subnav-btn" data-sub="l-grid" data-role="leader-readonly">Teacher Availability</button>
-            <button class="sched-subnav-btn" data-sub="l-courses" data-role="leader-readonly">Available Courses</button>
             <button class="sched-subnav-btn" data-sub="l-new" data-role="leader">New Request</button>
             <button class="sched-subnav-btn" data-sub="l-mine" data-role="leader">My Requests <span id="l-req-count" style="margin-left:.35em;font-weight:800;"></span></button>
           </div>
@@ -3588,42 +3631,7 @@
           <div id="l-availability-grid" class="grid-wrap"></div>
         </div>
 
-        <!-- Leader: Available Courses (read-only catalog) -->
-        <div class="sched-pane" id="sched-l-courses">
-          <div class="sched-notice">
-            <strong>Browse courses your teachers are willing to teach.</strong> Each card shows what the teacher is offering, a short description, and how many weeks they’d ideally spend on it. Use this to plan your year before sending a request.
-          </div>
-          <div class="course-filter-bar" id="l-courses-filter">
-            <div class="filter-row filter-row-controls">
-              <div class="filter-field">
-                <label class="filter-label" for="l-courses-sort">Sort</label>
-                <select id="l-courses-sort" class="form-select">
-                  <option value="title-asc">Title (A&ndash;Z)</option>
-                  <option value="teacher-asc">Teacher (A&ndash;Z)</option>
-                  <option value="weeks-asc">Weeks (shortest first)</option>
-                  <option value="weeks-desc">Weeks (longest first)</option>
-                </select>
-              </div>
-              <div class="filter-field">
-                <label class="filter-label" for="l-courses-teacher">Teacher</label>
-                <select id="l-courses-teacher" class="form-select">
-                  <option value="">All teachers</option>
-                </select>
-              </div>
-              <div class="filter-field">
-                <label class="filter-label" for="l-courses-weeks">Fits in <span id="l-courses-weeks-val">12+</span> weeks</label>
-                <input type="range" id="l-courses-weeks" min="1" max="12" value="12" />
-              </div>
-              <button type="button" class="btn btn-ghost btn-sm" id="l-courses-reset">Reset</button>
-            </div>
-            <div class="filter-row filter-row-tags">
-              <div class="filter-label" style="white-space:nowrap;">Topics</div>
-              <div class="course-tag-filter" id="l-courses-tag-filter"></div>
-            </div>
-            <div class="filter-summary" id="l-courses-summary"></div>
-          </div>
-          <div id="l-courses-list" class="course-list"></div>
-        </div>
+        <!-- (Available Courses moved to the top-level Courses tab) -->
 
         <!-- Leader: New Request -->
         <div class="sched-pane" id="sched-l-new">
@@ -3672,7 +3680,7 @@
         <div class="sched-modal-card">
           <div class="sched-modal-icon">🔒</div>
           <h3 id="locked-tab-title">Sign in to use this</h3>
-          <p id="locked-tab-msg">This area is for signed-in teachers. Sign in to manage your availability, courses, and profile.</p>
+          <p id="locked-tab-msg">This area is for signed-in teachers and leaders. Sign in to manage your availability and requests.</p>
           <div class="sched-modal-actions">
             <button class="btn btn-primary" id="locked-tab-signin">Sign in</button>
             <button class="btn btn-ghost" id="locked-tab-close">Not now</button>
@@ -3710,11 +3718,11 @@
       <div class="page-header">
         <h2>Resources</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">Training videos, articles, and online courses for ABF leaders.</p>
+        <p class="page-sub">Training videos, articles, and online studies for ABF leaders.</p>
         <div class="sched-subnav" style="margin-top:1rem;">
           <button class="sched-subnav-btn active" data-lefcu-sub="training">Training Videos</button>
           <button class="sched-subnav-btn" data-lefcu-sub="articles">Articles</button>
-          <button class="sched-subnav-btn" data-lefcu-sub="courses">Online Courses</button>
+          <button class="sched-subnav-btn" data-lefcu-sub="courses">Online Studies</button>
         </div>
       </div>
 
@@ -5961,7 +5969,7 @@
       }
     } else if (id.role === 'teacher') {
       const t = DataStore.getTeacher(id.id);
-      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (t ? t.name : 'a teacher') + '. Manage availability, courses, and incoming requests. Leader tools are read-only.';
+      sub.textContent = (adm ? 'Admin · acting as ' : 'Signed in as ') + (t ? t.name : 'a teacher') + '. Manage your availability and respond to incoming requests here. Your courses and profile live in the Courses and Teachers tabs.';
     } else {
       const l = DataStore.getABFLeader(id.id);
       const cls = l ? DataStore.getABFClass(l.abfClassId) : null;
@@ -6292,47 +6300,11 @@
 
   /* ─── Teacher: my courses ─── */
   function renderTeacherCourses() {
-    const t = Identity.asTeacher();
-    if (!t) return;
-    const list = document.getElementById('t-courses-list');
-    list.innerHTML = '';
-    const courses = DataStore.listCourses({ teacherId: t.id });
-    if (!courses.length) {
-      list.innerHTML = '<div class="sched-empty" style="grid-column:1/-1;"><div class="icon">\uD83D\uDCDA</div><h3>No courses listed yet</h3><p>Use the form below to add the first course you\u2019d be willing to teach.</p></div>';
-    } else {
-      courses.forEach(c => {
-        const item = document.createElement('div');
-        item.className = 'course-item';
-        const wkLabel = c.minWeeks === c.maxWeeks ? c.minWeeks + ' weeks' : c.minWeeks + '–' + c.maxWeeks + ' weeks';
-        item.innerHTML =
-          '<h4>' + escapeHtml(c.title) + '</h4>' +
-          '<div class="course-weeks">' + wkLabel + '</div>' +
-          renderCourseTagPills(c.tags) +
-          '<div class="course-desc">' + escapeHtml(c.description || '') + '</div>' +
-          '<div class="course-actions">' +
-            '<button class="btn btn-secondary btn-sm" data-edit="' + c.id + '">Edit</button>' +
-            '<button class="btn btn-danger btn-sm" data-del="' + c.id + '">Remove</button>' +
-          '</div>';
-        list.appendChild(item);
-      });
-      list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editCourse(b.dataset.edit)));
-      list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
-        const t = Identity.asTeacher();
-        if (!t || !Identity.canEditTeacher(t.id)) {
-          toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to remove courses.');
-          return;
-        }
-        if (confirm('Remove this course?')) {
-          try {
-            await DataStore.deleteCourse(b.dataset.del);
-            renderTeacherCourses();
-          } catch (e) { toast('error', 'Couldn\u2019t delete', 'Try again.'); console.error(e); }
-        }
-      }));
-    }
-
-    // reset form to add-mode
-    setCourseFormMode('add');
+    // "My Courses" now lives in the top-level Courses tab: the shared
+    // catalog shows Edit/Remove buttons on the signed-in teacher's own
+    // courses. This just refreshes the catalog and resets the form.
+    renderAvailableCoursesGrid();
+    if (Identity.asTeacher()) setCourseFormMode('add');
   }
 
   function setCourseFormMode(mode, course) {
@@ -6856,6 +6828,15 @@
     if (fb) fb.style.display = 'none';
     wrap.innerHTML = '';
 
+    // "My Profile" section (moved here from the Scheduling tab): show it
+    // for the signed-in teacher and populate the form.
+    const myProf = document.getElementById('teachers-my-profile');
+    if (myProf) {
+      const meT = Identity.asTeacher();
+      myProf.style.display = meT ? '' : 'none';
+      if (meT) renderTeacherProfile();
+    }
+
     const teachers = DataStore.listTeachers();
     if (!teachers.length) {
       wrap.innerHTML = '<div class="sched-empty"><h3>No teachers yet</h3><p>Be the first \u2014 click \u201cAdd yourself as a teacher\u201d above.</p></div>';
@@ -7082,6 +7063,11 @@
     const list = document.getElementById('l-courses-list');
     if (!list) return;
 
+    // Teacher tools (the add/edit course form in the Courses tab) only
+    // show for a signed-in teacher (or an admin acting as one).
+    const tools = document.getElementById('catalog-teacher-tools');
+    if (tools) tools.style.display = Identity.asTeacher() ? '' : 'none';
+
     // Build the filter bar (idempotent — we re-bind each render so DataStore
     // refreshes pick up new teachers in the dropdown).
     setupLeaderCoursesFilterBar();
@@ -7175,7 +7161,8 @@
             ? '<a href="#" class="course-teacher-link" data-teacher-id="' + teacher.id + '" style="color:var(--steel-blue);">' + escapeHtml(teacher.name) + '</a>'
             : escapeHtml(teacherName)) +
         '</div>' +
-        '<div class="course-desc">' + escapeHtml(c.description || 'No description provided.') + '</div>';
+        '<div class="course-desc">' + escapeHtml(c.description || 'No description provided.') + '</div>' +
+        buildCatalogCourseActions(c);
       list.appendChild(item);
     });
 
@@ -7186,6 +7173,71 @@
         openTeacherProfileModal(a.dataset.teacherId);
       });
     });
+
+    // Own-course editing (teachers) + course-first requests (leaders)
+    list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editCourse(b.dataset.edit)));
+    list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+      const c = DataStore.listCourses().find(x => x.id === b.dataset.del);
+      if (!c || !Identity.canEditTeacher(c.teacherId)) {
+        toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to remove courses.');
+        return;
+      }
+      if (confirm('Remove this course?')) {
+        try {
+          await DataStore.deleteCourse(b.dataset.del);
+          renderAvailableCoursesGrid();
+        } catch (e) { toast('error', 'Could not delete', 'Try again.'); console.error(e); }
+      }
+    }));
+    list.querySelectorAll('[data-request]').forEach(b => b.addEventListener('click', () => requestCourseFromCatalog(b.dataset.request)));
+  }
+
+  /* Action buttons on a catalog card: Edit/Remove on your own courses
+     when signed in as a teacher; "Request this course" for leaders. */
+  function buildCatalogCourseActions(c) {
+    const meT = Identity.asTeacher();
+    const canEdit = !!(meT && c.teacherId && Identity.canEditTeacher(c.teacherId));
+    const isLeader = !!Identity.asLeader();
+    if (!canEdit && !isLeader) return '';
+    let html = '<div class="course-actions">';
+    if (isLeader) html += '<button class="btn btn-primary btn-sm" data-request="' + c.id + '">Request this course</button>';
+    if (canEdit) {
+      html += '<button class="btn btn-secondary btn-sm" data-edit="' + c.id + '">Edit</button>';
+      html += '<button class="btn btn-danger btn-sm" data-del="' + c.id + '">Remove</button>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  /* Render the top-level Courses tab (the shared catalog). */
+  async function renderCatalogTab() {
+    if (!Airtable._cache) {
+      const summary = document.getElementById('l-courses-summary');
+      if (summary) summary.textContent = 'Loading courses\u2026';
+      try { await Airtable.ensureLoaded(); }
+      catch (e) {
+        if (summary) summary.textContent = 'Could not reach Airtable. Check your connection and refresh.';
+        return;
+      }
+    }
+    renderAvailableCoursesGrid();
+  }
+
+  /* Course-first request flow: jump to Scheduling -> New Request with
+     the teacher + course pre-selected. Only signed-in leaders (or admins
+     acting as a leader) ever see the button. */
+  function requestCourseFromCatalog(courseId) {
+    const c = DataStore.listCourses().find(x => x.id === courseId);
+    if (!c) return;
+    window.showTab('scheduling');
+    const btn = document.querySelector('#tab-scheduling .sched-subnav-btn[data-sub="l-new"]');
+    if (btn) btn.click();
+    setTimeout(() => {
+      const tSel = document.getElementById('l-req-teacher');
+      if (tSel) { tSel.value = c.teacherId || ''; if (tSel.onchange) tSel.onchange(); }
+      const cSel = document.getElementById('l-req-course');
+      if (cSel) { cSel.value = c.id; if (cSel.onchange) cSel.onchange(); }
+    }, 80);
   }
 
   /* Build (or refresh) the controls above the catalog list. Safe to
@@ -7935,7 +7987,7 @@
     const msg   = document.getElementById('locked-tab-msg');
     if (role === 'teacher') {
       title.textContent = 'Sign in as a teacher';
-      msg.textContent = 'This area is for teachers — manage your availability, courses, and profile after signing in.';
+      msg.textContent = 'This area is for teachers \u2014 manage your availability and respond to teaching requests after signing in.';
     } else if (role === 'leader') {
       title.textContent = 'Sign in as an ABF leader';
       msg.textContent = 'This area is for ABF leaders — send teaching requests and review responses after signing in.';
@@ -9328,12 +9380,14 @@
     }
     origShowTab(id);
     if (id === 'scheduling') renderScheduling();
+    if (id === 'catalog')    renderCatalogTab();
     if (id === 'teachers')   renderTeachersRoster();
     if (id === 'feedback')   renderFeedbackTab();
   };
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.tab === 'scheduling') renderScheduling();
+      if (btn.dataset.tab === 'catalog')    renderCatalogTab();
       if (btn.dataset.tab === 'teachers')   renderTeachersRoster();
       if (btn.dataset.tab === 'feedback')   renderFeedbackTab();
     });
