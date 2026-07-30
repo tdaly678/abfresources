@@ -4674,12 +4674,10 @@
   pwBtn.addEventListener('click', tryPassword);
   pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
 
-  logoutBtn.addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    site.classList.remove('visible');
-    pwScreen.classList.remove('hidden');
-    pwInput.value = '';
-  });
+  // Header "Sign Out" signs the person out of their teacher/leader identity
+  // only (handled further down, near the identity module). It does NOT
+  // re-lock the site password gate — closing the browser tab does that,
+  // since the gate lives in sessionStorage.
 
   // ─── Tab Navigation ──────────────────────────────────────
   function showTab(id) {
@@ -9465,11 +9463,18 @@
   }
   maybeFirstPrompt();
 
-  // Clear identity on logout
-  const origLogout = logoutBtn.onclick;
+  // Header "Sign Out": clears the teacher/leader identity (and any admin
+  // override) and returns to read-only browsing. The site password gate
+  // stays unlocked.
   logoutBtn.addEventListener('click', () => {
-    Identity.clear();
+    Identity.clearAll();
     refreshFbTabAffordances();
+    toast('success', 'Signed out', 'You’re browsing read-only. Use “Teacher & Leader Sign In” to sign back in.');
+    // Refresh identity-sensitive views on whichever tab is open
+    if (document.getElementById('tab-scheduling').classList.contains('active')) renderScheduling();
+    if (document.getElementById('tab-teachers').classList.contains('active'))   renderTeachersRoster();
+    if (document.getElementById('tab-leaders').classList.contains('active'))    renderLeadersRoster();
+    if (document.getElementById('tab-catalog')?.classList.contains('active'))   renderAvailableCoursesGrid();
   });
 
   // Initial refresh: the Feedback tab's "Create Survey" / "My Surveys"
