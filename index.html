@@ -7450,11 +7450,20 @@
           grid.appendChild(card);
         });
 
-        // Placeholder cards for names listed on the class but with no leader record yet
+        // Placeholder cards for names listed on the class but with no leader record yet.
+        // Strip trailing parentheticals like "(mentor couple)" before matching — otherwise
+        // "Kevin Zook (mentor couple)" won't match the "Kevin Zook" record and renders a
+        // phantom duplicate card. Also de-dupe repeated names.
+        const stripAnnotation = s => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
         const namesText = (cls.leaders || '').toString();
-        const namesInText = namesText.split(',').map(s => s.trim()).filter(Boolean);
+        const seenNames = new Set();
+        const namesInText = namesText.split(',')
+          .map(s => stripAnnotation(s.trim()))
+          .filter(Boolean);
         namesInText.forEach(name => {
           if (leaderRecordNames.has(name)) return;
+          if (seenNames.has(name)) return;
+          seenNames.add(name);
           const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
             .map(s => s[0].toUpperCase()).join('') || '?';
           const card = document.createElement('div');
