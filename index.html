@@ -4634,13 +4634,19 @@
     }
   }
 
-  // Check if already authenticated this session
-  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  // Site is publicly viewable (shared-password gate removed 2026-08-03).
+  // Go straight to the hub unless we're rendering the standalone public
+  // feedback form. Viewing is anonymous + server-sanitized (no phones,
+  // emails, request messages, or feedback responses reach the browser);
+  // editing your own records still requires last-4 sign-in.
+  if (!IS_PUBLIC_FEEDBACK_MODE) {
     unlock();
   }
 
-  pwBtn.addEventListener('click', tryPassword);
-  pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
+  // Password entry retained but unused (the gate screen is no longer shown);
+  // listeners kept harmless in case the gate is ever re-enabled.
+  if (pwBtn) pwBtn.addEventListener('click', tryPassword);
+  if (pwInput) pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
 
   // Header "Sign Out" signs the person out of their teacher/leader identity
   // only (handled further down, near the identity module). It does NOT
@@ -5671,7 +5677,10 @@
             o.value = t.id; o.textContent = t.name;
             select.appendChild(o);
           });
-          if (regRow) regRow.style.display = '';
+          // Self-registration writes need a privileged token; with the
+          // public gate removed, only an admin (override) can add new
+          // people. Regular visitors just pick their name to sign in.
+          if (regRow) regRow.style.display = Identity.isAdmin() ? '' : 'none';
         } else {
           label.textContent = 'Choose your name (ABF Leader)';
           DataStore.listABFLeaders().forEach(l => {
