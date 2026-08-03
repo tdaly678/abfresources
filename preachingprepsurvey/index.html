@@ -463,8 +463,8 @@
 
   <script>
   (function(){
-    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
-    const BASE  = 'appTpp1agJQqoId07';
+    // Submissions go through the worker API (rate-limited, no token here).
+    const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
     const TABLE = 'tblqkdRxqC72RAsjy';
 
     const state = {
@@ -666,13 +666,10 @@
       });
 
       try {
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
+        const res = await fetch(API_BASE + '/survey/submit', {
           method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + TOKEN,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ fields, typecast: true }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ survey: 'preachingprep', fields }),
         });
         if (!res.ok) {
           const txt = await res.text();

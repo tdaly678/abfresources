@@ -438,11 +438,10 @@
      Password gate (mirrors main site pattern)
   ════════════════════════════════════════════════════════════════ */
   (function(){
-    const DEFAULT_PW_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+    // Password verified server-side by the worker — no hash or token here.
     const SESSION_KEY = 'abf_auth';
-    const BASE = 'appTpp1agJQqoId07';
-    const SETTINGS_TBL = 'tblU0XGRCrWQJBPH6';
-    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+    const GATE_TOKEN_KEY = 'abf_gate_token';
+    const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
 
     const pwScreen = document.getElementById('pw-screen');
     const pwInput = document.getElementById('pw-input');
@@ -454,48 +453,29 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    let hashPromise = null;
-    function getHash() {
-      if (hashPromise) return hashPromise;
-      hashPromise = (async () => {
-        try {
-          const r = await fetch(`https://api.airtable.com/v0/${BASE}/${SETTINGS_TBL}?pageSize=100`, {
-            headers: { Authorization: 'Bearer ' + TOKEN },
-          });
-          if (!r.ok) throw new Error();
-          const j = await r.json();
-          const row = (j.records || []).find(rec => (rec.fields || {}).Key === 'passwordHash');
-          const v = row && row.fields && row.fields.Value ? String(row.fields.Value).trim().toLowerCase() : '';
-          return /^[0-9a-f]{64}$/.test(v) ? v : DEFAULT_PW_HASH;
-        } catch {
-          return DEFAULT_PW_HASH;
-        }
-      })();
-      return hashPromise;
-    }
-
-    function unlock() {
-      pwScreen.classList.add('hidden');
-      sessionStorage.setItem(SESSION_KEY, '1');
-      window.__bootResults && window.__bootResults();
-    }
-    function hexEq(a, b) {
-      if (a.length !== b.length) return false;
-      let d = 0;
-      for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-      return d === 0;
-    }
     async function tryPw() {
       const v = pwInput.value;
       if (!v) return;
       pwBtn.disabled = true;
       try {
-        const [eh, ch] = await Promise.all([sha256Hex(v), getHash()]);
-        if (hexEq(eh, ch)) { pwError.textContent = ''; unlock(); }
-        else {
+        const r = await fetch(API_BASE + '/gate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: v }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.gateToken) {
+          sessionStorage.setItem(GATE_TOKEN_KEY, j.gateToken);
+          pwError.textContent = '';
+          unlock();
+        } else if (r.status === 401) {
           pwInput.classList.add('error');
           pwError.textContent = 'Incorrect password. Please try again.';
           pwInput.value = ''; pwInput.focus();
+        } else if (r.status === 429) {
+          pwError.textContent = 'Too many attempts \u2014 wait a few minutes.';
+        } else {
+          pwError.textContent = 'Could not verify password.';
         }
       } catch (e) {
         pwError.textContent = 'Could not verify password.';
@@ -504,17 +484,15 @@
     pwBtn.addEventListener('click', tryPw);
     pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPw(); });
 
-    if (sessionStorage.getItem(SESSION_KEY) === '1') unlock();
-    getHash(); // warm
+    if (sessionStorage.getItem(SESSION_KEY) === '1' && sessionStorage.getItem(GATE_TOKEN_KEY)) unlock();
   })();
 
   /* ════════════════════════════════════════════════════════════
      Results dashboard
   ════════════════════════════════════════════════════════════════ */
   (function(){
-    const BASE = 'appTpp1agJQqoId07';
-    const TABLE = 'tbl5Hhks33h8eWX3B';   // Field Follow-Up
-    const TOKEN = ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
+    // Records come from the worker API using the gate token from sign-in.
+    const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
 
     // [field, label, opt, shortLabel]
     const Q4_ITEMS = [
@@ -590,19 +568,15 @@
     const contentEl = document.getElementById('content');
 
     async function fetchAll() {
-      const out = [];
-      let offset = null;
-      do {
-        const qs = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}?${qs}`, {
-          headers: { Authorization: 'Bearer ' + TOKEN },
-        });
-        if (!r.ok) throw new Error('Airtable ' + r.status);
-        const j = await r.json();
-        out.push(...(j.records || []));
-        offset = j.offset || null;
-      } while (offset);
-      return out;
+      const tok = sessionStorage.getItem('abf_gate_token') || '';
+      const r = await fetch(API_BASE + '/survey/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ survey: 'field' }),
+      });
+      if (!r.ok) throw new Error('API ' + r.status);
+      const j = await r.json();
+      return j.records || [];
     }
 
     function clean(s) { return (typeof s === 'string') ? s.trim() : (s == null ? '' : String(s)); }

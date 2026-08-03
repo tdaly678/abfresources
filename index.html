@@ -4521,12 +4521,10 @@
 <script>
   // ─── Password Logic ─────────────────────────────────────
   // The site password is stored as a SHA-256 hex digest in the Airtable
-  // "Settings" table (Key="passwordHash"). On boot we fetch that value;
-  // if Airtable is unreachable we fall back to the default hash below
-  // so the site still works offline. To rotate the password, edit the
-  // Settings.Value cell in Airtable — see SCHEDULING_TODO_TOM.md.
-  const DEFAULT_PASSWORD_HASH =
-    '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+  // "Settings" table (Key="passwordHash") and verified SERVER-SIDE by
+  // the Cloudflare worker (/api/gate) — the hash never reaches the
+  // browser. To rotate the password, edit the Settings.Value cell in
+  // Airtable — see SCHEDULING_TODO_TOM.md.
   const SESSION_KEY = 'abf_auth';
 
   const pwScreen = document.getElementById('pw-screen');
@@ -4558,87 +4556,47 @@
     if (pf) pf.style.display = 'block';
   }
 
-  // Fetch the current password hash from Airtable Settings. Returns the
-  // default hash on any error so the gate stays usable. Cached for the
-  // page lifetime so repeated submissions don't re-hit Airtable.
-  let _passwordHashPromise = null;
-  function getPasswordHash() {
-    if (_passwordHashPromise) return _passwordHashPromise;
-    _passwordHashPromise = (async () => {
-      try {
-        const BASE  = 'appTpp1agJQqoId07';
-        const TBL   = 'tblU0XGRCrWQJBPH6'; // Settings
-        const TOKEN = ['pat1pppuwziUpjdcJ',
-          '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
-        const res = await fetch(
-          'https://api.airtable.com/v0/' + BASE + '/' + TBL + '?pageSize=100',
-          { headers: { 'Authorization': 'Bearer ' + TOKEN } }
-        );
-        if (!res.ok) throw new Error('Settings fetch ' + res.status);
-        const json = await res.json();
-        const row = (json.records || []).find(
-          r => (r.fields || {}).Key === 'passwordHash');
-        const hash = row && row.fields && row.fields.Value
-          ? String(row.fields.Value).trim().toLowerCase()
-          : '';
-        if (/^[0-9a-f]{64}$/.test(hash)) return hash;
-        console.warn('[auth] Settings.passwordHash missing or malformed; using default');
-        return DEFAULT_PASSWORD_HASH;
-      } catch (err) {
-        console.warn('[auth] could not fetch Settings.passwordHash, using default', err);
-        return DEFAULT_PASSWORD_HASH;
-      }
-    })();
-    return _passwordHashPromise;
-  }
+  /* ════════════════════════════════════════════════════════════
+     API LAYER (added 2026-08-03)
+     ALL Airtable traffic now flows through the Cloudflare worker.
+     There is no Airtable token in this file — passwords, PINs, and
+     phone digits are verified server-side, and the worker enforces
+     per-record permissions and rate limits.
+  ════════════════════════════════════════════════════════════ */
+  const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
+  const GATE_TOKEN_KEY  = 'abf_gate_token';
+  const ADMIN_TOKEN_KEY = 'abf_sched_admin_token';
 
-  // Hash a string with SHA-256 in the browser (returns lowercase hex).
-  async function sha256Hex(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
+  function gateToken() {
+    try { return sessionStorage.getItem(GATE_TOKEN_KEY) || ''; } catch { return ''; }
   }
-
-  // Fetch the admin override PIN hash from Airtable Settings. Empty
-  // string means admin override is disabled. Cached for the page
-  // lifetime so repeated checks don't re-hit Airtable.
-  let _adminPinHashPromise = null;
-  function getAdminPinHash() {
-    if (_adminPinHashPromise) return _adminPinHashPromise;
-    _adminPinHashPromise = (async () => {
-      try {
-        const BASE  = 'appTpp1agJQqoId07';
-        const TBL   = 'tblU0XGRCrWQJBPH6'; // Settings
-        const TOKEN = ['pat1pppuwziUpjdcJ',
-          '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
-        const res = await fetch(
-          'https://api.airtable.com/v0/' + BASE + '/' + TBL + '?pageSize=100',
-          { headers: { 'Authorization': 'Bearer ' + TOKEN } }
-        );
-        if (!res.ok) throw new Error('Settings fetch ' + res.status);
-        const json = await res.json();
-        const row = (json.records || []).find(
-          r => (r.fields || {}).Key === 'adminPinHash');
-        const hash = row && row.fields && row.fields.Value
-          ? String(row.fields.Value).trim().toLowerCase()
-          : '';
-        if (/^[0-9a-f]{64}$/.test(hash)) return hash;
-        return ''; // disabled
-      } catch (err) {
-        console.warn('[auth] could not fetch Settings.adminPinHash', err);
-        return '';
-      }
-    })();
-    return _adminPinHashPromise;
+  /* Best available credential: person session > admin session > gate. */
+  function apiAuthToken() {
+    try {
+      const id = JSON.parse(sessionStorage.getItem('abf_sched_identity') || 'null');
+      if (id && id.token) return id.token;
+    } catch { /* fall through */ }
+    try {
+      const adm = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+      if (adm) return adm;
+    } catch { /* fall through */ }
+    return gateToken();
   }
-
-  // Constant-time-ish hex comparison. Both inputs should already be
-  // lowercase 64-char hex strings; bails fast if not the same length.
-  function hexEquals(a, b) {
-    if (a.length !== b.length) return false;
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
+  async function apiCall(path, { method = 'GET', body, token } = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    const tok = token !== undefined ? token : apiAuthToken();
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    const res = await fetch(API_BASE + path, {
+      method, headers, body: body ? JSON.stringify(body) : undefined,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const e = new Error(json.error || ('API ' + res.status));
+      e.status = res.status;
+      e.payload = json;
+      throw e;
+    }
+    return json;
   }
 
   function unlock() {
@@ -4652,23 +4610,25 @@
     if (!entered) return;
     pwBtn.disabled = true;
     try {
-      const [enteredHash, correctHash] = await Promise.all([
-        sha256Hex(entered),
-        getPasswordHash(),
-      ]);
-      if (hexEquals(enteredHash, correctHash)) {
+      const res = await apiCall('/gate', { method: 'POST', body: { password: entered }, token: '' });
+      if (res.ok && res.gateToken) {
+        try { sessionStorage.setItem(GATE_TOKEN_KEY, res.gateToken); } catch { /* ignore */ }
         pwError.textContent = '';
         pwInput.classList.remove('error');
         unlock();
-      } else {
+      }
+    } catch (err) {
+      if (err.status === 401) {
         pwInput.classList.add('error');
         pwError.textContent = 'Incorrect password. Please try again.';
         pwInput.value = '';
         pwInput.focus();
+      } else if (err.status === 429) {
+        pwError.textContent = 'Too many attempts — wait a few minutes and try again.';
+      } else {
+        console.error('[auth] password check failed', err);
+        pwError.textContent = 'Could not verify password. Please try again.';
       }
-    } catch (err) {
-      console.error('[auth] password check failed', err);
-      pwError.textContent = 'Could not verify password. Please try again.';
     } finally {
       pwBtn.disabled = false;
     }
@@ -4678,12 +4638,6 @@
   if (sessionStorage.getItem(SESSION_KEY) === '1') {
     unlock();
   }
-
-  // Warm the password-hash cache so the first login attempt is snappy.
-  getPasswordHash();
-  // Also warm the admin PIN hash cache so the identity picker can
-  // show or hide the admin override link without a flicker.
-  getAdminPinHash();
 
   pwBtn.addEventListener('click', tryPassword);
   pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPassword(); });
@@ -4888,21 +4842,14 @@
 
   /* ════════════════════════════════════════════════════════
      AIRTABLE CLIENT
-     The portal talks to Airtable directly via the REST API.
-     Token below is exposed in DevTools — mitigated by:
-       1) the SHA-256 password gate (hash stored in Settings table,
-          rotatable from Airtable without redeploying), and
-       2) the token is scoped to this single base only, and
-       3) every write is recorded in the Change Log audit table.
-     This is acceptable for a low-risk church volunteer tool.
+     The portal talks to Airtable through the Cloudflare worker
+     (/api/proxy and /api/bootstrap). No Airtable token exists in
+     this file. The worker verifies the caller's signed session
+     token, enforces per-record ownership rules, strips phone
+     numbers from anything it returns, and rate-limits abuse.
+     Every write is still recorded in the Change Log audit table.
   ════════════════════════════════════════════════════════════ */
   const Airtable = {
-    // Token is split + reassembled at runtime so GitHub's secret scanner
-    // doesn't flag the file in the public repo. This isn't a security
-    // measure — anyone past the password gate can still read it from
-    // DevTools. The mitigation is the base-scoped PAT, not obfuscation.
-    get TOKEN() { return ['pat1pppuwziUpjdcJ', '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
-    BASE:  'appTpp1agJQqoId07',
     TBL: {
       abfClasses:  'tblorq8AWWByXzgTu',
       teachers:    'tbloa5MWyhbLxIoC9',
@@ -4922,35 +4869,15 @@
 
     async api(method, table, opts = {}) {
       const { recordId, body, query } = opts;
-      let path = '/' + table;
-      if (recordId) path += '/' + recordId;
-      const qs = query ? '?' + query : '';
-      const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
-        method,
-        headers: {
-          'Authorization': 'Bearer ' + this.TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error('[airtable]', method, path, res.status, txt);
-        throw new Error('Airtable ' + res.status + ': ' + txt);
+      try {
+        return await apiCall('/proxy', {
+          method: 'POST',
+          body: { method, table, recordId, body, query },
+        });
+      } catch (err) {
+        console.error('[airtable-proxy]', method, table, err.status, err.message);
+        throw err;
       }
-      return res.status === 204 ? null : res.json();
-    },
-
-    async _listAll(table) {
-      const out = [];
-      let offset = null;
-      do {
-        const q = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
-        const page = await this.api('GET', table, { query: q });
-        out.push(...(page.records || []));
-        offset = page.offset || null;
-      } while (offset);
-      return out;
     },
 
     /* Fire-and-forget audit log. Errors are swallowed so a broken
@@ -5039,30 +4966,35 @@
     },
 
     async _bootstrap() {
-      const [classes, teachers, leaders, courses, sundays, avail, reqs, fbTpls, fbForms, fbResps] = await Promise.all([
-        this._listAll(this.TBL.abfClasses),
-        this._listAll(this.TBL.teachers),
-        this._listAll(this.TBL.abfLeaders),
-        this._listAll(this.TBL.courses),
-        this._listAll(this.TBL.sundays),
-        this._listAll(this.TBL.availability),
-        this._listAll(this.TBL.requests),
-        this._listAll(this.TBL.feedbackTemplates),
-        this._listAll(this.TBL.feedbackForms),
-        this._listAll(this.TBL.feedbackResponses),
-      ]);
+      // One sanitized snapshot from the worker. What it contains depends
+      // on who's asking: anonymous callers get no phones/emails, request
+      // messages only go to their participants, and feedback responses
+      // only to the teacher who owns the survey (or an admin).
+      const data = await apiCall('/bootstrap');
       this._cache = {
-        abfClasses: classes.map(r => this._mapClass(r)),
-        teachers:   teachers.map(r => this._mapTeacher(r)),
-        abfLeaders: leaders.map(r => this._mapLeader(r)),
-        courses:    courses.map(r => this._mapCourse(r)),
-        sundays:    sundays.map(r => this._mapSunday(r)),
-        availability: avail.map(r => this._mapAvail(r)),
-        requests:   reqs.map(r => this._mapRequest(r)),
-        feedbackTemplates: fbTpls.map(r => this._mapFeedbackTemplate(r)),
-        feedbackForms:     fbForms.map(r => this._mapFeedbackForm(r)),
-        feedbackResponses: fbResps.map(r => this._mapFeedbackResponse(r)),
+        abfClasses: (data.abfClasses || []).map(r => this._mapClass(r)),
+        teachers:   (data.teachers || []).map(r => this._mapTeacher(r)),
+        abfLeaders: (data.abfLeaders || []).map(r => this._mapLeader(r)),
+        courses:    (data.courses || []).map(r => this._mapCourse(r)),
+        sundays:    (data.sundays || []).map(r => this._mapSunday(r)),
+        availability: (data.availability || []).map(r => this._mapAvail(r)),
+        requests:   (data.requests || []).map(r => this._mapRequest(r)),
+        feedbackTemplates: (data.feedbackTemplates || []).map(r => this._mapFeedbackTemplate(r)),
+        feedbackForms:     (data.feedbackForms || []).map(r => this._mapFeedbackForm(r)),
+        feedbackResponses: (data.feedbackResponses || []).map(r => this._mapFeedbackResponse(r)),
       };
+      // Merge the signed-in person's own full record (incl. phone) —
+      // it's returned by /api/signin and carried on the identity.
+      const ident = Identity.get();
+      if (ident && ident.me && ident.me.id) {
+        if (ident.role === 'teacher') {
+          const mapped = this._mapTeacher(ident.me);
+          this._cache.teachers = this._cache.teachers.map(t => t.id === mapped.id ? mapped : t);
+        } else if (ident.role === 'leader') {
+          const mapped = this._mapLeader(ident.me);
+          this._cache.abfLeaders = this._cache.abfLeaders.map(l => l.id === mapped.id ? mapped : l);
+        }
+      }
       console.log('[scheduling] loaded',
         this._cache.abfClasses.length, 'classes,',
         this._cache.teachers.length, 'teachers,',
@@ -5085,6 +5017,14 @@
         });
       }
       return this._bootstrapPromise;
+    },
+
+    /* Drop the cache and re-fetch. Called after sign-in/out because the
+       worker tailors the bootstrap payload to the caller's session. */
+    async reload() {
+      this._cache = null;
+      this._bootstrapPromise = null;
+      return this.ensureLoaded();
     },
 
     /* ── mutations ──────────────────────────────────────
@@ -5546,8 +5486,12 @@
       try { return JSON.parse(sessionStorage.getItem(IDENTITY_KEY) || 'null'); }
       catch { return null; }
     },
-    set(role, id) {
-      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify({ role, id: id || null }));
+    /* token = signed session token from /api/signin; me = the person's
+       own full Airtable record (the one place phone comes back). */
+    set(role, id, token, me) {
+      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify({
+        role, id: id || null, token: token || null, me: me || null,
+      }));
       updateIdentityBadge();
     },
     /* Clear the acting-as identity but leave admin override in place.
@@ -5559,14 +5503,20 @@
     clearAll() {
       sessionStorage.removeItem(IDENTITY_KEY);
       sessionStorage.removeItem(ADMIN_KEY);
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
       updateIdentityBadge();
     },
     isAdmin() {
       return sessionStorage.getItem(ADMIN_KEY) === '1';
     },
-    setAdmin(on) {
-      if (on) sessionStorage.setItem(ADMIN_KEY, '1');
-      else    sessionStorage.removeItem(ADMIN_KEY);
+    setAdmin(on, token) {
+      if (on) {
+        sessionStorage.setItem(ADMIN_KEY, '1');
+        if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+      } else {
+        sessionStorage.removeItem(ADMIN_KEY);
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      }
       updateIdentityBadge();
     },
     asTeacher() {
@@ -5766,7 +5716,7 @@
       refreshIdConfirmState();
     });
 
-    document.getElementById('id-confirm').addEventListener('click', () => {
+    document.getElementById('id-confirm').addEventListener('click', async () => {
       const role = document.querySelector('.id-role-btn.active').dataset.role;
       const id   = document.getElementById('id-picker').value;
       const pin  = document.getElementById('id-pin').value.trim();
@@ -5782,45 +5732,49 @@
         return;
       }
 
-      // Admins bypass the phone challenge — they're already authenticated.
-      // Everyone else must match last 4 of phone.
-      if (!Identity.isAdmin()) {
-        if (!/^\d{4}$/.test(pin)) return;
-        const expected = lastFourDigits(person.phone);
-        if (!expected) {
-          errEl.textContent = 'No phone number on file for this person yet — ask an admin to add one before signing in.';
-          errEl.style.display = 'block';
-          return;
-        }
-        if (pin !== expected) {
-          errEl.textContent = 'That doesn\u2019t match the last 4 digits we have. Try again or ask an admin.';
-          errEl.style.display = 'block';
-          return;
-        }
-      }
+      const isAdmin = Identity.isAdmin();
+      if (!isAdmin && !/^\d{4}$/.test(pin)) return;
 
-      Identity.set(role, id);
-      closeIdentityPicker();
-      // If we were on Scheduling, re-render
-      if (document.getElementById('tab-scheduling').classList.contains('active')) {
-        renderScheduling();
+      // The PIN (last 4 of phone) is verified SERVER-SIDE by the worker —
+      // phone numbers never reach the browser. Admins bypass the PIN by
+      // presenting their admin session token instead.
+      const btn = document.getElementById('id-confirm');
+      btn.disabled = true;
+      const oldLabel = btn.textContent;
+      btn.textContent = 'Checking\u2026';
+      try {
+        const res = await apiCall('/signin', {
+          method: 'POST',
+          body: { role, id, pin },
+          token: isAdmin ? (sessionStorage.getItem(ADMIN_TOKEN_KEY) || '') : '',
+        });
+        Identity.set(role, id, res.token, res.me);
+        closeIdentityPicker();
+        // Re-fetch data with the new session — the worker returns more to
+        // signed-in callers (own request messages, own feedback responses).
+        Airtable.reload().then(() => {
+          if (document.getElementById('tab-scheduling').classList.contains('active')) renderScheduling();
+          if (document.getElementById('tab-teachers').classList.contains('active')) renderTeachersRoster();
+          if (document.getElementById('tab-catalog')?.classList.contains('active')) renderAvailableCoursesGrid();
+          if (document.getElementById('tab-leaders').classList.contains('active')) renderLeadersRoster();
+        }).catch(err => console.warn('[signin] reload failed', err));
+        toast('success', 'Signed in', isAdmin
+          ? 'Acting as ' + person.name + ' (admin override).'
+          : 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
+      } catch (err) {
+        if (err.status === 401) {
+          errEl.textContent = (err.payload && err.payload.error) ||
+            'That doesn\u2019t match the last 4 digits we have. Try again or ask an admin.';
+        } else if (err.status === 429) {
+          errEl.textContent = 'Too many attempts \u2014 wait a few minutes and try again.';
+        } else {
+          errEl.textContent = 'Couldn\u2019t verify right now. Check your connection and try again.';
+        }
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldLabel;
       }
-      // Re-render Teachers roster so edit affordances pick up the new identity
-      if (document.getElementById('tab-teachers').classList.contains('active')) {
-        renderTeachersRoster();
-      }
-      // Re-render the Courses catalog so Edit/Request buttons + the add-course
-      // tools pick up the new identity
-      if (document.getElementById('tab-catalog')?.classList.contains('active')) {
-        renderAvailableCoursesGrid();
-      }
-      // Re-render Leaders roster so edit affordances pick up the new identity
-      if (document.getElementById('tab-leaders').classList.contains('active')) {
-        renderLeadersRoster();
-      }
-      toast('success', 'Signed in', Identity.isAdmin()
-        ? 'Acting as ' + person.name + ' (admin override).'
-        : 'You\u2019re signed in as ' + (role === 'teacher' ? 'a teacher.' : 'an ABF leader.'));
     });
 
     // Admin override link → reveal admin area, hide normal picker
@@ -5845,21 +5799,25 @@
       const btn = document.getElementById('id-admin-confirm');
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'Checking\u2026';
       try {
-        const [enteredHash, correctHash] = await Promise.all([
-          sha256Hex(pin),
-          getAdminPinHash(),
-        ]);
-        if (!correctHash) {
-          errEl.textContent = 'Admin override is not configured.';
+        // PIN is verified server-side by the worker; the hash never
+        // reaches the browser, and attempts are rate-limited.
+        let res;
+        try {
+          res = await apiCall('/admin', { method: 'POST', body: { pin }, token: '' });
+        } catch (err) {
+          if (err.status === 401) {
+            errEl.textContent = 'Wrong PIN. Try again.';
+          } else if (err.status === 403) {
+            errEl.textContent = 'Admin override is not configured.';
+          } else if (err.status === 429) {
+            errEl.textContent = 'Too many attempts \u2014 wait a few minutes and try again.';
+          } else {
+            errEl.textContent = 'Couldn\u2019t verify right now. Try again.';
+          }
           errEl.style.display = 'block';
           return;
         }
-        if (!hexEquals(enteredHash, correctHash)) {
-          errEl.textContent = 'Wrong PIN. Try again.';
-          errEl.style.display = 'block';
-          return;
-        }
-        Identity.setAdmin(true);
+        Identity.setAdmin(true, res.token);
         closeIdentityPicker();
         if (document.getElementById('tab-scheduling').classList.contains('active')) {
           renderScheduling();
@@ -5909,6 +5867,9 @@
         const label = parts.join(' + ');
         if (confirm('Sign out of ' + label + '?\n\nClick OK to sign out completely, or Cancel to keep your current sign-in.')) {
           Identity.clearAll();
+          // Re-fetch anonymously so privileged data (messages, responses,
+          // own contact info) drops out of the local cache.
+          Airtable.reload().catch(() => {});
           if (document.getElementById('tab-scheduling').classList.contains('active')) {
             renderScheduling();
           }
@@ -6821,10 +6782,24 @@
         if (isEdit) {
           toast('success', 'Profile updated', saved.name + '\u2019s profile is saved.');
         } else {
-          // Auto sign them in as the new teacher
-          Identity.set('teacher', saved.id);
+          // Auto sign them in as the new teacher. Sign-in is verified
+          // server-side, so use the last 4 of the phone they just entered.
+          const regPin = lastFourDigits(teacher.phone);
+          if (regPin) {
+            try {
+              const sres = await apiCall('/signin', {
+                method: 'POST', body: { role: 'teacher', id: saved.id, pin: regPin }, token: '',
+              });
+              Identity.set('teacher', saved.id, sres.token, sres.me);
+              toast('success', 'Welcome aboard!', 'You\u2019re signed in as ' + saved.name + '.');
+            } catch (e2) {
+              console.warn('[register] auto sign-in failed', e2);
+              toast('success', 'Profile saved', 'Sign in with the last 4 digits of your phone to make changes.');
+            }
+          } else {
+            toast('success', 'Profile saved', 'Add a phone number to your profile to enable sign-in.');
+          }
           closeIdentityPicker();
-          toast('success', 'Welcome aboard!', 'You\u2019re signed in as ' + saved.name + '.');
         }
         // Refresh wherever this teacher is shown
         if (document.getElementById('tab-teachers').classList.contains('active')) {
@@ -9482,6 +9457,7 @@
   // stays unlocked.
   logoutBtn.addEventListener('click', () => {
     Identity.clearAll();
+    Airtable.reload().catch(() => {});
     refreshFbTabAffordances();
     toast('success', 'Signed out', 'You’re browsing read-only. Use “Teacher & Leader Sign In” to sign back in.');
     // Refresh identity-sensitive views on whichever tab is open

@@ -298,23 +298,22 @@ const CYCLE = [null, 'available', 'desired', 'maybe', 'no'];
 const GLYPH = { available:'✓', desired:'♥', maybe:'~', no:'✕' };
 const WEIGHT = { desired:3, available:2, maybe:1 };       // assignable positives
 
-/* Airtable — same base + base-scoped token as the rest of the site. */
+/* Airtable access goes through the worker API — no token in this file.
+   These three tables are public-parity (this page has no login), but the
+   worker limits which fields can be written and rate-limits changes. */
+const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
 const AT = {
-  get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
-  BASE: 'appTpp1agJQqoId07',
   TBL: { sundays:'Preaching Sundays', avail:'Preaching Availability', config:'Preaching Config' },
   async api(method, table, opts={}){
     const { recordId, body, query } = opts;
-    let path = '/' + encodeURIComponent(table);
-    if (recordId) path += '/' + recordId;
-    const qs = query ? '?' + query : '';
-    const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
-      method,
-      headers:{ 'Authorization':'Bearer ' + this.TOKEN, 'Content-Type':'application/json' },
-      body: body ? JSON.stringify(body) : undefined,
+    const res = await fetch(API_BASE + '/proxy', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ method, table, recordId, body, query }),
     });
-    if (!res.ok){ const t = await res.text(); console.error('[airtable]', method, table, res.status, t); throw new Error('Airtable '+res.status); }
-    return res.status === 204 ? null : res.json();
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok){ console.error('[api]', method, table, res.status, json.error); throw new Error('API '+res.status); }
+    return json;
   },
   async listAll(table){
     const out = []; let offset = null;

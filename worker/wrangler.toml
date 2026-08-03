@@ -8,17 +8,31 @@ crons = ["*/5 * * * *"]
 
 # Environment variables set via:
 #   wrangler secret put AIRTABLE_TOKEN
-#   wrangler secret put SENDGRID_API_KEY
+#   wrangler secret put BREVO_API_KEY
+#   wrangler secret put SESSION_SECRET     (API layer — any long random string)
+#   wrangler secret put ROCK_ACCESS_HASH   (sha256 hex of the /bri board password)
 # Or via the Cloudflare Dashboard → Workers → abf-email-worker → Settings → Variables
+# (Migrated from SendGrid to Brevo 2026-07-30 — SendGrid free plan sunset.)
+
+# Rate limiting for the /api layer. Create the namespace once with:
+#   npx wrangler kv namespace create RATE
+# then paste the returned id below and uncomment. The API works without
+# it (fails open) but sign-in brute-force protection needs it.
+# [[kv_namespaces]]
+# binding = "RATE"
+# id = "PASTE_ID_HERE"
 
 # Non-secret config (visible in dashboard)
 [vars]
 AIRTABLE_BASE_ID = "appTpp1agJQqoId07"
+# Sender must be verified in Brevo. abfresources.com domain authenticated 2026-07-30.
 FROM_EMAIL = "noreply@abfresources.com"
 FROM_NAME = "LEFC|U ABF"
 PORTAL_URL = "https://www.abfresources.com"
 DRY_RUN = "false"
 BCC_EMAIL = "daly@lefc.net"
+# Origins allowed to call the /api layer from a browser.
+ALLOWED_ORIGINS = "https://www.abfresources.com,https://abfresources.com"
 # Rock Ideas & Feedback board (/bri). This is BOTH the "whole team" list (new-ticket
 # emails go to everyone here) AND the allowlist (comment emails can only ever reach
 # addresses in this list). Must match the ROSTER in bri/index.html.
