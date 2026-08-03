@@ -1,10 +1,24 @@
 # ABF Email Worker — Deployment Guide
 
-A Cloudflare Worker that polls Airtable every 5 minutes and sends transactional emails via SendGrid for three event types:
+> **Also the site's API layer since 2026-08-03.** `src/api.js` serves `/api/*`:
+> it is the ONLY thing that talks to Airtable on behalf of the browser (the PAT
+> is a worker secret, never client-side). It verifies the site password, admin
+> PIN, and last-4-of-phone sign-in server-side, issues signed HMAC session
+> tokens (`SESSION_SECRET`), enforces per-table/per-owner write rules, strips
+> phones/emails from anonymous responses, and rate-limits via the `RATE` KV
+> namespace (create with `npx wrangler kv namespace create RATE`, paste the id
+> into `wrangler.toml`). Extra secrets: `SESSION_SECRET`, `ROCK_ACCESS_HASH`
+> (sha256 of the /bri board password). Deploy + rotation checklist:
+> `SCHEDULING_TODO_TOM.md`, 2026-08-03 section.
+
+A Cloudflare Worker that polls Airtable every 5 minutes and sends transactional emails via **Brevo** (migrated from SendGrid 2026-07-30 after SendGrid sunset its free plan and the account hit "Maximum credits exceeded") for these event types:
 
 - **A.** New teaching request → email teacher
 - **B.** Teacher responded (Accepted / Declined / Counter-Proposed) → email leader
 - **D.** New feedback response → email teacher
+- **E.** Pending-request reminder → email teacher once when a request has sat unanswered for more than 5 full days (5 × 24h), sent during the 7am hour America/New_York (added 2026-07-30)
+
+Every outgoing email is BCC'd to `daly@lefc.net` (the `BCC_EMAIL` var in `wrangler.toml`) for admin visibility.
 
 Replaces the Airtable Automations approach (which required a paid Team plan to enable Run-script).
 
@@ -13,7 +27,7 @@ Replaces the Airtable Automations approach (which required a paid Team plan to e
 ## Total cost at expected volume: $0/month
 
 - Cloudflare Workers free tier (100k req/day): we use ~300/day max
-- SendGrid free tier (100 emails/day): we use ~50/year
+- Brevo free tier (300 emails/day): we use ~50/year
 - Airtable API: included in Free plan
 
 ---
@@ -31,6 +45,7 @@ Open the base at <https://airtable.com/appTpp1agJQqoId07>.
 | `Created Email Sent At` | Date with time |
 | `Last Status Emailed` | Single line text |
 | `Last Status Email Sent At` | Date with time |
+| `Reminder Sent At` | Date with time *(added via API 2026-07-30 for flow E — already exists)* |
 
 **Feedback Responses table** — add one field:
 
@@ -75,9 +90,11 @@ First deploy will give you a URL like `https://abf-email-worker.YOUR-SUBDOMAIN.w
 wrangler secret put AIRTABLE_TOKEN
 # paste the Airtable PAT from step 2
 
-wrangler secret put SENDGRID_API_KEY
-# paste the SendGrid scoped key (lefc-airtable-automations from earlier)
+wrangler secret put BREVO_API_KEY
+# paste the Brevo transactional API key (Brevo → Settings → API Keys)
 ```
+
+The sender in `FROM_EMAIL` (wrangler.toml) must be verified in Brevo — either as a single sender (daly@lefc.net) or via domain authentication for abfresources.com.
 
 Optional third secret if you want to use the manual `/run` endpoint:
 
@@ -186,6 +203,7 @@ Both run the same three processors:
 - `processNewRequests()` — finds Requests where `Created Email Sent At` is empty, looks up the linked Teacher / Leader / Class via the Airtable API, builds a branded LEFC|U HTML email, sends via SendGrid, sets `Created Email Sent At = now()`.
 - `processStatusChanges()` — finds Requests where Status is `Accepted` / `Declined` / `Counter-Proposed` AND `Last Status Emailed != Status`. Sends to the leader. Sets `Last Status Emailed = current Status`. This handles the case where a request bounces between statuses (e.g., declined then re-accepted) by re-emailing each transition.
 - `processNewFeedbackResponses()` — finds Feedback Responses where `Email Sent At` is empty, walks the Form link to find the Teacher, sends to the teacher.
+- `processPendingReminders()` — finds Requests still `Pending` with `Reminder Sent At` empty whose age (from `Created At`, falling back to record createdTime) exceeds 5 × 24 hours, and emails the teacher a nudge. On the cron it only fires during the **7am hour America/New_York** (the `Reminder Sent At` stamp means only the first tick that hour sends anything); manual `POST /run` bypasses the hour gate so you can test on demand. One reminder per request — if you later want repeat nudges every N days, change the stamp check to compare against `now - N days` instead of blank.
 
 All three handlers are independent and idempotent — failures in one don't block the others, and re-running the worker won't duplicate emails (the "sent at" markers prevent it).
 

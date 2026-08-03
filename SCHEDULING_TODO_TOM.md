@@ -2,6 +2,58 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## ‼️ 2026-08-03 — Deploy the API proxy + rotate the leaked Airtable token (~20 min)
+
+**Why:** the Airtable PAT was embedded in 8 public pages (index, /bri, /preaching, /cbsetup.html, 4 survey pages) and in the public repo's git history — readable by anyone, no password needed. All pages have been refactored to call the worker instead; the token now lives only in a worker secret. The code is on the **`api-proxy` branch** (pushed 2026-08-03, commit `7bd4b20`) — **do not merge to main until steps 1–4 are done**, or the live site breaks.
+
+**Order matters. Do it in this sequence:**
+
+1. **Create a NEW Airtable PAT** ([airtable.com/create/tokens](https://airtable.com/create/tokens)) — scopes `data.records:read` + `data.records:write`, access: only the ABF Scheduling base. (The worker uses one token for both email flows and the API now.)
+2. **Terminal — set worker secrets + KV, deploy:**
+   ```bash
+   cd "/Users/daly/Library/CloudStorage/OneDrive-Personal/Personal/Claude/Projects/ABF Resources/worker"
+   npx wrangler kv namespace create RATE     # copy the id it prints
+   # → paste that id into wrangler.toml (uncomment the [[kv_namespaces]] block)
+   npx wrangler secret put AIRTABLE_TOKEN    # paste the NEW PAT from step 1
+   npx wrangler secret put SESSION_SECRET    # paste any long random string, e.g. output of:  openssl rand -hex 32
+   npx wrangler secret put ROCK_ACCESS_HASH  # sha256 hex of the /bri board password, e.g.:  printf '%s' 'THE_PASSWORD' | shasum -a 256
+   npx wrangler deploy
+   ```
+3. **Smoke-test the API** (should return JSON with `teachers`, and no `Phone` fields anywhere):
+   `curl -s https://abf-email-worker.tdaly678.workers.dev/api/bootstrap | head -c 400`
+4. **Merge `api-proxy` → main** (GitHub → Pull requests → api-proxy, or `git merge`). Wait a few minutes for Pages to deploy, then test at https://www.abfresources.com/ — password gate, sign-in as yourself, and one edit.
+5. **Revoke BOTH old tokens** at [airtable.com/create/tokens](https://airtable.com/create/tokens): the leaked site token (`pat1ppp…`) and the old worker token (`patQ031…`). This is the step that actually closes the hole — everything in git history dies with it.
+6. **Change the passwords** — both were effectively public: the site password's default hash and the /bri password (`oikos`, literally in a code comment in the repo). Site password: update `passwordHash` in Airtable Settings (sha256 hex). /bri: pick a new password and redo the `ROCK_ACCESS_HASH` secret from step 2.
+7. Optional but recommended: in the Cloudflare dashboard, add a **custom domain** for the worker later (e.g. api.abfresources.com) — cosmetic, not blocking.
+
+**After this, removing the site password gate is a safe, separate decision** — the data a logged-out visitor can reach is already sanitized server-side (no phones, no emails, no request messages, no feedback responses). If you want to go public, say the word and Claude will remove the gate UI.
+
+**What Claude already did (no action needed):** all 8 pages refactored; worker API written (`worker/src/api.js`) with server-side password/PIN/last-4 checks, signed session tokens, per-owner write permissions, and rate limiting; local security tests passed (no phone/email leakage, unauthorized writes rejected, foreign origins blocked); `feedback/seed_templates.py` now reads the token from env; worker PAT scrubbed from `feedback/EMAIL_AUTOMATIONS_HANDOFF.md` (that one was never in the public repo).
+
+## ✅ RESOLVED 2026-07-30 (same day) — migrated to Brevo, all flows verified live
+
+SendGrid's account had no send credits (free plan sunset) — root cause of the silent breakage. Worker migrated to **Brevo** (free 300/day), secret `BREVO_API_KEY` set, deployed, and verified end-to-end: flow A (new request) and new flow E (5-day reminder) both sent + stamped correctly; test record deleted. `FROM_EMAIL` is `noreply@abfresources.com` — Tom authenticated the abfresources.com domain in Brevo the same day, and the noreply sender was re-verified end-to-end (flows A + E sent, stamped, test record deleted). Manual trigger for testing: `curl -X POST -H "x-trigger-auth: lefc-abf-2026-trigger-7f3k9m" https://abf-email-worker.tdaly678.workers.dev/run` (bypasses the 7am reminder gate). Original diagnosis below for reference.
+
+## ~~‼️ 2026-07-30 — Email notifications are BROKEN (SendGrid key dead) + new reminder feature to deploy~~
+
+**Diagnosis:** the email worker at `abf-email-worker.tdaly678.workers.dev` is deployed and its cron runs, but the SendGrid API key returns **401 (revoked/invalid)** — probably casualty of the earlier "delete the old SendGrid key" cleanup. Nothing has needed sending since May 8, so it broke silently. A live test request (`receeJAxjwItoUkkJ`, teacher = you) is sitting in the Requests table unsent — the moment the key is fixed, the next cron tick emails it to daly@lefc.net, which is your proof it's working again.
+
+**Also ready to deploy:** new **flow E** in `worker/src/index.js` — if a request is still Pending after more than 5 full days (5 × 24h), the teacher gets one reminder email, sent during the 7am hour (America/New_York). The `Reminder Sent At` field is already added to the Requests table via API. All emails (including reminders) BCC you via the existing `BCC_EMAIL` var.
+
+**Fix + deploy (~5 min):**
+
+1. **SendGrid** ([app.sendgrid.com](https://app.sendgrid.com)) → Settings → API Keys → **Create API Key** → name `lefc-abf-worker-2026`, Restricted Access, only **Mail Send → Full Access**. Copy it.
+2. While there, confirm the **sender**: Settings → Sender Authentication. `FROM_EMAIL` in `wrangler.toml` is now `noreply@abfresources.com` — that requires **domain authentication** for abfresources.com (or switch FROM_EMAIL back to the verified `daly@lefc.net`).
+3. Terminal:
+   ```bash
+   cd "/Users/daly/Library/CloudStorage/OneDrive-Personal/Personal/Claude/Projects/ABF Resources/worker"
+   wrangler secret put SENDGRID_API_KEY   # paste the new key
+   wrangler deploy                        # ships the new reminder code too
+   wrangler tail                          # optional: watch the next cron tick
+   ```
+4. Within 5 minutes you should get the test email ("WORKER TEST"). Then delete the test request row in Airtable (Requests → the one with Leader Message starting "WORKER TEST"), or ask Claude to.
+5. To test the reminder flow on demand: `curl -X POST -H "x-trigger-auth: <your MANUAL_TRIGGER_AUTH>" https://abf-email-worker.tdaly678.workers.dev/run` — manual runs bypass the 7am gate (the test request is backdated >5 days, so it would also fire a reminder — expect two emails if you run this before deleting it).
+
 ## What changed on 2026-07-30 — Tab restructure (no action required)
 
 Purely a frontend reorganization; no Airtable changes:

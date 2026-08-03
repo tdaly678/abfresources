@@ -53,7 +53,8 @@ A combined video forces both audiences to sit through content that isn't theirs.
   - **Canonical host is `www.abfresources.com`.** The apex `abfresources.com` 301-redirects to www. Note `abfresources.com/index.html` 307-redirects to `/`, so always test against `https://www.abfresources.com/` — the other forms return redirects with no body and can look like stale content.
   - **Known issue (open as of 2026-08-03):** a Cloudflare redirect rule on the apex returns `301` with an **empty `Location` header**, so *every* apex URL is broken — including the `abfresources.com/12345` feedback short codes printed on QR codes. Fix is a Redirect Rule: if `http.host eq "abfresources.com"` → dynamic redirect to `concat("https://www.abfresources.com", http.request.uri.path)`, 301, preserve query string. Must be Dynamic, not Static, or deep links break.
 - **Backend (scheduling + feedback)**: Airtable. Schema is documented in `SCHEDULING_TOOL_AIRTABLE_SETUP.md`.
-- **Auth**: Password gate on the front page (one shared leader/teacher password Tom shares directly). Past the gate, the site **defaults to read-only**. To edit profile / availability / courses, or to send/respond to teaching requests, the user signs in as a specific person using **the last 4 digits of the phone number** stored in Airtable (Teachers table or ABF Leaders table). No separate accounts, no passwords to manage, no email confirmations.
+- **API proxy (added 2026-08-03)**: the browser NEVER talks to Airtable directly — all traffic goes through the Cloudflare worker's `/api/*` layer (`worker/src/api.js`). The Airtable PAT lives only in a worker secret. The worker verifies the site password, admin PIN, and last-4-of-phone sign-in **server-side**, issues signed HMAC session tokens, enforces per-table/per-owner write permissions, strips phones/emails from anonymous responses, and rate-limits via a KV namespace. **Never reintroduce an Airtable token into any HTML page.** The old embedded PAT (`pat1ppp…`) was rotated/revoked; it's still in git history but dead. Pages covered: index.html, /bri, /preaching, /cbsetup.html, /fieldsurvey(+results), /preachingprepsurvey(+results).
+- **Auth**: Password gate on the front page (one shared leader/teacher password Tom shares directly), checked by `POST /api/gate` which returns a gate token (needed for registration + change-log writes). Past the gate, the site **defaults to read-only**. To edit profile / availability / courses, or to send/respond to teaching requests, the user signs in as a specific person using **the last 4 digits of the phone number** stored in Airtable (Teachers table or ABF Leaders table) — verified server-side by `POST /api/signin`, which returns a session token plus the person's own record (`me`). No separate accounts, no passwords to manage, no email confirmations.
 
 ### Teacher Scheduling Tool (restructured July 2026)
 
@@ -75,6 +76,10 @@ Architecture details in memory: `project_scheduling_tool.md`.
 Architecture details in memory: `project_feedback_tab.md`.
 
 ---
+
+## Recent changes (August 2026)
+
+**2026-08-03 — API proxy (security refactor).** Prompted by "can we remove the password?": the embedded Airtable PAT was readable by anyone (8 pages + public git history). All Airtable access now proxies through the worker (see Architecture). Code pushed on the **`api-proxy` branch**; deploy sequence + token rotation checklist in `SCHEDULING_TODO_TOM.md` (2026-08-03 section). Two pages existed only in the repo, not this folder — `preaching/index.html` and `cbsetup.html` — both refactored and copied back here. Removing the password gate is now a safe follow-up decision once the worker is deployed and tokens rotated.
 
 ## Recent changes (July 2026)
 
