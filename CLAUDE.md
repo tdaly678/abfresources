@@ -35,7 +35,7 @@ A combined video forces both audiences to sit through content that isn't theirs.
 
 ## Site sections (top-level nav)
 
-1. **ABF Classes** — directory of current classes by service (1st: Philippians, Faith Builders, Koinonia, Branches, Roots; 2nd: Agape, Mosaic, Synago).
+1. **ABF Classes** — directory of current classes by service (1st: Philippians, Faith Builders, Koinonia, Branches, Roots, Mosaic; 2nd: Agape, Synago). Room assignments (per Airtable, confirmed 2026-07-30): A3 = Philippians (1st) + Agape (2nd); A4 = Faith Builders (1st) + Synago (2nd); A5 = Koinonia; A6 = Branches; D6 = Mosaic; D7 = Roots. D5 is tagged ABF but has no class assigned. A1/A2 are multi-use, not ABF.
 2. **Key Dates** — no-meeting Sundays, summer break, Easter, ABF resume dates.
 3. **Resources** — Training Videos (For New Leaders / For Existing Leaders / For New Teachers), Articles, Online Studies (renamed from "Online Courses" July 2026; Joshua WBF Spring 2026, plus Tutorials). *Default subsection on load: Training Videos.*
 4. **Teachers** — roster organized by stage (Veterans, Active, Up & Comers Years 2–3, Up & Comers Year 1). Also hosts **My Profile** (inline form, shown when signed in as a teacher; moved here from Scheduling July 2026).
@@ -48,7 +48,10 @@ A combined video forces both audiences to sit through content that isn't theirs.
 
 ## Architecture
 
-- **Frontend**: static HTML at the root of this folder (`index.html`, `404.html`). Hosted via the GitHub-pages-style setup; push to the GitHub repo to deploy. Repo and token details: see memory `reference_github.md`.
+- **Frontend**: static HTML at the root of this folder (`index.html`, `404.html`). Push to the GitHub repo to deploy. Repo and token details: see memory `reference_github.md`.
+- **Hosting (corrected 2026-08-03)**: served by **Cloudflare Pages**, *not* GitHub Pages. GitHub Pages is disabled on the repo (the Pages API returns 404); the leftover `CNAME` file was deleted 2026-08-03. Deploys propagate a few minutes after a push — if the live site looks stale, wait rather than assuming a cache problem.
+  - **Canonical host is `www.abfresources.com`.** The apex `abfresources.com` 301-redirects to www. Note `abfresources.com/index.html` 307-redirects to `/`, so always test against `https://www.abfresources.com/` — the other forms return redirects with no body and can look like stale content.
+  - **Known issue (open as of 2026-08-03):** a Cloudflare redirect rule on the apex returns `301` with an **empty `Location` header**, so *every* apex URL is broken — including the `abfresources.com/12345` feedback short codes printed on QR codes. Fix is a Redirect Rule: if `http.host eq "abfresources.com"` → dynamic redirect to `concat("https://www.abfresources.com", http.request.uri.path)`, 301, preserve query string. Must be Dynamic, not Static, or deep links break.
 - **Backend (scheduling + feedback)**: Airtable. Schema is documented in `SCHEDULING_TOOL_AIRTABLE_SETUP.md`.
 - **Auth**: Password gate on the front page (one shared leader/teacher password Tom shares directly). Past the gate, the site **defaults to read-only**. To edit profile / availability / courses, or to send/respond to teaching requests, the user signs in as a specific person using **the last 4 digits of the phone number** stored in Airtable (Teachers table or ABF Leaders table). No separate accounts, no passwords to manage, no email confirmations.
 
@@ -80,6 +83,7 @@ Shipped 2026-07-30 in one batch:
 - **Tab restructure (Courses / Scheduling / Teachers)** — see the Site sections list above and the Scheduling Tool section below. New top-level Courses tab (id `catalog`); Scheduling slimmed to send/receive; My Profile now on Teachers tab; "Online Courses" → "Online Studies" under Resources. Course-first requests via `requestCourseFromCatalog()`.
 - **ABF Classes cards are text-only** — leader photos and "[ Leader Photo ]" placeholders removed. Each card now opens with a colored `abf-banner` (class name in bold italic; olive/terra/steel/gold/brown rotation). The `Photo` field in the Airtable ABF Classes table and the JS seed data is no longer displayed.
 - **Facility map on Home** — `facility-map.pdf` (LEFC Facility Map 2027) at site root, with a thumbnail card (`.map-card`, `photos/facility-map-thumb.jpg`) in Key Announcements linking to the PDF.
+- **Facility map annotated (2026-07-30)** — A1/A2 relabeled ABF → MULTI-USE; rooms A3–A6 (pg 1) and D6/D7 (pg 2) now show ABF class assignments by service (`ABF` heading at top of the room, `1st  <Class>` / `2nd  <Class>` in the middle, red room tag at the bottom). The room labels are **baked into a raster image** inside the PDF, so edits are done as vector overlays via PyMuPDF — white-out box over the old label, then redraw. Regenerate `photos/facility-map-thumb.jpg` (900×1165, page 1 render) after any map change.
 
 ## Recent changes (April 2026)
 
