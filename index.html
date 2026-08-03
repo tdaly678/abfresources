@@ -586,6 +586,13 @@
     }
     .class-group-name { font-size: 1.05rem; font-weight: 800; color: var(--dark-brown); letter-spacing: -.005em; }
     .class-group-room { font-size: .72rem; color: var(--text-muted); font-weight: 600; }
+    .class-group-desc {
+      font-size: .82rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: -.15rem 0 .85rem;
+      max-width: 68ch;
+    }
     .leaders-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .55rem; }
     .leader-card {
       background: var(--cream);
@@ -7421,6 +7428,9 @@
             '<span class="class-group-name">' + escapeHtml(cls.name) + '</span>' +
             (cls.room ? '<span class="class-group-room">' + escapeHtml(cls.room) + '</span>' : '') +
           '</div>' +
+          (cls.description
+            ? '<div class="class-group-desc">' + escapeHtml(cls.description) + '</div>'
+            : '') +
           '<div class="leaders-grid"></div>';
         const grid = group.querySelector('.leaders-grid');
 
