@@ -3216,11 +3216,14 @@
             </div>
           </div>
           <div class="form-row">
-            <label class="form-label">Are you a member of LEFC?</label>
-            <label class="form-toggle" id="prof-member-toggle">
-              <input type="checkbox" id="prof-member" />
-              <span>Yes, I'm a member</span>
-            </label>
+            <label class="form-label" for="prof-attendance">What's your connection to LEFC?</label>
+            <select id="prof-attendance" class="form-input">
+              <option value="">— Select —</option>
+              <option value="Member">Member</option>
+              <option value="Regular Attendee">Regular Attendee</option>
+              <option value="Guest">Guest</option>
+            </select>
+            <p class="form-help">Membership isn't required to teach — we just like to know how you're connected.</p>
           </div>
           <div class="form-row">
             <label class="form-label" for="prof-weeks-taught">Approximately how many weeks have you taught?</label>
@@ -4373,11 +4376,14 @@
         <select id="reg-home-class" class="form-select"><option value="">— Choose —</option></select>
       </div>
       <div class="form-row">
-        <label class="form-label">Are you a member of LEFC?</label>
-        <label class="form-toggle" id="reg-member-toggle">
-          <input type="checkbox" id="reg-member" />
-          <span>Yes, I'm a member</span>
-        </label>
+        <label class="form-label" for="reg-attendance">What's your connection to LEFC?</label>
+        <select id="reg-attendance" class="form-input">
+          <option value="">— Select —</option>
+          <option value="Member">Member</option>
+          <option value="Regular Attendee">Regular Attendee</option>
+          <option value="Guest">Guest</option>
+        </select>
+        <p class="form-help">Membership isn't required to teach — we just like to know how you're connected.</p>
       </div>
       <div class="form-row">
         <label class="form-label" for="reg-weeks-taught">Approximately how many weeks have you taught?</label>
@@ -4928,6 +4934,7 @@
         active: !!f.Active,
         yearStartedAttending: f['Year Started Attending'] || null,
         lefcMember: !!f['LEFC Member'],
+        attendanceStatus: f['Attendance Status'] || '',
         teachingContexts: f['Teaching Contexts'] || [],
         hasTaughtBefore: !!f['Has Taught Before'],
         weeksTaught: f['Weeks Taught'] || '',
@@ -5058,7 +5065,7 @@
       this._cache.teachers = this._cache.teachers.map(t => t.id === id ? mapped : t);
       this.logChange('Teachers', 'update', id, mapped.name,
         'Updated teacher profile: ' + mapped.name,
-        diffFields(before, mapped, ['name','email','phone','status','homeClassId','lefcMember','yearStartedAttending']));
+        diffFields(before, mapped, ['name','email','phone','status','homeClassId','lefcMember','attendanceStatus','yearStartedAttending']));
       return mapped;
     },
 
@@ -5255,6 +5262,7 @@
         Tagline: (teacher.tagline || '').slice(0, 140),
         'Year Started Attending': teacher.yearStartedAttending || null,
         'LEFC Member':            !!teacher.lefcMember,
+        'Attendance Status':      teacher.attendanceStatus || null,
         'Has Taught Before':      !!teacher.hasTaughtBefore,
         'Weeks Taught':           teacher.weeksTaught || null,
         'Past Venues':            teacher.pastVenues || [],
@@ -6553,9 +6561,9 @@
     if (profSof) profSof.checked = !!t.affirmsSof;
     const profSofToggle = document.getElementById('prof-sof-toggle');
     if (profSofToggle) syncToggleVisual(profSofToggle);
-    const member = document.getElementById('prof-member');
-    member.checked = !!t.lefcMember;
-    syncToggleVisual(document.getElementById('prof-member-toggle'));
+    const profAtt = document.getElementById('prof-attendance');
+    // Fall back to the legacy checkbox for records not yet re-saved.
+    if (profAtt) profAtt.value = t.attendanceStatus || (t.lefcMember ? 'Member' : '');
     // Weeks Taught: prefer the new field, but fall back to the legacy
     // hasTaughtBefore boolean for teachers who haven't been edited since the
     // field was added (true → '1-9' as a non-judgmental default; false → '0').
@@ -6575,7 +6583,7 @@
 
   function setupProfileForm() {
     // Wire toggle visuals
-    ['prof-member-toggle', 'prof-sof-toggle'].forEach(id => {
+    ['prof-sof-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
@@ -6607,7 +6615,8 @@
         email,
         phone:  document.getElementById('prof-phone').value.trim(),
         yearStartedAttending: parseInt(document.getElementById('prof-year').value, 10) || null,
-        lefcMember:      !!document.getElementById('prof-member').checked,
+        attendanceStatus: document.getElementById('prof-attendance').value || '',
+        lefcMember:      document.getElementById('prof-attendance').value === 'Member',
         weeksTaught:     document.getElementById('prof-weeks-taught').value || '',
         hasTaughtBefore: document.getElementById('prof-weeks-taught').value !== '0' && !!document.getElementById('prof-weeks-taught').value,
         pastVenues:      readChipList(document.getElementById('prof-venues'), 'prof-ven'),
@@ -6685,9 +6694,8 @@
     document.getElementById('reg-email').value = t.email || '';
     document.getElementById('reg-phone').value = t.phone || '';
     document.getElementById('reg-year').value  = t.yearStartedAttending || '';
-    const member = document.getElementById('reg-member');
-    member.checked = !!t.lefcMember;
-    syncToggleVisual(document.getElementById('reg-member-toggle'));
+    const regAtt = document.getElementById('reg-attendance');
+    if (regAtt) regAtt.value = t.attendanceStatus || (t.lefcMember ? 'Member' : '');
     const regWeeks = document.getElementById('reg-weeks-taught');
     if (regWeeks) {
       regWeeks.value = t.weeksTaught || (t.hasTaughtBefore === true ? '1-9' : (t.hasTaughtBefore === false ? '0' : ''));
@@ -6722,7 +6730,7 @@
 
   function setupRegisterForm() {
     // Toggle visuals
-    ['reg-member-toggle', 'reg-sof-toggle'].forEach(id => {
+    ['reg-sof-toggle'].forEach(id => {
       const lbl = document.getElementById(id);
       if (!lbl) return;
       lbl.querySelector('input').addEventListener('change', () => syncToggleVisual(lbl));
@@ -6766,7 +6774,8 @@
         status: deriveStageWithRetention(existing && existing.status, weeksVal) || 'Up & Comer Yr 1',
         homeClassId: homeEl ? homeEl.value : '',
         yearStartedAttending: parseInt(document.getElementById('reg-year').value, 10) || null,
-        lefcMember:      !!document.getElementById('reg-member').checked,
+        attendanceStatus: document.getElementById('reg-attendance').value || '',
+        lefcMember:      document.getElementById('reg-attendance').value === 'Member',
         weeksTaught:     weeksVal,
         hasTaughtBefore: weeksVal !== '0' && !!weeksVal,
         pastVenues:      readChipList(document.getElementById('reg-venues'), 'reg-ven'),
@@ -7592,7 +7601,7 @@
     document.getElementById('profile-view-modal').classList.remove('visible');
   }
   function renderProfileCardHTML(t, cls) {
-    const memberLabel = t.lefcMember ? 'Yes' : '—';
+    const memberLabel = t.attendanceStatus || (t.lefcMember ? 'Member' : '—');
     const yearLabel   = t.yearStartedAttending ? String(t.yearStartedAttending) : '—';
     const weeksLabel = t.weeksTaught
       ? '~' + t.weeksTaught + ' weeks'
@@ -7610,7 +7619,7 @@
       t.tagline ? '<p style="margin:.6rem 0 1rem;font-style:italic;color:var(--text-muted);font-size:.95rem;line-height:1.4;">\u201C' + escapeHtml(t.tagline) + '\u201D</p>' : '',
       '<dl class="profile-meta">',
       '  <div><dt>Email</dt><dd>' + (t.email ? '<a href="mailto:' + escapeHtml(t.email) + '" style="color:var(--steel-blue);">' + escapeHtml(t.email) + '</a>' : '—') + '</dd></div>',
-      '  <div><dt>LEFC Member</dt><dd>' + memberLabel + '</dd></div>',
+      '  <div><dt>LEFC Connection</dt><dd>' + escapeHtml(memberLabel) + '</dd></div>',
       '  <div><dt>Attending Since</dt><dd>' + yearLabel + '</dd></div>',
       '  <div><dt>Home Class</dt><dd>' + escapeHtml(homeClass) + '</dd></div>',
       '  <div><dt>Weeks Taught</dt><dd>' + escapeHtml(weeksLabel) + '</dd></div>',
