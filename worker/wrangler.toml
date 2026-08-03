@@ -14,13 +14,10 @@ crons = ["*/5 * * * *"]
 # Or via the Cloudflare Dashboard → Workers → abf-email-worker → Settings → Variables
 # (Migrated from SendGrid to Brevo 2026-07-30 — SendGrid free plan sunset.)
 
-# Rate limiting for the /api layer. Create the namespace once with:
-#   npx wrangler kv namespace create RATE
-# then paste the returned id below and uncomment. The API works without
-# it (fails open) but sign-in brute-force protection needs it.
-# [[kv_namespaces]]
-# binding = "RATE"
-# id = "PASTE_ID_HERE"
+# Rate limiting for the /api layer (namespace created 2026-08-03).
+[[kv_namespaces]]
+binding = "RATE"
+id = "b13b12f9578349ea8bf4a881a5fba51a"
 
 # Non-secret config (visible in dashboard)
 [vars]

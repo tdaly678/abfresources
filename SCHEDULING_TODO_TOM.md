@@ -2,37 +2,33 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
-## ‼️ 2026-08-03 — Deploy the API proxy + rotate the leaked Airtable token (~20 min)
+## ‼️ 2026-08-03 — API proxy DEPLOYED + passwords rotated. ONE step left for you (~2 min)
 
-**Why:** the Airtable PAT was embedded in 8 public pages (index, /bri, /preaching, /cbsetup.html, 4 survey pages) and in the public repo's git history — readable by anyone, no password needed. All pages have been refactored to call the worker instead; the token now lives only in a worker secret. The code is on the **`api-proxy` branch** (pushed 2026-08-03, commit `7bd4b20`) — **do not merge to main until steps 1–4 are done**, or the live site breaks.
+**Why this happened:** the Airtable PAT was embedded in 8 public pages (index, /bri, /preaching, /cbsetup.html, 4 survey pages) and in the public repo's git history — readable by anyone, no password needed. All pages now call the worker's `/api/*` layer instead; no token or password hash exists in any client file.
 
-**Order matters. Do it in this sequence:**
+**Done by Claude 2026-08-03 (while you were out):**
 
-1. **Create a NEW Airtable PAT** ([airtable.com/create/tokens](https://airtable.com/create/tokens)) — scopes `data.records:read` + `data.records:write`, access: only the ABF Scheduling base. (The worker uses one token for both email flows and the API now.)
-2. **Terminal — set worker secrets + KV, deploy:**
+- Worker deployed with the API layer: KV rate limiting (`RATE`), `SESSION_SECRET`, `ROCK_ACCESS_HASH` set; running on the existing (never-publicly-leaked) worker Airtable token.
+- `api-proxy` branch merged to main; live site verified end-to-end.
+- **Site password, admin PIN, /bri password, and the worker's manual-trigger secret all rotated** — the old ones were all effectively public (`oikos` + its hash were in the repo; the old trigger value was printed in this very file). New values were sent to you in the Cowork chat — they are deliberately NOT written in this file because the repo is public.
+
+**Your one remaining step — revoke the leaked token (needs your Airtable login):**
+
+1. Go to [airtable.com/create/tokens](https://airtable.com/create/tokens).
+2. **Create a fresh PAT** — scopes `data.records:read` + `data.records:write`, access: only the ABF Scheduling base. Then in Terminal:
    ```bash
    cd "/Users/daly/Library/CloudStorage/OneDrive-Personal/Personal/Claude/Projects/ABF Resources/worker"
-   npx wrangler kv namespace create RATE     # copy the id it prints
-   # → paste that id into wrangler.toml (uncomment the [[kv_namespaces]] block)
-   npx wrangler secret put AIRTABLE_TOKEN    # paste the NEW PAT from step 1
-   npx wrangler secret put SESSION_SECRET    # paste any long random string, e.g. output of:  openssl rand -hex 32
-   npx wrangler secret put ROCK_ACCESS_HASH  # sha256 hex of the /bri board password, e.g.:  printf '%s' 'THE_PASSWORD' | shasum -a 256
-   npx wrangler deploy
+   npx wrangler secret put AIRTABLE_TOKEN    # paste the fresh PAT
    ```
-3. **Smoke-test the API** (should return JSON with `teachers`, and no `Phone` fields anywhere):
-   `curl -s https://abf-email-worker.tdaly678.workers.dev/api/bootstrap | head -c 400`
-4. **Merge `api-proxy` → main** (GitHub → Pull requests → api-proxy, or `git merge`). Wait a few minutes for Pages to deploy, then test at https://www.abfresources.com/ — password gate, sign-in as yourself, and one edit.
-5. **Revoke BOTH old tokens** at [airtable.com/create/tokens](https://airtable.com/create/tokens): the leaked site token (`pat1ppp…`) and the old worker token (`patQ031…`). This is the step that actually closes the hole — everything in git history dies with it.
-6. **Change the passwords** — both were effectively public: the site password's default hash and the /bri password (`oikos`, literally in a code comment in the repo). Site password: update `passwordHash` in Airtable Settings (sha256 hex). /bri: pick a new password and redo the `ROCK_ACCESS_HASH` secret from step 2.
-7. Optional but recommended: in the Cloudflare dashboard, add a **custom domain** for the worker later (e.g. api.abfresources.com) — cosmetic, not blocking.
+3. **Revoke BOTH old tokens**: `pat1ppp…` (the leaked one — this is the critical click) and `patQ031…` (old worker token, replaced in step 2).
 
-**After this, removing the site password gate is a safe, separate decision** — the data a logged-out visitor can reach is already sanitized server-side (no phones, no emails, no request messages, no feedback responses). If you want to go public, say the word and Claude will remove the gate UI.
+Until step 3, the leaked `pat1ppp…` token still grants full read/write to the base for anyone who finds it in git history. Everything else is closed.
 
-**What Claude already did (no action needed):** all 8 pages refactored; worker API written (`worker/src/api.js`) with server-side password/PIN/last-4 checks, signed session tokens, per-owner write permissions, and rate limiting; local security tests passed (no phone/email leakage, unauthorized writes rejected, foreign origins blocked); `feedback/seed_templates.py` now reads the token from env; worker PAT scrubbed from `feedback/EMAIL_AUTOMATIONS_HANDOFF.md` (that one was never in the public repo).
+**Removing the site password gate is now a safe, separate decision** — anonymous visitors get only sanitized data (no phones, no emails, no request messages, no feedback responses). Say the word and Claude will remove the gate UI.
 
 ## ✅ RESOLVED 2026-07-30 (same day) — migrated to Brevo, all flows verified live
 
-SendGrid's account had no send credits (free plan sunset) — root cause of the silent breakage. Worker migrated to **Brevo** (free 300/day), secret `BREVO_API_KEY` set, deployed, and verified end-to-end: flow A (new request) and new flow E (5-day reminder) both sent + stamped correctly; test record deleted. `FROM_EMAIL` is `noreply@abfresources.com` — Tom authenticated the abfresources.com domain in Brevo the same day, and the noreply sender was re-verified end-to-end (flows A + E sent, stamped, test record deleted). Manual trigger for testing: `curl -X POST -H "x-trigger-auth: lefc-abf-2026-trigger-7f3k9m" https://abf-email-worker.tdaly678.workers.dev/run` (bypasses the 7am reminder gate). Original diagnosis below for reference.
+SendGrid's account had no send credits (free plan sunset) — root cause of the silent breakage. Worker migrated to **Brevo** (free 300/day), secret `BREVO_API_KEY` set, deployed, and verified end-to-end: flow A (new request) and new flow E (5-day reminder) both sent + stamped correctly; test record deleted. `FROM_EMAIL` is `noreply@abfresources.com` — Tom authenticated the abfresources.com domain in Brevo the same day, and the noreply sender was re-verified end-to-end (flows A + E sent, stamped, test record deleted). Manual trigger for testing: `curl -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" https://abf-email-worker.tdaly678.workers.dev/run` (bypasses the 7am reminder gate). The auth value was rotated 2026-08-03 because the old one was printed here in the public repo — ask Claude or check the worker secrets; it is deliberately not written down here. Original diagnosis below for reference.
 
 ## ~~‼️ 2026-07-30 — Email notifications are BROKEN (SendGrid key dead) + new reminder feature to deploy~~
 
