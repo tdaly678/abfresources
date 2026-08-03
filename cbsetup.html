@@ -721,10 +721,9 @@
 </div>
 
 <script>
-  // ── Airtable config ──────────────────────────────────────────────
-  const TOKEN = ['pat1pppuwziUpjdcJ',
-    '18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.');
-  const BASE_ID  = 'appTpp1agJQqoId07';
+  // ── Backend config — all Airtable access goes through the worker
+  //    API (no token in this file; writes are rate-limited). ─────────
+  const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
   const TABLE_ID = 'tblIY53Mbkhh8dbwg'; // CB Signups
 
   // Map select name → { date label, topic }
@@ -775,10 +774,13 @@
       let allRecords = [];
       let offset = null;
       do {
-        const url = 'https://api.airtable.com/v0/' + BASE_ID + '/' + TABLE_ID
-          + '?pageSize=100' + (offset ? '&offset=' + offset : '');
-        const res = await fetch(url, {
-          headers: { 'Authorization': 'Bearer ' + TOKEN }
+        const res = await fetch(API_BASE + '/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'GET', table: TABLE_ID,
+            query: 'pageSize=100' + (offset ? '&offset=' + offset : ''),
+          }),
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
@@ -847,17 +849,13 @@
       const BATCH = 10;
       for (let i = 0; i < records.length; i += BATCH) {
         const batch = records.slice(i, i + BATCH);
-        const res = await fetch(
-          'https://api.airtable.com/v0/' + BASE_ID + '/' + TABLE_ID,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + TOKEN,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ records: batch }),
-          }
-        );
+        const res = await fetch(API_BASE + '/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'POST', table: TABLE_ID, body: { records: batch },
+          }),
+        });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error && err.error.message ? err.error.message : 'HTTP ' + res.status);

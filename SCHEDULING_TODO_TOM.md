@@ -2,6 +2,54 @@
 
 The site is live and pulling from Airtable. Below are the things only you can do (Airtable API doesn't support these), in priority order.
 
+## ‼️ 2026-08-03 — API proxy DEPLOYED + passwords rotated. ONE step left for you (~2 min)
+
+**Why this happened:** the Airtable PAT was embedded in 8 public pages (index, /bri, /preaching, /cbsetup.html, 4 survey pages) and in the public repo's git history — readable by anyone, no password needed. All pages now call the worker's `/api/*` layer instead; no token or password hash exists in any client file.
+
+**Done by Claude 2026-08-03 (while you were out):**
+
+- Worker deployed with the API layer: KV rate limiting (`RATE`), `SESSION_SECRET`, `ROCK_ACCESS_HASH` set; running on the existing (never-publicly-leaked) worker Airtable token.
+- `api-proxy` branch merged to main; live site verified end-to-end.
+- **Site password, admin PIN, /bri password, and the worker's manual-trigger secret all rotated** — the old ones were all effectively public (`oikos` + its hash were in the repo; the old trigger value was printed in this very file). New values were sent to you in the Cowork chat — they are deliberately NOT written in this file because the repo is public.
+
+**Your one remaining step — revoke the leaked token (needs your Airtable login):**
+
+1. Go to [airtable.com/create/tokens](https://airtable.com/create/tokens).
+2. **Create a fresh PAT** — scopes `data.records:read` + `data.records:write`, access: only the ABF Scheduling base. Then in Terminal:
+   ```bash
+   cd "/Users/daly/Library/CloudStorage/OneDrive-Personal/Personal/Claude/Projects/ABF Resources/worker"
+   npx wrangler secret put AIRTABLE_TOKEN    # paste the fresh PAT
+   ```
+3. **Revoke BOTH old tokens**: `pat1ppp…` (the leaked one — this is the critical click) and `patQ031…` (old worker token, replaced in step 2).
+
+Until step 3, the leaked `pat1ppp…` token still grants full read/write to the base for anyone who finds it in git history. Everything else is closed.
+
+**Removing the site password gate is now a safe, separate decision** — anonymous visitors get only sanitized data (no phones, no emails, no request messages, no feedback responses). Say the word and Claude will remove the gate UI.
+
+## ✅ RESOLVED 2026-07-30 (same day) — migrated to Brevo, all flows verified live
+
+SendGrid's account had no send credits (free plan sunset) — root cause of the silent breakage. Worker migrated to **Brevo** (free 300/day), secret `BREVO_API_KEY` set, deployed, and verified end-to-end: flow A (new request) and new flow E (5-day reminder) both sent + stamped correctly; test record deleted. `FROM_EMAIL` is `noreply@abfresources.com` — Tom authenticated the abfresources.com domain in Brevo the same day, and the noreply sender was re-verified end-to-end (flows A + E sent, stamped, test record deleted). Manual trigger for testing: `curl -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" https://abf-email-worker.tdaly678.workers.dev/run` (bypasses the 7am reminder gate). The auth value was rotated 2026-08-03 because the old one was printed here in the public repo — ask Claude or check the worker secrets; it is deliberately not written down here. Original diagnosis below for reference.
+
+## ~~‼️ 2026-07-30 — Email notifications are BROKEN (SendGrid key dead) + new reminder feature to deploy~~
+
+**Diagnosis:** the email worker at `abf-email-worker.tdaly678.workers.dev` is deployed and its cron runs, but the SendGrid API key returns **401 (revoked/invalid)** — probably casualty of the earlier "delete the old SendGrid key" cleanup. Nothing has needed sending since May 8, so it broke silently. A live test request (`receeJAxjwItoUkkJ`, teacher = you) is sitting in the Requests table unsent — the moment the key is fixed, the next cron tick emails it to daly@lefc.net, which is your proof it's working again.
+
+**Also ready to deploy:** new **flow E** in `worker/src/index.js` — if a request is still Pending after more than 5 full days (5 × 24h), the teacher gets one reminder email, sent during the 7am hour (America/New_York). The `Reminder Sent At` field is already added to the Requests table via API. All emails (including reminders) BCC you via the existing `BCC_EMAIL` var.
+
+**Fix + deploy (~5 min):**
+
+1. **SendGrid** ([app.sendgrid.com](https://app.sendgrid.com)) → Settings → API Keys → **Create API Key** → name `lefc-abf-worker-2026`, Restricted Access, only **Mail Send → Full Access**. Copy it.
+2. While there, confirm the **sender**: Settings → Sender Authentication. `FROM_EMAIL` in `wrangler.toml` is now `noreply@abfresources.com` — that requires **domain authentication** for abfresources.com (or switch FROM_EMAIL back to the verified `daly@lefc.net`).
+3. Terminal:
+   ```bash
+   cd "/Users/daly/Library/CloudStorage/OneDrive-Personal/Personal/Claude/Projects/ABF Resources/worker"
+   wrangler secret put SENDGRID_API_KEY   # paste the new key
+   wrangler deploy                        # ships the new reminder code too
+   wrangler tail                          # optional: watch the next cron tick
+   ```
+4. Within 5 minutes you should get the test email ("WORKER TEST"). Then delete the test request row in Airtable (Requests → the one with Leader Message starting "WORKER TEST"), or ask Claude to.
+5. To test the reminder flow on demand: `curl -X POST -H "x-trigger-auth: <your MANUAL_TRIGGER_AUTH>" https://abf-email-worker.tdaly678.workers.dev/run` — manual runs bypass the 7am gate (the test request is backdated >5 days, so it would also fire a reminder — expect two emails if you run this before deleting it).
+
 ## What changed on 2026-07-30 — Tab restructure (no action required)
 
 Purely a frontend reorganization; no Airtable changes:

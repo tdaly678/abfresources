@@ -2,11 +2,14 @@
  * ABF Email Worker
  *
  * Cloudflare Worker that polls Airtable on a cron and sends transactional
- * emails via SendGrid for three event types:
+ * emails via Brevo (migrated from SendGrid 2026-07-30) for these event types:
  *
  *   A. New teaching request   →  email teacher
  *   B. Teacher responded      →  email leader
  *   D. New feedback response  →  email teacher
+ *   E. Pending-request reminder → email teacher when a request has sat
+ *      unanswered for more than 5 full days (5 × 24h). Sent once per
+ *      request, during the 7am hour America/New_York.
  *
  * Schema additions required (added once via Airtable UI):
  *
@@ -14,15 +17,16 @@
  *     - "Created Email Sent At"        (Date with time)
  *     - "Last Status Emailed"          (Single line text)
  *     - "Last Status Email Sent At"    (Date with time)
+ *     - "Reminder Sent At"             (Date with time)
  *
  *   Feedback Responses table:
  *     - "Email Sent At"                (Date with time)
  *
  * Env vars (set via wrangler secret or Cloudflare dashboard):
  *   AIRTABLE_TOKEN     — Airtable PAT, scoped to this base, data:read+write
- *   SENDGRID_API_KEY   — SendGrid API key, Mail Send permission
+ *   BREVO_API_KEY      — Brevo (formerly Sendinblue) transactional API key
  *   AIRTABLE_BASE_ID   — Airtable base ID (also in wrangler.toml)
- *   FROM_EMAIL         — sender address (verified in SendGrid)
+ *   FROM_EMAIL         — sender address (verified in Brevo)
  *   FROM_NAME          — sender display name
  *   PORTAL_URL         — base URL of abfresources.com
  *   DRY_RUN            — "true" to log instead of send (for testing)
@@ -30,10 +34,12 @@
 
 const STATUSES_TO_EMAIL = ['Accepted', 'Declined', 'Counter-Proposed'];
 
+import { handleApi } from './api.js';
+
 export default {
   async scheduled(event, env, ctx) {
     const cfg = buildConfig(env);
-    const results = { newRequests: 0, statusChanges: 0, newFeedback: 0, errors: [] };
+    const results = { newRequests: 0, statusChanges: 0, newFeedback: 0, reminders: 0, errors: [] };
 
     try {
       results.newRequests = await processNewRequests(cfg);
@@ -47,12 +53,23 @@ export default {
       results.newFeedback = await processNewFeedbackResponses(cfg);
     } catch (e) { results.errors.push(`newFeedback: ${e.message}`); }
 
+    try {
+      // Only during the 7am hour America/New_York; the "Reminder Sent At"
+      // stamp means only the first cron tick that hour actually sends.
+      results.reminders = await processPendingReminders(cfg, false);
+    } catch (e) { results.errors.push(`reminders: ${e.message}`); }
+
     console.log('ABF email worker run complete', JSON.stringify(results));
   },
 
   // For manual testing: GET / triggers the same logic as the cron
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
+
+    // API proxy layer (browser ↔ Airtable). Handles its own CORS.
+    if (path === '/api' || path.startsWith('/api/')) {
+      return handleApi(request, env);
+    }
 
     // CORS preflight (the /bri page calls /rock-notify cross-origin)
     if (request.method === 'OPTIONS') {
@@ -87,6 +104,8 @@ export default {
       newRequests: await processNewRequests(cfg),
       statusChanges: await processStatusChanges(cfg),
       newFeedback: await processNewFeedbackResponses(cfg),
+      // Manual runs bypass the 7am gate so reminders are testable on demand.
+      reminders: await processPendingReminders(cfg, true),
     };
     return new Response(JSON.stringify(results, null, 2), {
       headers: { 'content-type': 'application/json' },
@@ -118,7 +137,7 @@ function buildConfig(env) {
   return {
     airtableToken: env.AIRTABLE_TOKEN,
     airtableBase: env.AIRTABLE_BASE_ID,
-    sendgridKey: env.SENDGRID_API_KEY,
+    brevoKey: env.BREVO_API_KEY,
     fromEmail: env.FROM_EMAIL,
     fromName: env.FROM_NAME,
     bccEmail: env.BCC_EMAIL || '',  // BCC every outgoing email here (admin visibility). Empty = no BCC.
@@ -171,7 +190,7 @@ async function sendRockNotification(cfg, payload) {
     return { sent: false, dryRun: true, to: recipients, subject: email.subject };
   }
 
-  // One SendGrid call, all recipients on the To line so they can see each other.
+  // One send, all recipients on the To line so they can see each other.
   await sendgridSendMulti(cfg, { to: recipients, ...email });
   return { sent: true, to: recipients, subject: email.subject };
 }
@@ -365,6 +384,86 @@ async function processNewFeedbackResponses(cfg) {
   return sent;
 }
 
+// ─── Process: E — Pending-request reminders ─────────────────────────────────
+//
+// A teaching request that's still "Pending" more than 5 full days (5 × 24h)
+// after it was created gets ONE reminder email to the teacher, sent during
+// the 7am hour America/New_York. The "Reminder Sent At" stamp guarantees
+// one-reminder-per-request even though the cron fires every 5 minutes.
+//
+// force=true (manual /run) bypasses the 7am gate for testing; the stamp
+// still prevents duplicates.
+
+const REMINDER_AFTER_HOURS = 5 * 24;
+const REMINDER_SEND_HOUR = 7; // 7am America/New_York
+
+function nyHour(date) {
+  return parseInt(new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', hour12: false, timeZone: 'America/New_York',
+  }).format(date), 10) % 24;
+}
+
+async function processPendingReminders(cfg, force) {
+  const now = new Date();
+  if (!force && nyHour(now) !== REMINDER_SEND_HOUR) return 0;
+
+  // Only requests that are still Pending, never reminded, and whose
+  // original "new request" email actually went out.
+  const formula = `AND({Status}='Pending', {Reminder Sent At}=BLANK(), {Created Email Sent At}!=BLANK(), {Teacher}!='')`;
+  const requests = await airtableQuery(cfg, 'Requests', formula);
+
+  let sent = 0;
+  for (const req of requests) {
+    try {
+      // Age from Created At (client-populated), falling back to the record's
+      // own createdTime, then to when we emailed the original notification.
+      const createdIso = req.fields['Created At'] || req.createdTime || req.fields['Created Email Sent At'];
+      const ageHours = (now - new Date(createdIso)) / 36e5;
+      if (!(ageHours > REMINDER_AFTER_HOURS)) continue;
+
+      const teacherId = (req.fields['Teacher'] || [])[0];
+      const leaderId  = (req.fields['Requesting Leader'] || [])[0];
+      const classId   = (req.fields['ABF Class'] || [])[0];
+      if (!teacherId) continue;
+
+      const [teacher, leader, cls] = await Promise.all([
+        airtableGet(cfg, 'Teachers', teacherId),
+        leaderId ? airtableGet(cfg, 'ABF Leaders', leaderId) : null,
+        classId ? airtableGet(cfg, 'ABF Classes', classId) : null,
+      ]);
+
+      const teacherEmail = teacher?.fields?.Email;
+      const teacherName  = teacher?.fields?.Name || 'Teacher';
+      const leaderName   = leader?.fields?.Name || 'An ABF leader';
+      const className    = cls?.fields?.Name || 'an ABF';
+      const sundayIds    = req.fields['Requested Sundays'] || [];
+      const sundays      = (await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date')).join(', ') || '(no Sundays specified)';
+      const daysPending  = Math.floor(ageHours / 24);
+
+      if (!teacherEmail) continue;
+
+      const email = buildReminderEmail({
+        teacherName, leaderName, className, sundays, daysPending,
+        portalUrl: cfg.portalUrl + '/?tab=scheduling',
+      });
+
+      if (cfg.dryRun) {
+        console.log('DRY_RUN E:', JSON.stringify({ to: teacherEmail, subject: email.subject, daysPending }));
+      } else {
+        await sendgridSend(cfg, { to: teacherEmail, toName: teacherName, ...email });
+      }
+
+      await airtableUpdate(cfg, 'Requests', req.id, {
+        'Reminder Sent At': new Date().toISOString(),
+      });
+      sent++;
+    } catch (e) {
+      console.error(`E error on record ${req.id}:`, e.message);
+    }
+  }
+  return sent;
+}
+
 // ─── Airtable client ────────────────────────────────────────────────────────
 
 async function airtableQuery(cfg, tableName, formula) {
@@ -427,10 +526,29 @@ async function airtableUpdate(cfg, tableName, recordId, fields) {
   return await res.json();
 }
 
-// ─── SendGrid client ────────────────────────────────────────────────────────
+// ─── Brevo client ───────────────────────────────────────────────────────────
+//
+// Migrated from SendGrid 2026-07-30 (SendGrid sunset its free plan — the
+// account hit "Maximum credits exceeded" and notifications silently died).
+// Brevo free tier: 300 emails/day. API docs: https://developers.brevo.com
+
+async function brevoRequest(cfg, payload) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': cfg.brevoKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (res.status !== 201 && res.status !== 202) {
+    throw new Error(`Brevo send failed: ${res.status} ${await res.text()}`);
+  }
+}
 
 async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs = [] }) {
-  const personalization = { to: [{ email: to, name: toName || to }] };
+  // (Name kept from the SendGrid era so call sites didn't change.)
   const toLower = (to || '').toLowerCase();
   const allBccs = [];
   // Per-call BCCs (e.g., other leaders of the ABF class for full-team visibility).
@@ -447,50 +565,29 @@ async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs =
       allBccs.push(cfg.bccEmail);
     }
   }
-  if (allBccs.length) {
-    personalization.bcc = allBccs.map(email => ({ email }));
-  }
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${cfg.sendgridKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [personalization],
-      from: { email: cfg.fromEmail, name: cfg.fromName },
-      reply_to: { email: cfg.fromEmail, name: cfg.fromName },
-      subject,
-      content: [
-        { type: 'text/plain', value: plain },
-        { type: 'text/html',  value: html },
-      ],
-    }),
-  });
-  if (res.status !== 202) throw new Error(`SendGrid failed: ${res.status} ${await res.text()}`);
+  const payload = {
+    sender: { email: cfg.fromEmail, name: cfg.fromName },
+    replyTo: { email: cfg.fromEmail, name: cfg.fromName },
+    to: [{ email: to, name: toName || to }],
+    subject,
+    textContent: plain,
+    htmlContent: html,
+  };
+  if (allBccs.length) payload.bcc = allBccs.map(email => ({ email }));
+  await brevoRequest(cfg, payload);
 }
 
 // Send one email to several recipients (all on the To line). Used by the Rock board.
 async function sendgridSendMulti(cfg, { to, subject, plain, html }) {
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean).map(email => ({ email }));
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${cfg.sendgridKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: recipients }],
-      from: { email: cfg.fromEmail, name: cfg.fromName },
-      reply_to: { email: cfg.fromEmail, name: cfg.fromName },
-      subject,
-      content: [
-        { type: 'text/plain', value: plain },
-        { type: 'text/html',  value: html },
-      ],
-    }),
+  await brevoRequest(cfg, {
+    sender: { email: cfg.fromEmail, name: cfg.fromName },
+    replyTo: { email: cfg.fromEmail, name: cfg.fromName },
+    to: recipients,
+    subject,
+    textContent: plain,
+    htmlContent: html,
   });
-  if (res.status !== 202) throw new Error(`SendGrid failed: ${res.status} ${await res.text()}`);
 }
 
 // ─── Email templates ────────────────────────────────────────────────────────
@@ -582,6 +679,31 @@ ${portalUrl}
   <p style="background:#f7eed7;border-left:3px solid #524B30;padding:10px 14px;margin:14px 0;font-size:13px;color:#524B30;">Submitted ${escapeHtml(submittedReadable)}</p>
   <p style="margin-top:22px;">${ctaButton('See response in the portal', portalUrl)}</p>
   <p style="margin-top:14px;font-size:13px;color:#6b6050;">Tip: the portal's <strong>Summary</strong> view aggregates patterns across all responses; <strong>Individual</strong> shows each one.</p>`);
+  return { subject, plain, html };
+}
+
+function buildReminderEmail({ teacherName, leaderName, className, sundays, daysPending, portalUrl }) {
+  const subject = `Reminder: ${leaderName}'s teaching request is waiting for a reply`;
+  const plain = `Hi ${teacherName},
+
+Just a friendly nudge — ${leaderName}'s request for you to teach in ${className} has been waiting ${daysPending} days for a response.
+
+Requested Sundays:
+${sundays}
+
+Even if the answer is "not this time," a quick decline helps ${leaderName} plan and ask someone else.
+
+Open the portal to respond:
+${portalUrl}
+
+— ABF Scheduling`;
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
+  <p>Just a friendly nudge &mdash; <strong>${escapeHtml(leaderName)}</strong>'s request for you to teach in <strong>${escapeHtml(className)}</strong> has been waiting <strong>${daysPending} days</strong> for a response.</p>
+  <p style="margin-top:18px;"><strong>Requested Sundays:</strong></p>
+  <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(sundays)}</p>
+  <p>Even if the answer is &ldquo;not this time,&rdquo; a quick decline helps ${escapeHtml(leaderName)} plan and ask someone else.</p>
+  <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 

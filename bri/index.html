@@ -271,7 +271,8 @@
    Generate one with:  printf '%s' 'NEWPASS' | sha256sum
    ══════════════════════════════════════════════════════════════ */
 
-const ACCESS_HASH = '318ebbe829f3c9caff52400ea7512cbcc27ed2e9100a85e342883225b65235e7'; // sha256('oikos')
+/* Board password is verified server-side by the worker (/api/rock/gate);
+   no hash lives in this file. */
 
 /* The people with access. `admin:true` grants resolve + admin comments. */
 const ROSTER = [
@@ -294,33 +295,28 @@ const NOTIFY_URL = 'https://abf-email-worker.tdaly678.workers.dev/rock-notify';
    Token split so GitHub's secret scanner doesn't flag the repo. Not a
    security measure: anyone past the gate can read it. Mitigation is the
    base-scoped PAT. */
+/* All Airtable traffic goes through the worker API — no token in this
+   file. A signed rock-session token (from /api/rock/gate) authorizes
+   reads and writes; the worker rate-limits and scopes access to the
+   three Rock tables only. */
+const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
+function rockToken(){ try { return sessionStorage.getItem('rockToken') || ''; } catch(e){ return ''; } }
+async function apiCall(path, opts={}){
+  const { method='GET', body, token } = opts;
+  const headers = { 'Content-Type':'application/json' };
+  const tok = (token !== undefined) ? token : rockToken();
+  if (tok) headers['Authorization'] = 'Bearer ' + tok;
+  const res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const json = await res.json().catch(()=>({}));
+  if (!res.ok){ const e = new Error(json.error || ('API '+res.status)); e.status = res.status; throw e; }
+  return json;
+}
 const AT = {
-  get TOKEN(){ return ['pat1pppuwziUpjdcJ','18ff702618796a5825840ea2454ff5298c2ca25b3ffb595f632111391425ee78'].join('.'); },
-  BASE: 'appTpp1agJQqoId07',
   TBL: { tickets:'Rock Tickets', votes:'Rock Ticket Votes', comments:'Rock Ticket Comments' },
   async api(method, table, opts={}){
     const { recordId, body, query } = opts;
-    let path = '/' + encodeURIComponent(table);
-    if (recordId) path += '/' + recordId;
-    const qs = query ? '?' + query : '';
-    const res = await fetch('https://api.airtable.com/v0/' + this.BASE + path + qs, {
-      method,
-      headers:{ 'Authorization':'Bearer ' + this.TOKEN, 'Content-Type':'application/json' },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!res.ok){ const t = await res.text(); console.error('[airtable]', method, table, res.status, t); throw new Error('Airtable '+res.status); }
-    return res.status === 204 ? null : res.json();
+    return apiCall('/proxy', { method:'POST', body:{ method, table, recordId, body, query } });
   },
-  async listAll(table){
-    const out = []; let offset = null;
-    do {
-      const q = 'pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
-      const page = await this.api('GET', table, { query:q });
-      out.push(...(page.records||[]));
-      offset = page.offset || null;
-    } while(offset);
-    return out;
-  }
 };
 
 /* ───── helpers ───── */
@@ -366,11 +362,17 @@ async function tryAccess(){
   if(!val) return;
   $('#pw-btn').disabled = true;
   try {
-    if(await sha256(val) === ACCESS_HASH){
+    const res = await apiCall('/rock/gate', { method:'POST', body:{ password: val }, token:'' });
+    if(res.ok && res.token){
       sessionStorage.setItem('rockUnlocked','1');
+      sessionStorage.setItem('rockToken', res.token);
       afterUnlock();
-    } else { $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
-  } catch(e){ $('#pw-err').textContent = 'Something went wrong. Try again.'; }
+    }
+  } catch(e){
+    if(e.status === 401){ $('#pw-err').textContent = 'Incorrect password. Please try again.'; }
+    else if(e.status === 429){ $('#pw-err').textContent = 'Too many attempts \u2014 wait a few minutes.'; }
+    else { $('#pw-err').textContent = 'Something went wrong. Try again.'; }
+  }
   $('#pw-btn').disabled = false;
 }
 
@@ -415,7 +417,8 @@ function switchUser(){
 async function load(){
   $('#list').innerHTML = '<div class="empty">Loading…</div>';
   try {
-    const [tk, vt, cm] = await Promise.all([ AT.listAll(AT.TBL.tickets), AT.listAll(AT.TBL.votes), AT.listAll(AT.TBL.comments) ]);
+    const data = await apiCall('/rock/bootstrap');
+    const [tk, vt, cm] = [data.tickets || [], data.votes || [], data.comments || []];
     state.tickets = tk; state.votes = vt; state.comments = cm;
     render();
   } catch(e){
@@ -593,7 +596,7 @@ $('#list').addEventListener('click', e => {
 });
 
 /* boot */
-if(sessionStorage.getItem('rockUnlocked') === '1'){
+if(sessionStorage.getItem('rockUnlocked') === '1' && rockToken()){
   afterUnlock();
 } else {
   show('gate'); $('#pw').focus();
