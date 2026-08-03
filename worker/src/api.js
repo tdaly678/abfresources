@@ -353,11 +353,15 @@ async function apiSignin(request, env, cors) {
 
 const TEACHER_PUBLIC_FIELDS = [
   'Name', 'Status', 'Home Class', 'Initials', 'Avatar Color', 'Bio', 'Tagline',
-  'Active', 'Year Started Attending', 'LEFC Member', 'Teaching Contexts',
+  'Active', 'Year Started Attending', 'LEFC Member', 'Attendance Status',
+  'Teaching Contexts',
   'Has Taught Before', 'Weeks Taught', 'Affirms SoF & MFP', 'SoF Affirmed Date',
   'Past Venues', 'Other Venue Notes', 'Training',
 ];
-const LEADER_PUBLIC_FIELDS = ['Name', 'ABF Class', 'Active'];
+// 'LEFC Member' (checkbox) is retained for back-compat with existing records;
+// 'Attendance Status' (single select: Member / Regular Attendee / Guest) is the
+// field the UI writes going forward. Added 2026-08-03.
+const LEADER_PUBLIC_FIELDS = ['Name', 'ABF Class', 'Active', 'Attendance Status'];
 
 function pickFields(rec, allowed, extra = []) {
   const out = {};
