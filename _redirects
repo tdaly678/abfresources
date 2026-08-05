@@ -6,7 +6,7 @@
 
 # Trailing-slash variants -> canonical (no trailing slash)
 /classes/     /classes     301
-/leaders/     /leaders     301
+/abfs/        /abfs        301
 /key-dates/   /key-dates   301
 /resources/   /resources   301
 /teachers/    /teachers    301
@@ -14,13 +14,15 @@
 /scheduling/  /scheduling  301
 /feedback/    /feedback    301
 
-# Friendly alias
+# Friendly aliases
 /dates        /key-dates   301
 /dates/       /key-dates   301
+/leaders      /abfs        301
+/leaders/     /abfs        301
 
 # Tab routes -> the single-page hub
 /classes      /            200
-/leaders      /            200
+/abfs         /            200
 /key-dates    /            200
 /resources    /            200
 /teachers     /            200

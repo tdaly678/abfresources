@@ -2655,6 +2655,28 @@
       .map-card-thumb { flex-basis: auto; height: 190px; }
     }
 
+    /* Compact facility-map link (ABFs tab) */
+    .map-link-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: .55em;
+      margin-top: .85rem;
+      padding: .5em .95em;
+      background: var(--cream);
+      border: 1px solid var(--cream-border);
+      border-radius: 8px;
+      font-size: .85rem;
+      color: var(--text);
+      text-decoration: none;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+    .map-link-sm:hover {
+      box-shadow: 0 3px 12px rgba(52,45,37,.14);
+      transform: translateY(-1px);
+    }
+    .map-link-sm strong { color: var(--steel-blue); }
+    .map-link-sm-icon { font-size: 1rem; line-height: 1; }
+
     /* ─── Construction update card (home) ───────────────────────── */
     .construction-card {
       background: var(--white);
@@ -2830,7 +2852,7 @@
   <nav>
     <div class="nav-inner">
       <button class="tab-btn active" data-tab="home">Home</button>
-      <button class="tab-btn" data-tab="leaders">Leaders</button>
+      <button class="tab-btn" data-tab="leaders">ABFs</button>
       <button class="tab-btn" data-tab="dates">Key Dates</button>
       <button class="tab-btn" data-tab="courses">Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
@@ -3081,9 +3103,14 @@
     <!-- ── LEADERS ──────────────────────────────────────── -->
     <div class="tab-pane" id="tab-leaders">
       <div class="page-header">
-        <h2>ABF Leaders</h2>
+        <h2>ABFs</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">The volunteer team that leads each ABF. <strong>Click your card</strong> when you're signed in to update your name, email, phone, or ABF.</p>
+        <p class="page-sub">Every ABF by service, with the volunteer team that leads each one.</p>
+        <a class="map-link-sm" href="facility-map.pdf" target="_blank" rel="noopener">
+          <span class="map-link-sm-icon">🗺️</span>
+          <span><strong>Facility Map</strong> &mdash; find your ABF's room (PDF)</span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
         <div style="margin-top:.85rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-primary" id="leaders-add-self-btn" type="button">+ Add yourself as a leader</button>
           <span style="font-size:.75rem;color:var(--text-muted);">New to leading an ABF? Get yourself on the roster.</span>
@@ -7462,7 +7489,7 @@
             '<div class="leader-avatar">' + escapeHtml(initials) + '</div>' +
             '<div class="leader-meta">' +
               '<div class="leader-name">' + escapeHtml(l.name || '—') + '</div>' +
-              '<div class="leader-email">' + escapeHtml(l.email || '(no email)') + '</div>' +
+              (l.email ? '<div class="leader-email">' + escapeHtml(l.email) + '</div>' : '') +
             '</div>' +
             (editable ? '<span class="leader-edit-hint">Edit</span>' : '');
           if (editable) card.addEventListener('click', () => openLeaderEditModal(l.id));
@@ -9468,7 +9495,7 @@
   const TAB_ROUTES = {
     home:       '/',
     classes:    '/classes',
-    leaders:    '/leaders',
+    leaders:    '/abfs',      // tab renamed "ABFs" 2026-08-05; /leaders 301s here
     dates:      '/key-dates',
     courses:    '/resources',   // tab id 'courses' is the Resources tab
     teachers:   '/teachers',
@@ -9477,7 +9504,7 @@
     feedback:   '/feedback'
   };
   const TAB_TITLES = {
-    classes: 'ABF Classes', leaders: 'Leaders', dates: 'Key Dates',
+    classes: 'ABF Classes', leaders: 'ABFs', dates: 'Key Dates',
     courses: 'Resources', teachers: 'Teachers', catalog: 'Courses',
     scheduling: 'Scheduling', feedback: 'Feedback'
   };
