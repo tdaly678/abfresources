@@ -2854,7 +2854,7 @@
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="leaders">ABFs</button>
       <button class="tab-btn" data-tab="dates">Key Dates</button>
-      <button class="tab-btn" data-tab="courses">Resources</button>
+      <button class="tab-btn" data-tab="courses">Video Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
       <button class="tab-btn" data-tab="catalog">Courses</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
@@ -2929,8 +2929,8 @@
         </div>
         <div class="home-nav-card steel" onclick="showTab('courses')">
           <div class="icon">🎓</div>
-          <h3>Resources</h3>
-          <p>Courses, articles, and training videos &mdash; all the equipping resources for ABF leaders in one place.</p>
+          <h3>Video Resources</h3>
+          <p>Online studies, training videos, and articles &mdash; all the equipping resources for ABF leaders in one place.</p>
         </div>
         <div class="home-nav-card" onclick="showTab('teachers')">
           <div class="icon">🎙️</div>
@@ -3773,18 +3773,18 @@
     <!-- ── LEFCU ──────────────────────────────────────────── -->
     <div class="tab-pane" id="tab-courses">
       <div class="page-header">
-        <h2>Resources</h2>
+        <h2>Video Resources</h2>
         <div class="gold-rule"></div>
-        <p class="page-sub">Training videos, articles, and online studies for ABF leaders.</p>
+        <p class="page-sub">Online studies, training videos, and articles for ABF leaders.</p>
         <div class="sched-subnav" style="margin-top:1rem;">
-          <button class="sched-subnav-btn active" data-lefcu-sub="training">Training Videos</button>
+          <button class="sched-subnav-btn active" data-lefcu-sub="courses">Online Studies</button>
+          <button class="sched-subnav-btn" data-lefcu-sub="training">Training Videos</button>
           <button class="sched-subnav-btn" data-lefcu-sub="articles">Articles</button>
-          <button class="sched-subnav-btn" data-lefcu-sub="courses">Online Studies</button>
         </div>
       </div>
 
-      <!-- Online Courses section -->
-      <div class="lefcu-section" data-lefcu-section="courses" style="display:none;">
+      <!-- Online Courses section (default view) -->
+      <div class="lefcu-section" data-lefcu-section="courses">
         <p class="page-sub" style="margin-bottom:1rem;">Bible study series and curriculum with embedded video sessions. Click a course to watch.</p>
         <div class="course-grid">
 
@@ -3893,7 +3893,7 @@
       </div>
 
       <!-- Training videos section -->
-      <div class="lefcu-section" data-lefcu-section="training">
+      <div class="lefcu-section" data-lefcu-section="training" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Video resources for every stage of ABF leadership.</p>
 
         <!-- New Leaders -->
@@ -9577,7 +9577,7 @@
     }
     if (id === 'courses') {
       origShowTab('courses');
-      showLefcuSection('training');
+      showLefcuSection('courses');   // Online Studies is the default view
       return;
     }
     origShowTab(id);
@@ -9605,7 +9605,7 @@
     classes:    '/classes',
     leaders:    '/abfs',      // tab renamed "ABFs" 2026-08-05; /leaders 301s here
     dates:      '/key-dates',
-    courses:    '/resources',   // tab id 'courses' is the Resources tab
+    courses:    '/videos',      // tab id 'courses' is the Video Resources tab; /resources 301s here
     teachers:   '/teachers',
     catalog:    '/courses',     // tab id 'catalog' is the Courses catalog
     scheduling: '/scheduling',
@@ -9613,7 +9613,7 @@
   };
   const TAB_TITLES = {
     classes: 'ABF Classes', leaders: 'ABFs', dates: 'Key Dates',
-    courses: 'Resources', teachers: 'Teachers', catalog: 'Courses',
+    courses: 'Video Resources', teachers: 'Teachers', catalog: 'Courses',
     scheduling: 'Scheduling', feedback: 'Feedback'
   };
   const BASE_TITLE = 'ABF Leader Resources | LEFC';

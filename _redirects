@@ -8,7 +8,7 @@
 /classes/     /classes     301
 /abfs/        /abfs        301
 /key-dates/   /key-dates   301
-/resources/   /resources   301
+/videos/      /videos      301
 /teachers/    /teachers    301
 /courses/     /courses     301
 /scheduling/  /scheduling  301
@@ -19,12 +19,14 @@
 /dates/       /key-dates   301
 /leaders      /abfs        301
 /leaders/     /abfs        301
+/resources    /videos      301
+/resources/   /videos      301
 
 # Tab routes -> the single-page hub
 /classes      /            200
 /abfs         /            200
 /key-dates    /            200
-/resources    /            200
+/videos       /            200
 /teachers     /            200
 /courses      /            200
 /scheduling   /            200
