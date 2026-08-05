@@ -19,11 +19,11 @@
 /dates/       /key-dates   301
 
 # Tab routes -> the single-page hub
-/classes      /index.html  200
-/leaders      /index.html  200
-/key-dates    /index.html  200
-/resources    /index.html  200
-/teachers     /index.html  200
-/courses      /index.html  200
-/scheduling   /index.html  200
-/feedback     /index.html  200
+/classes      /            200
+/leaders      /            200
+/key-dates    /            200
+/resources    /            200
+/teachers     /            200
+/courses      /            200
+/scheduling   /            200
+/feedback     /            200
