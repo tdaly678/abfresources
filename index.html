@@ -4472,6 +4472,24 @@
 <!-- ════════════════════════════════════════════════════════
      TEACHER SELF-REGISTRATION MODAL
 ════════════════════════════════════════════════════════════ -->
+<!-- Registration password prompt (added 2026-08-05): anonymous visitors
+     enter the registration password before the add-yourself forms open.
+     A successful check stores a gate token, which is what the API worker
+     requires to create a new teacher/leader record. -->
+<div id="reg-gate-modal" class="sched-modal">
+  <div class="sched-modal-card">
+    <div class="sched-modal-icon">🔑</div>
+    <h3>Registration password</h3>
+    <p>To add yourself to the roster, enter the registration password. Don't have it? Ask your ABF leader or Tom Daly (<a href="mailto:daly@lefc.net">daly@lefc.net</a>).</p>
+    <input type="password" id="reg-gate-input" class="form-input" placeholder="Password" autocomplete="off" style="margin-top:.5rem;" />
+    <p id="reg-gate-error" style="color:var(--terra);font-size:.8rem;min-height:1.1em;margin:.4rem 0 0;"></p>
+    <div class="sched-modal-actions" style="margin-top:.9rem;">
+      <button class="btn btn-ghost" id="reg-gate-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="reg-gate-submit" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+
 <div id="register-modal" class="sched-modal">
   <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
     <button type="button" class="sched-modal-close" id="register-close" aria-label="Close">&times;</button>
@@ -5857,7 +5875,11 @@
     if (regLink) {
       regLink.addEventListener('click', (e) => {
         e.preventDefault();
-        openRegisterModal();
+        // New-teacher registration needs the registration password (or an
+        // existing credential); window.ensureRegGate is defined later in
+        // this script and is always available by the time a click happens.
+        if (window.ensureRegGate) window.ensureRegGate(() => openRegisterModal());
+        else openRegisterModal();
       });
     }
 
@@ -6970,7 +6992,14 @@
         }
       } catch (e) {
         console.error(e);
-        toast('error', 'Couldn\u2019t save', 'We couldn\u2019t save your profile. Try again or check your connection.');
+        if (e.status === 401 || e.status === 403) {
+          // Session/gate token missing or expired \u2014 clear it so the next
+          // "Add yourself" click re-prompts for the registration password.
+          try { sessionStorage.removeItem(GATE_TOKEN_KEY); } catch { /* ignore */ }
+          toast('error', 'Not authorized', 'Your registration session expired. Close this form, click \u201cAdd yourself\u201d again, and re-enter the registration password \u2014 or contact Tom (daly@lefc.net).');
+        } else {
+          toast('error', 'Couldn\u2019t save', 'We couldn\u2019t save your profile. Try again or check your connection.');
+        }
       } finally {
         btn.disabled = false; btn.textContent = old;
       }
@@ -7967,7 +7996,12 @@
         updateIdentityBadge();
       } catch (e) {
         console.error(e);
-        toast('error', 'Couldn’t save', 'Your profile wasn’t saved. Try again.');
+        if (e.status === 401 || e.status === 403) {
+          try { sessionStorage.removeItem(GATE_TOKEN_KEY); } catch { /* ignore */ }
+          toast('error', 'Not authorized', 'Your registration session expired. Close this form, click “Add yourself” again, and re-enter the registration password — or contact Tom (daly@lefc.net).');
+        } else {
+          toast('error', 'Couldn’t save', 'Your profile wasn’t saved. Try again.');
+        }
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = old;
@@ -9658,15 +9692,76 @@
     window.showTab(initialRouteTab, false);
   }
 
+  // ─── Registration password gate (added 2026-08-05) ─────────
+  // Creating a NEW teacher/leader record requires a privileged token
+  // server-side. Signed-in people and admins already have one; brand-new
+  // visitors are asked for the registration password, which trades for a
+  // gate token via POST /api/gate.
+  let regGateOnSuccess = null;
+  function openRegGateModal(onSuccess) {
+    regGateOnSuccess = onSuccess;
+    const m = document.getElementById('reg-gate-modal');
+    document.getElementById('reg-gate-input').value = '';
+    document.getElementById('reg-gate-error').textContent = '';
+    m.classList.add('visible');
+    setTimeout(() => document.getElementById('reg-gate-input').focus(), 50);
+  }
+  function closeRegGateModal() {
+    document.getElementById('reg-gate-modal').classList.remove('visible');
+    regGateOnSuccess = null;
+  }
+  async function submitRegGate() {
+    const input = document.getElementById('reg-gate-input');
+    const errEl = document.getElementById('reg-gate-error');
+    const btn   = document.getElementById('reg-gate-submit');
+    const pw = input.value;
+    if (!pw) { errEl.textContent = 'Enter the password.'; input.focus(); return; }
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Checking…';
+    try {
+      const res = await apiCall('/gate', { method: 'POST', body: { password: pw }, token: '' });
+      if (res.ok && res.gateToken) {
+        try { sessionStorage.setItem(GATE_TOKEN_KEY, res.gateToken); } catch { /* ignore */ }
+        const cb = regGateOnSuccess;
+        closeRegGateModal();
+        if (cb) cb();
+      }
+    } catch (err) {
+      if (err.status === 401) {
+        errEl.textContent = 'Incorrect password. Please try again.';
+        input.value = ''; input.focus();
+      } else if (err.status === 429) {
+        errEl.textContent = 'Too many attempts — wait a few minutes and try again.';
+      } else {
+        errEl.textContent = 'Couldn’t verify right now. Check your connection and try again.';
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = old;
+    }
+  }
+  document.getElementById('reg-gate-submit')?.addEventListener('click', submitRegGate);
+  document.getElementById('reg-gate-cancel')?.addEventListener('click', closeRegGateModal);
+  document.getElementById('reg-gate-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitRegGate(); }
+  });
+  /* Run cb immediately if the visitor already has any credential
+     (signed-in person, admin, or a prior gate token); otherwise prompt. */
+  function ensureRegGate(cb) {
+    if (apiAuthToken()) { cb(); return; }
+    openRegGateModal(cb);
+  }
+  window.ensureRegGate = ensureRegGate;   // used by the sign-in picker's register link
+
   // "Add yourself as a teacher" button on the Teachers tab
   document.getElementById('teachers-add-self-btn')?.addEventListener('click', () => {
-    openRegisterModal();
+    ensureRegGate(() => openRegisterModal());
   });
 
   // "Add yourself as a leader" button on the Leaders tab
   document.getElementById('leaders-add-self-btn')?.addEventListener('click', () => {
-    bindLeaderEditModal();   // ensure modal handlers are wired
-    openLeaderEditModal();   // no leader → "add" mode
+    ensureRegGate(() => {
+      bindLeaderEditModal();   // ensure modal handlers are wired
+      openLeaderEditModal();   // no leader → "add" mode
+    });
   });
 
   // Render teachers roster on initial load if it's the active tab
