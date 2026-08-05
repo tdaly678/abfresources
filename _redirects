@@ -1,0 +1,29 @@
+# Cloudflare Pages routing for the tab URLs (added 2026-08-05).
+# 200 = rewrite: the URL stays in the address bar and index.html is served;
+# the in-page router (see "URL Routing" section of index.html) opens the
+# matching tab. Anything NOT listed here still falls through to 404.html,
+# which handles the numeric feedback short codes (/12345 -> /?f=12345).
+
+# Trailing-slash variants -> canonical (no trailing slash)
+/classes/     /classes     301
+/leaders/     /leaders     301
+/key-dates/   /key-dates   301
+/resources/   /resources   301
+/teachers/    /teachers    301
+/courses/     /courses     301
+/scheduling/  /scheduling  301
+/feedback/    /feedback    301
+
+# Friendly alias
+/dates        /key-dates   301
+/dates/       /key-dates   301
+
+# Tab routes -> the single-page hub
+/classes      /index.html  200
+/leaders      /index.html  200
+/key-dates    /index.html  200
+/resources    /index.html  200
+/teachers     /index.html  200
+/courses      /index.html  200
+/scheduling   /index.html  200
+/feedback     /index.html  200

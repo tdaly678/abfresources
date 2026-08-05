@@ -9460,6 +9460,69 @@
     });
   });
 
+  // ─── URL Routing (added 2026-08-05) ───────────────────────
+  // Each top-level tab gets a real, shareable URL (History API).
+  // Cloudflare Pages serves index.html for these paths via the
+  // `_redirects` file at the repo root; 404.html still handles the
+  // numeric feedback short codes (/12345) and everything else.
+  const TAB_ROUTES = {
+    home:       '/',
+    classes:    '/classes',
+    leaders:    '/leaders',
+    dates:      '/key-dates',
+    courses:    '/resources',   // tab id 'courses' is the Resources tab
+    teachers:   '/teachers',
+    catalog:    '/courses',     // tab id 'catalog' is the Courses catalog
+    scheduling: '/scheduling',
+    feedback:   '/feedback'
+  };
+  const TAB_TITLES = {
+    classes: 'ABF Classes', leaders: 'Leaders', dates: 'Key Dates',
+    courses: 'Resources', teachers: 'Teachers', catalog: 'Courses',
+    scheduling: 'Scheduling', feedback: 'Feedback'
+  };
+  const BASE_TITLE = 'ABF Leader Resources | LEFC';
+  const PATH_TO_TAB = {};
+  Object.keys(TAB_ROUTES).forEach(t => { PATH_TO_TAB[TAB_ROUTES[t]] = t; });
+
+  function currentRoutePath() {
+    const p = location.pathname.replace(/\/+$/, '');
+    return p === '' ? '/' : p;
+  }
+
+  // Routing layer on top of showTab: update the address bar + title.
+  // Second arg pushUrl=false is used by popstate / initial load so we
+  // don't create duplicate history entries.
+  const preRouteShowTab = window.showTab;
+  window.showTab = function(id, pushUrl = true) {
+    preRouteShowTab(id);
+    // Legacy ids land on the Resources tab; use its route/title.
+    const canonical = (id === 'articles' || id === 'training') ? 'courses' : id;
+    document.title = TAB_TITLES[canonical]
+      ? TAB_TITLES[canonical] + ' | ABF Leader Resources'
+      : BASE_TITLE;
+    const route = TAB_ROUTES[canonical];
+    if (pushUrl && route && window.history && history.pushState &&
+        (location.pathname + location.search) !== route) {
+      history.pushState({ tab: canonical }, '', route);
+    }
+  };
+
+  window.addEventListener('popstate', () => {
+    window.showTab(PATH_TO_TAB[currentRoutePath()] || 'home', false);
+  });
+
+  // Deep link: if the page was loaded at /leaders, /scheduling, etc.,
+  // open that tab. (In public-feedback mode this code never runs.)
+  const initialRouteTab = PATH_TO_TAB[currentRoutePath()];
+  if (history.replaceState) {
+    history.replaceState({ tab: initialRouteTab || 'home' }, '',
+      location.pathname + location.search + location.hash);
+  }
+  if (initialRouteTab && initialRouteTab !== 'home') {
+    window.showTab(initialRouteTab, false);
+  }
+
   // "Add yourself as a teacher" button on the Teachers tab
   document.getElementById('teachers-add-self-btn')?.addEventListener('click', () => {
     openRegisterModal();
