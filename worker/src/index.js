@@ -297,25 +297,50 @@ async function processStatusChanges(cfg) {
       const leaderEmail   = leader?.fields?.Email;
       const leaderName    = leader?.fields?.Name || 'Leader';
       const teacherName   = teacher?.fields?.Name || 'Teacher';
+      const teacherEmail  = teacher?.fields?.Email;
       const className     = cls?.fields?.Name || 'the class';
       const teacherResp   = req.fields['Teacher Response'] || '(no note from the teacher)';
       const counterIds    = req.fields['Counter Sundays'] || [];
       const counterDays   = (await fetchLinkedFieldValues(cfg, 'Sundays', counterIds, 'Date')).join(', ');
 
-      if (!leaderEmail) continue;
+      // Who actually just acted? Normally the teacher answers a pending
+      // request and we tell the leader. But if the previously emailed status
+      // was Counter-Proposed and it is now Accepted/Declined, it was the
+      // LEADER closing the loop on the teacher's counter-proposal — so the
+      // news has to travel the other way, to the teacher. (2026-08-06)
+      const prevStatus  = req.fields['Last Status Emailed'] || '';
+      const leaderActed = prevStatus === 'Counter-Proposed' &&
+                          (status === 'Accepted' || status === 'Declined');
 
-      // BCC all OTHER leaders of this ABF so the team stays in sync on responses
-      const classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
-
-      const email = buildStatusChangeEmail({
-        leaderName, teacherName, className, status, teacherResp, counterDays,
-        portalUrl: cfg.portalUrl + '/?tab=scheduling',
-      });
+      let email, toEmail, toName, classLeaderBccs;
+      if (leaderActed) {
+        if (!teacherEmail) continue;
+        const agreedIds  = req.fields['Requested Sundays'] || [];
+        const agreedDays = (await fetchLinkedFieldValues(cfg, 'Sundays', agreedIds, 'Date')).join(', ');
+        toEmail = teacherEmail;
+        toName  = teacherName;
+        // Keep the whole leader team in the loop, including the one who acted.
+        classLeaderBccs = await getClassLeaderEmails(cfg, classId, null);
+        email = buildCounterResolvedEmail({
+          teacherName, leaderName, className, status, agreedDays,
+          portalUrl: cfg.portalUrl + '/?tab=scheduling',
+        });
+      } else {
+        if (!leaderEmail) continue;
+        toEmail = leaderEmail;
+        toName  = leaderName;
+        // BCC all OTHER leaders of this ABF so the team stays in sync on responses
+        classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
+        email = buildStatusChangeEmail({
+          leaderName, teacherName, className, status, teacherResp, counterDays,
+          portalUrl: cfg.portalUrl + '/?tab=scheduling',
+        });
+      }
 
       if (cfg.dryRun) {
-        console.log('DRY_RUN B:', JSON.stringify({ to: leaderEmail, status, subject: email.subject, bccs: classLeaderBccs }));
+        console.log('DRY_RUN B:', JSON.stringify({ to: toEmail, status, leaderActed, subject: email.subject, bccs: classLeaderBccs }));
       } else {
-        await sendgridSend(cfg, { to: leaderEmail, toName: leaderName, ...email, extraBccs: classLeaderBccs });
+        await sendgridSend(cfg, { to: toEmail, toName, ...email, extraBccs: classLeaderBccs });
       }
 
       await airtableUpdate(cfg, 'Requests', req.id, {
@@ -658,6 +683,38 @@ ${portalUrl}
   <p style="margin-top:18px;"><strong>Their note:</strong></p>
   <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(teacherResp).replace(/\n/g, '<br>')}</p>
   ${counterHtml}
+  <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* The leader answered the teacher's counter-proposal, so this one goes TO
+   the teacher. Without it, the only email on a counter-proposal resolution
+   went back to the leader who had just clicked the button, and the teacher
+   was never told the outcome. (added 2026-08-06) */
+function buildCounterResolvedEmail({ teacherName, leaderName, className, status, agreedDays, portalUrl }) {
+  const accepted = status === 'Accepted';
+  const accent = accepted ? '#524B30' : '#AA3B24';
+  const subject = accepted
+    ? `${leaderName} confirmed your Sundays for ${className}`
+    : `${leaderName} declined the Sundays you suggested for ${className}`;
+  const plain = `Hi ${teacherName},
+
+${accepted
+  ? `${leaderName} accepted the Sundays you counter-proposed for ${className}. You're on the schedule for:\n${agreedDays || '(see the portal)'}`
+  : `${leaderName} declined the Sundays you counter-proposed for ${className}, so this request is now closed. Nothing is on your schedule for it.`}
+
+Open the portal to see the full request:
+${portalUrl}
+
+— ABF Scheduling`;
+  const datesHtml = accepted
+    ? `<p style="margin-top:18px;"><strong>You're scheduled for:</strong></p>
+       <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(agreedDays || '(see the portal)')}</p>`
+    : '';
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
+  <p><strong>${escapeHtml(leaderName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${accepted ? 'accepted' : 'declined'}</span> the Sundays you counter-proposed for <strong>${escapeHtml(className)}</strong>.${accepted ? '' : ' This request is now closed — nothing has been added to your schedule.'}</p>
+  ${datesHtml}
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
   return { subject, plain, html };
 }

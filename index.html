@@ -1939,6 +1939,44 @@
       background: rgba(170,59,36,.06);
       cursor: pointer;
     }
+    /* Marks the Sundays the leader originally asked for, inside the
+       teacher's counter-propose picker (added 2026-08-06). */
+    .sunday-pick.requested {
+      border-color: var(--gold);
+      box-shadow: inset 0 0 0 1.5px rgba(188,169,68,.45);
+    }
+    .sunday-pick.requested.selected { box-shadow: none; }
+    .pick-legend {
+      display: flex; flex-wrap: wrap; gap: .85rem;
+      font-size: .7rem; color: var(--text-muted);
+      margin-top: .5rem;
+    }
+    .pick-legend span { display: inline-flex; align-items: center; gap: .3em; }
+    .pick-legend i {
+      width: .8em; height: .8em; border-radius: 3px;
+      display: inline-block; font-style: normal;
+    }
+    /* "Whose turn is it" cue on request cards */
+    .req-turn {
+      display: inline-block;
+      font-size: .68rem; font-weight: 800;
+      letter-spacing: .05em; text-transform: uppercase;
+      padding: .18em .6em; border-radius: 999px;
+      margin-top: .5rem;
+    }
+    .req-turn.you  { background: var(--terra); color: #fff; }
+    .req-turn.them { background: var(--light-gray); color: var(--text-muted); }
+    .req-turn.done { background: rgba(82,75,48,.12); color: var(--olive); }
+    /* Callout for a counter-proposal that arrived with no dates/note */
+    .req-callout {
+      margin-top: .6rem;
+      padding: .6rem .75rem;
+      border-left: 3px solid var(--terra);
+      background: rgba(170,59,36,.07);
+      border-radius: 0 6px 6px 0;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
     .sunday-pick.unavail::after {
       content: " (unavail)";
       font-size: .62rem;
@@ -4472,6 +4510,82 @@
 <!-- ════════════════════════════════════════════════════════
      TEACHER SELF-REGISTRATION MODAL
 ════════════════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════════
+     COUNTER-PROPOSE MODAL (teacher) — added 2026-08-06
+     Replaces the old prompt()-based flow, which let a teacher save a
+     counter-proposal with no Sundays and no note (leaving the leader
+     with nothing to respond to). Save stays disabled until at least
+     one Sunday is picked.
+════════════════════════════════════════════════════════════ -->
+<div id="counter-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
+    <button type="button" class="sched-modal-close" id="counter-close" aria-label="Close">&times;</button>
+    <h3 style="margin-bottom:.2rem;" id="counter-title">Suggest different Sundays</h3>
+    <p class="page-sub" style="margin-bottom:1rem;" id="counter-sub"></p>
+
+    <div class="form-group">
+      <label class="form-label">The leader asked for</label>
+      <div class="req-sundays" id="counter-asked"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Sundays you <em>can</em> teach <span style="color:var(--terra);">*</span></label>
+      <div class="sunday-picker" id="counter-sundays"></div>
+      <div class="pick-legend">
+        <span><i style="background:var(--terra);"></i> Your pick</span>
+        <span><i style="background:#fff;border:1.5px solid var(--gold);"></i> Leader asked for this one</span>
+        <span><i style="background:rgba(170,59,36,.18);"></i> You marked unavailable</span>
+      </div>
+      <p class="form-help" id="counter-count">Pick at least one Sunday.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="counter-note">Note to the leader <span style="color:var(--text-muted);font-weight:600;">(optional)</span></label>
+      <textarea id="counter-note" class="form-input" rows="3" placeholder="e.g. I'm away the first two Sundays, but November 15 and 22 work well."></textarea>
+    </div>
+
+    <div class="sched-modal-actions" style="justify-content:flex-end;gap:.5rem;">
+      <button class="btn btn-ghost" id="counter-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="counter-save" type="button" disabled>Send counter-proposal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     LEADER RESPONSE MODAL — added 2026-08-06
+     Lets the requesting leader close the loop on a counter-proposal.
+     Accepting rewrites Requested Sundays to the teacher's dates so the
+     booking + availability grid reflect what was actually agreed.
+════════════════════════════════════════════════════════════ -->
+<div id="lresp-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
+    <button type="button" class="sched-modal-close" id="lresp-close" aria-label="Close">&times;</button>
+    <h3 style="margin-bottom:.2rem;">Respond to the counter-proposal</h3>
+    <p class="page-sub" style="margin-bottom:1rem;" id="lresp-sub"></p>
+
+    <div class="form-group">
+      <label class="form-label" id="lresp-dates-label">Sundays the teacher suggested</label>
+      <div class="req-sundays" id="lresp-dates"></div>
+    </div>
+
+    <div class="form-group" id="lresp-note-wrap">
+      <label class="form-label">Their note</label>
+      <div class="req-message" id="lresp-teacher-note"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="lresp-reply">Your reply <span style="color:var(--text-muted);font-weight:600;">(optional)</span></label>
+      <textarea id="lresp-reply" class="form-input" rows="3" placeholder="e.g. Those dates work — thanks Gary!"></textarea>
+    </div>
+
+    <div class="sched-modal-actions" style="justify-content:flex-end;gap:.5rem;flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="lresp-cancel" type="button">Cancel</button>
+      <button class="btn btn-danger" id="lresp-decline" type="button">Decline</button>
+      <button class="btn btn-success" id="lresp-accept" type="button">Accept these Sundays</button>
+    </div>
+  </div>
+</div>
+
 <!-- Registration password prompt (added 2026-08-05): anonymous visitors
      enter the registration password before the add-yourself forms open.
      A successful check stores a gate token, which is what the API worker
@@ -4898,6 +5012,12 @@
      Backed by localStorage now. Same method shapes as Airtable
      so the swap to a real backend is mechanical.
   ════════════════════════════════════════════════════════════ */
+
+  /* A leader's reply to a counter-proposal is appended to Leader Message,
+     because the worker's leader allowlist has no dedicated field for it.
+     These let us round-trip it back out for display. (2026-08-06) */
+  const LEADER_REPLY_MARK = '\n\n[Leader reply] ';
+  const LEADER_REPLY_RE   = /\n\n\[Leader reply\][\s\S]*$/;
 
   const STORE_KEY = 'abf_sched_v1';
   const IDENTITY_KEY = 'abf_sched_identity';
@@ -5538,6 +5658,28 @@
       };
       if (response !== undefined) fields['Teacher Response'] = response || '';
       if (counterSundayIds !== undefined) fields['Counter Sundays'] = counterSundayIds || [];
+      return Airtable.updateRequest(id, fields);
+    },
+
+    /* The requesting leader closes the loop on a counter-proposal
+       (added 2026-08-06). Only writes fields the API worker allows a
+       leader to touch — see FIELDS.requestByLeader in worker/src/api.js.
+       'Counter Sundays' and 'Teacher Response' are teacher-owned, so we
+       deliberately leave them intact as the record of what was offered.
+       Accepting copies the counter dates into Requested Sundays, because
+       that is what the booking + availability grid read from. */
+    async leaderResolveCounter(id, status, reply, counterSundayIds, existingLeaderMessage) {
+      const fields = {
+        Status: status,
+        'Responded At': new Date().toISOString(),
+      };
+      if (status === 'Accepted' && counterSundayIds && counterSundayIds.length) {
+        fields['Requested Sundays'] = counterSundayIds;
+      }
+      if (reply && reply.trim()) {
+        const base = (existingLeaderMessage || '').replace(LEADER_REPLY_RE, '');
+        fields['Leader Message'] = (base ? base.trimEnd() : '') + LEADER_REPLY_MARK + reply.trim();
+      }
       return Airtable.updateRequest(id, fields);
     },
 
@@ -8047,6 +8189,15 @@
       otherCourseTitle = otherMatch[1].trim();
       displayLeaderMessage = displayLeaderMessage.slice(otherMatch[0].length);
     }
+    // A leader's reply to a counter-proposal rides along on Leader Message
+    // (see LEADER_REPLY_MARK); split it back out so it renders as its own
+    // block instead of being tacked onto the original request message.
+    let leaderReply = '';
+    const replyAt = displayLeaderMessage.indexOf(LEADER_REPLY_MARK);
+    if (replyAt >= 0) {
+      leaderReply = displayLeaderMessage.slice(replyAt + LEADER_REPLY_MARK.length).trim();
+      displayLeaderMessage = displayLeaderMessage.slice(0, replyAt).trim();
+    }
 
     const sundays = DataStore.listSundays();
     const sunMap = {}; sundays.forEach(s => sunMap[s.id] = s);
@@ -8083,14 +8234,53 @@
     if (course) html += ' · Course: <strong>' + escapeHtml(course.title) + '</strong>';
     else if (otherCourseTitle) html += ' · Course: <strong>' + escapeHtml(otherCourseTitle) + '</strong> <span style="color:var(--text-muted);font-weight:600;">(custom topic)</span>';
     html += '</div>';
-    html += '<div style="font-size:.74rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.3rem;">Requested Sundays</div>';
+    // Once a counter-proposal is accepted, Requested Sundays holds the
+    // agreed dates, so label them that way rather than repeating them
+    // under a second "counter-proposed" heading.
+    const settledFromCounter = (r.status === 'Accepted') && !!counterPills;
+    html += '<div style="font-size:.74rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.3rem;">' +
+            (settledFromCounter ? 'Agreed Sundays' : 'Requested Sundays') + '</div>';
     html += '<div class="req-sundays">' + sundayPills + '</div>';
     if (displayLeaderMessage) html += '<div class="req-message"><strong>Message:</strong> ' + escapeHtml(displayLeaderMessage).replace(/\n/g,'<br>') + '</div>';
     if (r.teacherResponse) html += '<div class="req-message" style="background:rgba(63,87,101,.06);"><strong>' + (t ? escapeHtml(t.name) : 'Teacher') + ' replied:</strong> ' + escapeHtml(r.teacherResponse).replace(/\n/g,'<br>') + '</div>';
-    if (counterPills) {
+    if (counterPills && !settledFromCounter) {
       html += '<div style="font-size:.74rem;color:var(--steel-blue);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-top:.45rem;">Counter-proposed Sundays</div>';
       html += '<div class="req-sundays">' + counterPills + '</div>';
     }
+    if (leaderReply) html += '<div class="req-message" style="background:rgba(82,75,48,.06);"><strong>' + (l ? escapeHtml(l.name) : 'Leader') + ' replied:</strong> ' + escapeHtml(leaderReply).replace(/\n/g,'<br>') + '</div>';
+
+    // A counter-proposal with no dates AND no note is the old bug: there
+    // is literally nothing for the leader to act on. Say so plainly
+    // instead of leaving them guessing.
+    const emptyCounter = r.status === 'Counter-Proposed' && !counterPills && !r.teacherResponse;
+    if (emptyCounter) {
+      const who = t ? escapeHtml(t.name) : 'The teacher';
+      html += '<div class="req-callout">' +
+        (role === 'leader'
+          ? '<strong>Nothing was proposed.</strong> ' + who + ' marked this as a counter-proposal but didn’t include any Sundays or a note' +
+            (t && t.email ? ' — <a href="mailto:' + escapeHtml(t.email) + '">email ' + escapeHtml(t.name.split(" ")[0]) + '</a> to ask what they had in mind, or decline to clear it.' : '. Reach out to ask what they had in mind, or decline to clear it.')
+          : '<strong>Your counter-proposal is empty.</strong> No Sundays or note were saved, so the leader has nothing to respond to. Use <em>Revise counter-proposal</em> to send the dates that work for you.') +
+        '</div>';
+    }
+
+    // Whose turn is it? Shown on both sides so nobody is left wondering
+    // whether the ball is in their court.
+    let turn = null;
+    if (r.status === 'Pending') {
+      turn = role === 'teacher'
+        ? { cls: 'you',  text: 'Needs your response' }
+        : { cls: 'them', text: 'Waiting on ' + (t ? t.name.split(' ')[0] : 'the teacher') };
+    } else if (r.status === 'Counter-Proposed') {
+      turn = role === 'leader'
+        ? { cls: 'you',  text: 'Needs your response' }
+        : { cls: 'them', text: 'Waiting on ' + (l ? l.name.split(' ')[0] : 'the leader') };
+    } else if (r.status === 'Accepted') {
+      turn = { cls: 'done', text: 'Confirmed' };
+    } else if (r.status === 'Declined') {
+      turn = { cls: 'done', text: 'Closed' };
+    }
+    if (turn) html += '<div><span class="req-turn ' + turn.cls + '">' + escapeHtml(turn.text) + '</span></div>';
+
     html += '<div class="req-actions"></div>';
     card.innerHTML = html;
 
@@ -8100,6 +8290,14 @@
       const declineBtn = mkBtn('Decline', 'btn-danger btn-sm',  () => respondRequest(r, 'Declined'));
       const counterBtn = mkBtn('Counter-propose', 'btn-secondary btn-sm', () => respondRequest(r, 'Counter-Proposed'));
       actions.append(acceptBtn, declineBtn, counterBtn);
+    } else if (role === 'teacher' && r.status === 'Counter-Proposed') {
+      // The teacher can still fix or withdraw what they offered.
+      actions.append(
+        mkBtn('Revise counter-proposal', 'btn-secondary btn-sm', () => openCounterModal(r)),
+        mkBtn('Decline instead', 'btn-danger btn-sm', () => respondRequest(r, 'Declined')));
+    } else if (role === 'leader' && r.status === 'Counter-Proposed') {
+      actions.append(
+        mkBtn('Respond', 'btn-primary btn-sm', () => openLeaderRespondModal(r)));
     } else {
       const meta = document.createElement('span');
       meta.style.cssText = 'font-size:.7rem;color:var(--text-muted);';
@@ -8109,6 +8307,195 @@
     }
 
     return card;
+  }
+
+  /* ─── Counter-propose modal (teacher) ── added 2026-08-06 ───────
+     The old flow used two prompt() dialogs and happily saved a
+     Counter-Proposed status with zero Sundays, which left the leader
+     staring at a status with nothing behind it. This picker requires
+     at least one Sunday before it will send. */
+  let _counterReq = null;
+  let _counterPicks = [];
+
+  function openCounterModal(r) {
+    _counterReq = r;
+    _counterPicks = (r.counterSundayIds || []).slice();   // pre-fill when revising
+
+    const l = DataStore.getABFLeader(r.requestingLeaderId);
+    const cls = DataStore.getABFClass(r.abfClassId);
+    const isRevise = (r.status === 'Counter-Proposed');
+    document.getElementById('counter-title').textContent =
+      isRevise ? 'Revise your counter-proposal' : 'Suggest different Sundays';
+    document.getElementById('counter-sub').textContent =
+      (l ? l.name : 'A leader') + ' · ' + (cls ? cls.name : 'ABF') +
+      (isRevise ? ' — update the Sundays you offered.'
+                : ' — pick the Sundays that do work for you.');
+
+    const sundays = DataStore.listSundaysInSession();
+    const sunMap = {}; sundays.forEach(s => sunMap[s.id] = s);
+    const requested = new Set(r.requestedSundayIds || []);
+
+    // Show what was asked for, so the teacher has it in view while picking.
+    document.getElementById('counter-asked').innerHTML =
+      (r.requestedSundayIds || []).map(id => sunMap[id])
+        .filter(Boolean)
+        .map(s => '<span class="pill">' + fmtSundayShort(s.date) + '</span>').join('')
+      || '<span style="font-size:.8rem;color:var(--text-muted);">(none recorded)</span>';
+
+    // The teacher's own availability, for the service this class meets in.
+    const svc = (cls && cls.service) ? cls.service : (r.service || '1st Service');
+    const availMap = {};
+    DataStore.listAvailabilityForTeacher(r.teacherId, svc)
+      .forEach(a => availMap[a.sundayId] = a.status);
+
+    const wrap = document.getElementById('counter-sundays');
+    wrap.innerHTML = '';
+    sundays.forEach(s => {
+      const btn = document.createElement('div');
+      btn.className = 'sunday-pick';
+      if (requested.has(s.id)) btn.classList.add('requested');
+      if (availMap[s.id] === 'Unavailable') btn.classList.add('unavail');
+      if (_counterPicks.includes(s.id)) btn.classList.add('selected');
+      btn.dataset.sid = s.id;
+      btn.innerHTML =
+        '<div style="font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);">' + fmtMonthShort(s.date) + '</div>' +
+        '<div style="font-size:.95rem;font-weight:800;">' + fmtDayNum(s.date) + '</div>';
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('selected');
+        if (btn.classList.contains('selected')) {
+          if (!_counterPicks.includes(s.id)) _counterPicks.push(s.id);
+        } else {
+          _counterPicks = _counterPicks.filter(x => x !== s.id);
+        }
+        refreshCounterState();
+      });
+      wrap.appendChild(btn);
+    });
+
+    document.getElementById('counter-note').value = r.teacherResponse || '';
+    refreshCounterState();
+    document.getElementById('counter-modal').classList.add('visible');
+  }
+
+  function refreshCounterState() {
+    const n = _counterPicks.length;
+    const btn = document.getElementById('counter-save');
+    const help = document.getElementById('counter-count');
+    btn.disabled = n === 0;
+    help.textContent = n === 0
+      ? 'Pick at least one Sunday — the leader needs to know which dates you can do.'
+      : n + (n === 1 ? ' Sunday selected.' : ' Sundays selected.');
+    help.style.color = n === 0 ? 'var(--terra)' : 'var(--text-muted)';
+  }
+
+  function closeCounterModal() {
+    document.getElementById('counter-modal').classList.remove('visible');
+    _counterReq = null; _counterPicks = [];
+  }
+
+  async function submitCounterProposal() {
+    const r = _counterReq;
+    if (!r || !_counterPicks.length) return;
+    const note = document.getElementById('counter-note').value.trim();
+    const btn = document.getElementById('counter-save');
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
+    try {
+      await DataStore.updateRequestStatus(r.id, 'Counter-Proposed', note, _counterPicks.slice());
+      closeCounterModal();
+      toast('success', 'Counter-proposal sent',
+        'The leader can now accept or decline the Sundays you suggested.');
+      renderTeacherRequests();
+      renderTeacherAvailability();
+    } catch (e) {
+      console.error(e);
+      toast('error', 'Couldn’t send', 'Your counter-proposal wasn’t saved. Try again.');
+      btn.disabled = false;
+    } finally {
+      btn.textContent = old;
+    }
+  }
+
+  /* ─── Leader response to a counter-proposal ── added 2026-08-06 ──
+     Before this, a counter-proposal was a dead end: leaders got no
+     buttons at all, so there was no way to close the loop in the tool. */
+  let _lrespReq = null;
+
+  function openLeaderRespondModal(r) {
+    _lrespReq = r;
+    const t = DataStore.getTeacher(r.teacherId);
+    const cls = DataStore.getABFClass(r.abfClassId);
+    document.getElementById('lresp-sub').textContent =
+      (t ? t.name : 'The teacher') + ' · ' + (cls ? cls.name : 'ABF');
+
+    const sunMap = {}; DataStore.listSundays().forEach(s => sunMap[s.id] = s);
+    const pills = (r.counterSundayIds || []).map(id => sunMap[id]).filter(Boolean)
+      .map(s => '<span class="pill" style="background:rgba(63,87,101,.18);color:var(--steel-blue);">' + fmtSundayShort(s.date) + '</span>')
+      .join('');
+    const datesEl = document.getElementById('lresp-dates');
+    const acceptBtn = document.getElementById('lresp-accept');
+    if (pills) {
+      datesEl.innerHTML = pills;
+      document.getElementById('lresp-dates-label').textContent = 'Sundays the teacher suggested';
+      acceptBtn.style.display = '';
+    } else {
+      // Legacy / empty counter-proposal (the bug Jim hit) — there is
+      // nothing to accept, so offer only Decline plus a nudge.
+      datesEl.innerHTML = '<span style="font-size:.8rem;color:var(--terra);">' +
+        'No Sundays were included — there’s nothing here to accept. Ask ' +
+        escapeHtml(t ? t.name.split(' ')[0] : 'the teacher') +
+        ' to resend, or decline to clear it.</span>';
+      document.getElementById('lresp-dates-label').textContent = 'Suggested Sundays';
+      acceptBtn.style.display = 'none';
+    }
+
+    const noteWrap = document.getElementById('lresp-note-wrap');
+    if (r.teacherResponse) {
+      noteWrap.style.display = '';
+      document.getElementById('lresp-teacher-note').textContent = r.teacherResponse;
+    } else {
+      noteWrap.style.display = 'none';
+    }
+
+    document.getElementById('lresp-reply').value = '';
+    document.getElementById('lresp-modal').classList.add('visible');
+  }
+
+  function closeLeaderRespondModal() {
+    document.getElementById('lresp-modal').classList.remove('visible');
+    _lrespReq = null;
+  }
+
+  async function submitLeaderResponse(status) {
+    const r = _lrespReq;
+    if (!r) return;
+    const reply = document.getElementById('lresp-reply').value;
+    const accept = document.getElementById('lresp-accept');
+    const decline = document.getElementById('lresp-decline');
+    accept.disabled = decline.disabled = true;
+    try {
+      await DataStore.leaderResolveCounter(
+        r.id, status, reply, r.counterSundayIds || [], r.leaderMessage || '');
+      closeLeaderRespondModal();
+      const t = DataStore.getTeacher(r.teacherId);
+      const who = t ? t.name.split(' ')[0] : 'the teacher';
+      if (status === 'Accepted') {
+        toast('success', 'Dates confirmed',
+          'Those Sundays are now booked. Give ' + who + ' a heads-up so they know it’s settled.');
+      } else {
+        toast('success', 'Counter-proposal declined',
+          'The request is closed. Let ' + who + ' know if you’d like to try other dates.');
+      }
+      renderLeaderRequests();
+      renderScheduling();
+    } catch (e) {
+      console.error(e);
+      if (e.status === 401 || e.status === 403) {
+        toast('error', 'Not authorized', 'Sign in as the leader who sent this request (or an admin) to respond.');
+      } else {
+        toast('error', 'Couldn’t save', 'Your response wasn’t saved. Try again.');
+      }
+      accept.disabled = decline.disabled = false;
+    }
   }
 
   function mkBtn(label, cls, fn) {
@@ -8134,13 +8521,10 @@
     } else if (status === 'Declined') {
       response = prompt('Optional note back to the leader (e.g., \u201CCan\u2019t this fall, ask me again in spring.\u201D)', '') || '';
     } else if (status === 'Counter-Proposed') {
-      const sundays = DataStore.listSundaysInSession();
-      const list = sundays.map((s, i) => (i+1) + '. ' + fmtSundayLong(s.date)).join('\n');
-      const picks = prompt('Counter-propose alternate Sundays. Enter the numbers separated by commas:\n\n' + list, '');
-      if (picks === null) return;
-      const idxs = picks.split(',').map(x => parseInt(x.trim(), 10) - 1).filter(i => i >= 0 && i < sundays.length);
-      counterIds = idxs.map(i => sundays[i].id);
-      response = prompt('Optional note explaining the counter-proposal:', '') || '';
+      // Handled by its own modal so a counter-proposal can never be sent
+      // empty (see openCounterModal). 2026-08-06.
+      openCounterModal(r);
+      return;
     }
 
     try {
@@ -9738,6 +10122,15 @@
       btn.disabled = false; btn.textContent = old;
     }
   }
+  // Counter-propose + leader-response modals (2026-08-06)
+  document.getElementById('counter-save')?.addEventListener('click', submitCounterProposal);
+  document.getElementById('counter-cancel')?.addEventListener('click', closeCounterModal);
+  document.getElementById('counter-close')?.addEventListener('click', closeCounterModal);
+  document.getElementById('lresp-accept')?.addEventListener('click', () => submitLeaderResponse('Accepted'));
+  document.getElementById('lresp-decline')?.addEventListener('click', () => submitLeaderResponse('Declined'));
+  document.getElementById('lresp-cancel')?.addEventListener('click', closeLeaderRespondModal);
+  document.getElementById('lresp-close')?.addEventListener('click', closeLeaderRespondModal);
+
   document.getElementById('reg-gate-submit')?.addEventListener('click', submitRegGate);
   document.getElementById('reg-gate-cancel')?.addEventListener('click', closeRegGateModal);
   document.getElementById('reg-gate-input')?.addEventListener('keydown', e => {
