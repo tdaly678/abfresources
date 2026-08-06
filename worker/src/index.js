@@ -6,10 +6,13 @@
  *
  *   A. New teaching request   →  email teacher
  *   B. Teacher responded      →  email leader
+ *      ...unless the LEADER was the one who acted (accepting or declining a
+ *      counter-proposal), in which case it emails the teacher instead.
  *   D. New feedback response  →  email teacher
- *   E. Pending-request reminder → email teacher when a request has sat
- *      unanswered for more than 5 full days (5 × 24h). Sent once per
- *      request, during the 7am hour America/New_York.
+ *   E. Unanswered-request reminder → nudge whoever the request is waiting on,
+ *      every 5 days (5 × 24h) until it's answered, during the 7am hour
+ *      America/New_York. Pending nudges the teacher; Counter-Proposed nudges
+ *      the leader. Stops once all the Sundays in question have passed.
  *
  * Schema additions required (added once via Airtable UI):
  *
@@ -409,17 +412,29 @@ async function processNewFeedbackResponses(cfg) {
   return sent;
 }
 
-// ─── Process: E — Pending-request reminders ─────────────────────────────────
+// ─── Process: E — Unanswered-request reminders ──────────────────────────────
 //
-// A teaching request that's still "Pending" more than 5 full days (5 × 24h)
-// after it was created gets ONE reminder email to the teacher, sent during
-// the 7am hour America/New_York. The "Reminder Sent At" stamp guarantees
-// one-reminder-per-request even though the cron fires every 5 minutes.
+// A request that nobody has answered gets a nudge every 5 days (not just
+// once, changed 2026-08-06), sent during the 7am hour America/New_York.
+// "Reminder Sent At" is now a *rolling* stamp: it records the last nudge,
+// and the next one goes out 5 days after it.
 //
-// force=true (manual /run) bypasses the 7am gate for testing; the stamp
-// still prevents duplicates.
+// Both directions are covered, because either side can be the one holding
+// things up:
+//   • Pending          → waiting on the TEACHER  → nudge the teacher
+//   • Counter-Proposed → waiting on the LEADER   → nudge the leader
+//
+// The clock restarts at each phase: for a counter-proposal it runs from
+// "Responded At" (when the teacher countered), not from the original
+// request date, so the leader gets a fair 5 days before the first nudge.
+//
+// Nudging stops once every requested Sunday is in the past — a request for
+// dates that have already come and gone is moot, and shouldn't nag forever.
+//
+// force=true (manual /run) bypasses the 7am gate for testing; the rolling
+// stamp still prevents more than one nudge per day per request.
 
-const REMINDER_AFTER_HOURS = 5 * 24;
+const REMINDER_EVERY_HOURS = 5 * 24;
 const REMINDER_SEND_HOUR = 7; // 7am America/New_York
 
 function nyHour(date) {
@@ -432,19 +447,32 @@ async function processPendingReminders(cfg, force) {
   const now = new Date();
   if (!force && nyHour(now) !== REMINDER_SEND_HOUR) return 0;
 
-  // Only requests that are still Pending, never reminded, and whose
-  // original "new request" email actually went out.
-  const formula = `AND({Status}='Pending', {Reminder Sent At}=BLANK(), {Created Email Sent At}!=BLANK(), {Teacher}!='')`;
+  // Anything still awaiting a reply from either side, whose original
+  // "new request" email actually went out. No "Reminder Sent At is blank"
+  // filter any more — the stamp is now a rolling clock, not a one-shot flag.
+  const formula = `AND(OR({Status}='Pending', {Status}='Counter-Proposed'), {Created Email Sent At}!=BLANK(), {Teacher}!='')`;
   const requests = await airtableQuery(cfg, 'Requests', formula);
 
   let sent = 0;
   for (const req of requests) {
     try {
+      const status = req.fields['Status'];
       // Age from Created At (client-populated), falling back to the record's
       // own createdTime, then to when we emailed the original notification.
       const createdIso = req.fields['Created At'] || req.createdTime || req.fields['Created Email Sent At'];
-      const ageHours = (now - new Date(createdIso)) / 36e5;
-      if (!(ageHours > REMINDER_AFTER_HOURS)) continue;
+
+      // The waiting clock restarts when the ball changes court: a
+      // counter-proposal starts the leader's clock at "Responded At".
+      const phaseStart = new Date(
+        status === 'Counter-Proposed'
+          ? (req.fields['Responded At'] || createdIso)
+          : createdIso);
+
+      // Roll forward from the last nudge, but ignore a stamp left over from
+      // an earlier phase so the new recipient still gets a full 5 days.
+      const stamp = req.fields['Reminder Sent At'] ? new Date(req.fields['Reminder Sent At']) : null;
+      const baseline = (stamp && stamp > phaseStart) ? stamp : phaseStart;
+      if (!((now - baseline) / 36e5 > REMINDER_EVERY_HOURS)) continue;
 
       const teacherId = (req.fields['Teacher'] || [])[0];
       const leaderId  = (req.fields['Requesting Leader'] || [])[0];
@@ -459,23 +487,45 @@ async function processPendingReminders(cfg, force) {
 
       const teacherEmail = teacher?.fields?.Email;
       const teacherName  = teacher?.fields?.Name || 'Teacher';
+      const leaderEmail  = leader?.fields?.Email;
       const leaderName   = leader?.fields?.Name || 'An ABF leader';
       const className    = cls?.fields?.Name || 'an ABF';
-      const sundayIds    = req.fields['Requested Sundays'] || [];
-      const sundays      = (await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date')).join(', ') || '(no Sundays specified)';
-      const daysPending  = Math.floor(ageHours / 24);
 
-      if (!teacherEmail) continue;
+      // Nudge about the dates actually on the table: the teacher's
+      // counter-proposal if there is one, otherwise the original ask.
+      const counterIds   = req.fields['Counter Sundays'] || [];
+      const sundayIds    = (status === 'Counter-Proposed' && counterIds.length)
+        ? counterIds : (req.fields['Requested Sundays'] || []);
+      const sundayDates  = await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date');
+      const sundays      = sundayDates.join(', ') || '(no Sundays specified)';
 
-      const email = buildReminderEmail({
-        teacherName, leaderName, className, sundays, daysPending,
-        portalUrl: cfg.portalUrl + '/?tab=scheduling',
-      });
+      // Stop nagging once every date in question has passed.
+      const today = new Date().toISOString().slice(0, 10);
+      if (sundayDates.length && sundayDates.every(d => String(d).slice(0, 10) < today)) continue;
+
+      const daysWaiting = Math.floor((now - phaseStart) / 36e5 / 24);
+
+      let email, toEmail, toName;
+      if (status === 'Counter-Proposed') {
+        if (!leaderEmail) continue;
+        toEmail = leaderEmail; toName = leaderName;
+        email = buildLeaderReminderEmail({
+          leaderName, teacherName, className, sundays, daysWaiting,
+          portalUrl: cfg.portalUrl + '/?tab=scheduling',
+        });
+      } else {
+        if (!teacherEmail) continue;
+        toEmail = teacherEmail; toName = teacherName;
+        email = buildReminderEmail({
+          teacherName, leaderName, className, sundays, daysPending: daysWaiting,
+          portalUrl: cfg.portalUrl + '/?tab=scheduling',
+        });
+      }
 
       if (cfg.dryRun) {
-        console.log('DRY_RUN E:', JSON.stringify({ to: teacherEmail, subject: email.subject, daysPending }));
+        console.log('DRY_RUN E:', JSON.stringify({ to: toEmail, status, subject: email.subject, daysWaiting }));
       } else {
-        await sendgridSend(cfg, { to: teacherEmail, toName: teacherName, ...email });
+        await sendgridSend(cfg, { to: toEmail, toName, ...email });
       }
 
       await airtableUpdate(cfg, 'Requests', req.id, {
@@ -684,6 +734,31 @@ ${portalUrl}
   <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(teacherResp).replace(/\n/g, '<br>')}</p>
   ${counterHtml}
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* Nudge for the other direction: the teacher countered with different
+   Sundays and the leader hasn't answered yet. (added 2026-08-06) */
+function buildLeaderReminderEmail({ leaderName, teacherName, className, sundays, daysWaiting, portalUrl }) {
+  const subject = `Reminder: ${teacherName} suggested different Sundays for ${className}`;
+  const plain = `Hi ${leaderName},
+
+Just a friendly nudge — ${teacherName} counter-proposed different Sundays for ${className} ${daysWaiting} days ago, and the request is still waiting on you.
+
+Sundays they suggested:
+${sundays}
+
+Open the portal to accept or decline these dates:
+${portalUrl}
+
+— ABF Scheduling`;
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(leaderName)}</strong>,</p>
+  <p>Just a friendly nudge &mdash; <strong>${escapeHtml(teacherName)}</strong> suggested different Sundays for <strong>${escapeHtml(className)}</strong> <strong>${daysWaiting} days</strong> ago, and the request is still waiting on you.</p>
+  <p style="margin-top:18px;"><strong>Sundays they suggested:</strong></p>
+  <p style="background:#f7eed7;border-left:3px solid #3F5765;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(sundays)}</p>
+  <p>A quick accept or decline lets ${escapeHtml(teacherName.split(' ')[0])} know where things stand.</p>
+  <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 
