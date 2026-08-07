@@ -243,8 +243,10 @@ async function processNewRequests(cfg) {
       const leaderName   = leader?.fields?.Name || 'A leader';
       const className    = cls?.fields?.Name || 'an ABF';
       const service      = cls?.fields?.Service || '';
+      const room         = cls?.fields?.Room || '';
       const sundayIds    = req.fields['Requested Sundays'] || [];
-      const sundays      = (await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date')).join(', ') || '(no Sundays specified)';
+      const sundayDates  = await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date');
+      const courseTitle  = (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '';
       const message      = req.fields['Leader Message'] || '(no message)';
 
       if (!teacherEmail) continue;
@@ -253,7 +255,7 @@ async function processNewRequests(cfg) {
       const classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
 
       const email = buildNewRequestEmail({
-        teacherName, leaderName, className, service, sundays, message,
+        teacherName, leaderName, className, service, room, courseTitle, sundayDates, message,
         portalUrl: cfg.portalUrl + '/?tab=scheduling',
       });
 
@@ -302,9 +304,13 @@ async function processStatusChanges(cfg) {
       const teacherName   = teacher?.fields?.Name || 'Teacher';
       const teacherEmail  = teacher?.fields?.Email;
       const className     = cls?.fields?.Name || 'the class';
+      const service       = cls?.fields?.Service || '';
+      const room          = cls?.fields?.Room || '';
+      const courseTitle   = (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '';
       const teacherResp   = req.fields['Teacher Response'] || '(no note from the teacher)';
       const counterIds    = req.fields['Counter Sundays'] || [];
-      const counterDays   = (await fetchLinkedFieldValues(cfg, 'Sundays', counterIds, 'Date')).join(', ');
+      const counterDates  = await fetchLinkedFieldValues(cfg, 'Sundays', counterIds, 'Date');
+      const requestedDates = await fetchLinkedFieldValues(cfg, 'Sundays', req.fields['Requested Sundays'] || [], 'Date');
 
       // Who actually just acted? Normally the teacher answers a pending
       // request and we tell the leader. But if the previously emailed status
@@ -318,14 +324,16 @@ async function processStatusChanges(cfg) {
       let email, toEmail, toName, classLeaderBccs;
       if (leaderActed) {
         if (!teacherEmail) continue;
-        const agreedIds  = req.fields['Requested Sundays'] || [];
-        const agreedDays = (await fetchLinkedFieldValues(cfg, 'Sundays', agreedIds, 'Date')).join(', ');
         toEmail = teacherEmail;
         toName  = teacherName;
         // Keep the whole leader team in the loop, including the one who acted.
         classLeaderBccs = await getClassLeaderEmails(cfg, classId, null);
         email = buildCounterResolvedEmail({
-          teacherName, leaderName, className, status, agreedDays,
+          teacherName, leaderName, className, service, room, courseTitle, status,
+          // On accept the front end copies the counter dates into Requested
+          // Sundays, so "Requested Sundays" IS what was agreed to.
+          agreedDates: requestedDates,
+          leaderReply: extractLeaderReply(req.fields['Leader Message']),
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
         });
       } else {
@@ -335,7 +343,8 @@ async function processStatusChanges(cfg) {
         // BCC all OTHER leaders of this ABF so the team stays in sync on responses
         classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
         email = buildStatusChangeEmail({
-          leaderName, teacherName, className, status, teacherResp, counterDays,
+          leaderName, teacherName, className, service, room, courseTitle, status,
+          teacherResp, requestedDates, counterDates,
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
         });
       }
@@ -356,6 +365,16 @@ async function processStatusChanges(cfg) {
     }
   }
   return sent;
+}
+
+/* Leaders have no note field of their own on a Request (`FIELDS.requestByLeader`
+   in api.js doesn't allow one), so index.html appends their reply to
+   `Leader Message` behind this marker. Pull it back out so the teacher's
+   "they accepted / declined" email can quote it. Keep in sync with
+   LEADER_REPLY_MARK in index.html. */
+function extractLeaderReply(leaderMessage) {
+  const m = /\n\n\[Leader reply\]\s*([\s\S]*)$/.exec(String(leaderMessage || ''));
+  return m ? m[1].trim() : '';
 }
 
 // ─── Process: D — New feedback responses ────────────────────────────────────
@@ -490,14 +509,17 @@ async function processPendingReminders(cfg, force) {
       const leaderEmail  = leader?.fields?.Email;
       const leaderName   = leader?.fields?.Name || 'An ABF leader';
       const className    = cls?.fields?.Name || 'an ABF';
+      const service      = cls?.fields?.Service || '';
+      const room         = cls?.fields?.Room || '';
+      const courseTitle  = (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '';
 
       // Nudge about the dates actually on the table: the teacher's
       // counter-proposal if there is one, otherwise the original ask.
-      const counterIds   = req.fields['Counter Sundays'] || [];
-      const sundayIds    = (status === 'Counter-Proposed' && counterIds.length)
-        ? counterIds : (req.fields['Requested Sundays'] || []);
-      const sundayDates  = await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date');
-      const sundays      = sundayDates.join(', ') || '(no Sundays specified)';
+      const counterIds     = req.fields['Counter Sundays'] || [];
+      const requestedDates = await fetchLinkedFieldValues(cfg, 'Sundays', req.fields['Requested Sundays'] || [], 'Date');
+      const counterDates   = await fetchLinkedFieldValues(cfg, 'Sundays', counterIds, 'Date');
+      const sundayDates    = (status === 'Counter-Proposed' && counterDates.length)
+        ? counterDates : requestedDates;
 
       // Stop nagging once every date in question has passed.
       const today = new Date().toISOString().slice(0, 10);
@@ -510,14 +532,16 @@ async function processPendingReminders(cfg, force) {
         if (!leaderEmail) continue;
         toEmail = leaderEmail; toName = leaderName;
         email = buildLeaderReminderEmail({
-          leaderName, teacherName, className, sundays, daysWaiting,
+          leaderName, teacherName, className, service, room, courseTitle,
+          requestedDates, counterDates, daysWaiting,
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
         });
       } else {
         if (!teacherEmail) continue;
         toEmail = teacherEmail; toName = teacherName;
         email = buildReminderEmail({
-          teacherName, leaderName, className, sundays, daysPending: daysWaiting,
+          teacherName, leaderName, className, service, room, courseTitle,
+          sundayDates, daysPending: daysWaiting,
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
         });
       }
@@ -667,6 +691,113 @@ async function sendgridSendMulti(cfg, { to, subject, plain, html }) {
 
 // ─── Email templates ────────────────────────────────────────────────────────
 
+/* ─── Detail formatting (2026-08-06) ──────────────────────────────────────────
+   These emails used to say "2027-02-07, 2027-02-14, 2027-02-21" and leave the
+   reader to work out that those are the Sundays in February. Worse, none of
+   them ever named the *course* — so a teacher asked about two different classes
+   got mail that could have been about either. Everything below exists to put
+   the whole ask in the message body: class, service, room, course, and dates a
+   human can read without opening a calendar. */
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Parse without `new Date()`: 'YYYY-MM-DD' through the Date constructor is
+// UTC midnight, which renders as the *previous* day once a US timezone gets
+// hold of it. Pulling the parts out of the string sidesteps that entirely.
+function parseIsoDay(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  return m ? { y: +m[1], mo: +m[2], d: +m[3] } : null;
+}
+
+function sortedDays(dates) {
+  return (dates || []).map(parseIsoDay).filter(Boolean)
+    .sort((a, b) => a.y - b.y || a.mo - b.mo || a.d - b.d);
+}
+
+function isoOf(p) {
+  return `${p.y}-${String(p.mo).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+}
+
+// "Sunday, February 7, 2027"
+function fmtSundayLong(iso) {
+  const p = parseIsoDay(iso);
+  return p ? `Sunday, ${MONTH_NAMES[p.mo - 1]} ${p.d}, ${p.y}` : String(iso || '');
+}
+
+function joinAnd(parts) {
+  if (parts.length <= 1) return parts[0] || '';
+  if (parts.length === 2) return `${parts[0]} & ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
+}
+
+/* Collapse a run of dates into the way someone would say it out loud:
+   "February 7, 14, 21 & 28, 2027" rather than four near-identical strings.
+   `short` uses abbreviated months, for subject lines. */
+function fmtSundaysCompact(dates, short) {
+  const days = sortedDays(dates);
+  if (!days.length) return '';
+  const groups = [];
+  for (const p of days) {
+    const last = groups[groups.length - 1];
+    if (last && last.y === p.y && last.mo === p.mo) last.days.push(p.d);
+    else groups.push({ y: p.y, mo: p.mo, days: [p.d] });
+  }
+  const multiYear = new Set(groups.map(g => g.y)).size > 1;
+  const name = g => (short ? MONTH_NAMES[g.mo - 1].slice(0, 3) : MONTH_NAMES[g.mo - 1]);
+  const parts = groups.map(g =>
+    `${name(g)} ${joinAnd(g.days.map(String))}${multiYear ? `, ${g.y}` : ''}`);
+  return parts.join('; ') + (multiYear ? '' : `, ${groups[0].y}`);
+}
+
+/* A labelled facts block. Rows are {label, value} for plain text; `html`
+   overrides `value` on the HTML side when the value needs markup. */
+function detailsHtml(rows, accent) {
+  const bar = accent || '#BCA944';
+  const cells = rows.filter(r => r && (r.html || r.value)).map(r => `
+    <tr>
+      <td style="padding:7px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b6050;white-space:nowrap;vertical-align:top;">${escapeHtml(r.label)}</td>
+      <td style="padding:7px 14px 7px 0;vertical-align:top;">${r.html || escapeHtml(r.value)}</td>
+    </tr>`).join('');
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:16px 0;background:#f7eed7;border-left:3px solid ${bar};width:100%;">${cells}</table>`;
+}
+
+function detailsPlain(rows) {
+  return rows.filter(r => r && r.value).map(r => `${r.label}: ${r.value}`).join('\n');
+}
+
+/* One Sundays row, ready to drop into detailsHtml/detailsPlain. Each date on
+   its own line — someone checking a calendar reads down a column far more
+   easily than across a comma-separated run. */
+function sundayRow(label, dates, opts) {
+  const days = sortedDays(dates);
+  const o = opts || {};
+  if (!days.length) {
+    return { label, value: '(no Sundays specified)', html: '<em style="color:#6b6050;">(no Sundays specified)</em>' };
+  }
+  const long = days.map(p => fmtSundayLong(isoOf(p)));
+  const strike = o.struck ? 'text-decoration:line-through;color:#8a8070;font-weight:400;' : 'font-weight:600;';
+  return {
+    label: `${label} (${days.length})`,
+    value: `\n    ${long.join('\n    ')}`,
+    html: `<span style="${strike}">${long.map(escapeHtml).join('<br>')}</span>`,
+  };
+}
+
+/* Class / service / room / course — the "what is this actually about" rows
+   shared by every scheduling email. */
+function requestRows({ className, service, room, courseTitle }) {
+  const where = [service, room ? `Room ${room}` : ''].filter(Boolean).join(' · ');
+  return [
+    {
+      label: 'ABF',
+      value: className + (where ? ` (${where})` : ''),
+      html: `<strong>${escapeHtml(className)}</strong>${where ? `<br><span style="font-size:13px;color:#6b6050;">${escapeHtml(where)}</span>` : ''}`,
+    },
+    courseTitle ? { label: 'Course', value: courseTitle } : null,
+  ].filter(Boolean);
+}
+
 function brandShell(innerHtml) {
   // Use a styled separator span for the LEFC|U pipe so it doesn't visually collapse into a capital I
   // in tightly-letter-spaced fonts (Apple Mail, Outlook, etc.).
@@ -684,81 +815,115 @@ function ctaButton(label, href) {
   return `<a href="${href}" style="display:inline-block;background:#AA3B24;color:#fff;padding:10px 22px;text-decoration:none;border-radius:4px;font-weight:700;">${escapeHtml(label)}</a>`;
 }
 
-function buildNewRequestEmail({ teacherName, leaderName, className, service, sundays, message, portalUrl }) {
-  const subject = `New teaching request from ${leaderName}`;
+function buildNewRequestEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl }) {
+  const compactShort = fmtSundaysCompact(sundayDates, true);
+  const subject = `${leaderName} asked you to teach ${className}${compactShort ? ` — ${compactShort}` : ''}`;
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    sundayRow('Sundays', sundayDates),
+  ];
   const plain = `Hi ${teacherName},
 
-${leaderName} just asked you to teach in ${className}${service ? ` (${service})` : ''} on:
+${leaderName} just asked you to teach in ${className}.
 
-${sundays}
+${detailsPlain(rows)}
 
 Their message:
 ${message}
 
-Open the portal to respond:
+Open the portal to accept, decline, or suggest different Sundays:
 ${portalUrl}
 
 — ABF Scheduling`;
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
-  <p><strong>${escapeHtml(leaderName)}</strong> just asked you to teach in <strong>${escapeHtml(className)}</strong>${service ? ` (${escapeHtml(service)})` : ''} on:</p>
-  <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:14px 0;font-weight:600;">${escapeHtml(sundays)}</p>
+  <p><strong>${escapeHtml(leaderName)}</strong> just asked you to teach in <strong>${escapeHtml(className)}</strong>.</p>
+  ${detailsHtml(rows)}
   <p style="margin-top:18px;"><strong>Their message:</strong></p>
-  <p style="background:#f7eed7;border-left:3px solid #524B30;padding:10px 14px;margin:6px 0 18px;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+  <p style="background:#faf7ef;border-left:3px solid #524B30;padding:10px 14px;margin:6px 0 18px;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+  <p style="font-size:13px;color:#6b6050;">You can accept, decline, or suggest different Sundays from the portal.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 
-function buildStatusChangeEmail({ leaderName, teacherName, className, status, teacherResp, counterDays, portalUrl }) {
-  const subject = `${teacherName} ${status.toLowerCase()} your teaching request`;
-  const accent = status === 'Accepted' ? '#524B30' : status === 'Declined' ? '#AA3B24' : '#BCA944';
+function buildStatusChangeEmail({ leaderName, teacherName, className, service, room, courseTitle, status, teacherResp, requestedDates, counterDates, portalUrl }) {
+  const countered = status === 'Counter-Proposed' && (counterDates || []).length > 0;
+  const accent = status === 'Accepted' ? '#524B30' : status === 'Declined' ? '#AA3B24' : '#3F5765';
+
+  // A counter-proposal is the one case where "X counter-proposed your request"
+  // tells the reader nothing actionable. Say what they suggested instead.
+  const subject = countered
+    ? `${teacherName} suggested different Sundays for ${className} — ${fmtSundaysCompact(counterDates, true)}`
+    : `${teacherName} ${status.toLowerCase()} your teaching request — ${className}`;
+
+  // On a counter-proposal the whole point is the contrast between what you
+  // asked for and what they're offering, so show both, old one struck through.
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    countered
+      ? sundayRow('You asked for', requestedDates, { struck: true })
+      : sundayRow('Sundays', requestedDates),
+    countered ? sundayRow('They suggest', counterDates) : null,
+  ].filter(Boolean);
+
+  const lead = countered
+    ? `${teacherName} can't do the Sundays you asked for in ${className}, and suggested a different set instead.`
+    : `${teacherName} responded "${status}" to your request to teach in ${className}.`;
+
   const plain = `Hi ${leaderName},
 
-${teacherName} responded "${status}" to your request to teach in ${className}.
+${lead}
+
+${detailsPlain(rows)}
 
 Their note:
 ${teacherResp}
-${counterDays ? `\nCounter-proposed Sundays:\n${counterDays}\n` : ''}
-Open the portal to see the full request:
+
+${countered
+  ? `Accept or decline these Sundays in the portal:`
+  : `Open the portal to see the full request:`}
 ${portalUrl}
 
 — ABF Scheduling`;
-  const counterHtml = counterDays
-    ? `<p style="margin-top:18px;"><strong>Counter-proposed Sundays:</strong></p>
-       <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(counterDays)}</p>`
-    : '';
+
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(leaderName)}</strong>,</p>
-  <p><strong>${escapeHtml(teacherName)}</strong> responded <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${escapeHtml(status)}</span> to your request to teach in <strong>${escapeHtml(className)}</strong>.</p>
+  ${countered
+    ? `<p><strong>${escapeHtml(teacherName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">suggested different Sundays</span> for <strong>${escapeHtml(className)}</strong>.</p>`
+    : `<p><strong>${escapeHtml(teacherName)}</strong> responded <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${escapeHtml(status)}</span> to your request to teach in <strong>${escapeHtml(className)}</strong>.</p>`}
+  ${detailsHtml(rows, accent)}
   <p style="margin-top:18px;"><strong>Their note:</strong></p>
-  <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(teacherResp).replace(/\n/g, '<br>')}</p>
-  ${counterHtml}
-  <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
+  <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(teacherResp).replace(/\n/g, '<br>')}</p>
+  ${countered ? `<p style="font-size:13px;color:#6b6050;">Nothing is booked yet — the request is waiting on you to accept or decline these dates.</p>` : ''}
+  <p style="margin-top:22px;">${ctaButton(countered ? 'Accept or decline these Sundays' : 'Open the portal', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 
 /* Nudge for the other direction: the teacher countered with different
    Sundays and the leader hasn't answered yet. (added 2026-08-06) */
-function buildLeaderReminderEmail({ leaderName, teacherName, className, sundays, daysWaiting, portalUrl }) {
-  const subject = `Reminder: ${teacherName} suggested different Sundays for ${className}`;
+function buildLeaderReminderEmail({ leaderName, teacherName, className, service, room, courseTitle, requestedDates, counterDates, daysWaiting, portalUrl }) {
+  const subject = `Reminder: ${teacherName} suggested different Sundays for ${className} — ${fmtSundaysCompact(counterDates, true)}`;
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    (requestedDates || []).length ? sundayRow('You asked for', requestedDates, { struck: true }) : null,
+    sundayRow('They suggest', counterDates),
+  ].filter(Boolean);
   const plain = `Hi ${leaderName},
 
-Just a friendly nudge — ${teacherName} counter-proposed different Sundays for ${className} ${daysWaiting} days ago, and the request is still waiting on you.
+Just a friendly nudge — ${teacherName} suggested different Sundays for ${className} ${daysWaiting} days ago, and the request is still waiting on you.
 
-Sundays they suggested:
-${sundays}
+${detailsPlain(rows)}
 
-Open the portal to accept or decline these dates:
+Nothing is booked until you accept. Open the portal to accept or decline these dates:
 ${portalUrl}
 
 — ABF Scheduling`;
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(leaderName)}</strong>,</p>
   <p>Just a friendly nudge &mdash; <strong>${escapeHtml(teacherName)}</strong> suggested different Sundays for <strong>${escapeHtml(className)}</strong> <strong>${daysWaiting} days</strong> ago, and the request is still waiting on you.</p>
-  <p style="margin-top:18px;"><strong>Sundays they suggested:</strong></p>
-  <p style="background:#f7eed7;border-left:3px solid #3F5765;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(sundays)}</p>
-  <p>A quick accept or decline lets ${escapeHtml(teacherName.split(' ')[0])} know where things stand.</p>
-  <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
+  ${detailsHtml(rows, '#3F5765')}
+  <p>Nothing is booked until you accept. A quick yes or no lets ${escapeHtml(String(teacherName).split(' ')[0])} know where things stand.</p>
+  <p style="margin-top:22px;">${ctaButton('Accept or decline these Sundays', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 
@@ -766,30 +931,42 @@ ${portalUrl}
    the teacher. Without it, the only email on a counter-proposal resolution
    went back to the leader who had just clicked the button, and the teacher
    was never told the outcome. (added 2026-08-06) */
-function buildCounterResolvedEmail({ teacherName, leaderName, className, status, agreedDays, portalUrl }) {
+function buildCounterResolvedEmail({ teacherName, leaderName, className, service, room, courseTitle, status, agreedDates, leaderReply, portalUrl }) {
   const accepted = status === 'Accepted';
   const accent = accepted ? '#524B30' : '#AA3B24';
+  const compactShort = fmtSundaysCompact(agreedDates, true);
   const subject = accepted
-    ? `${leaderName} confirmed your Sundays for ${className}`
+    ? `Confirmed: you're teaching ${className}${compactShort ? ` — ${compactShort}` : ''}`
     : `${leaderName} declined the Sundays you suggested for ${className}`;
+
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    accepted ? sundayRow("You're scheduled for", agreedDates) : null,
+  ].filter(Boolean);
+
+  const replyPlain = leaderReply ? `\n${leaderName}'s note:\n${leaderReply}\n` : '';
   const plain = `Hi ${teacherName},
 
 ${accepted
-  ? `${leaderName} accepted the Sundays you counter-proposed for ${className}. You're on the schedule for:\n${agreedDays || '(see the portal)'}`
-  : `${leaderName} declined the Sundays you counter-proposed for ${className}, so this request is now closed. Nothing is on your schedule for it.`}
+  ? `${leaderName} accepted the Sundays you suggested for ${className}. You're on the schedule.`
+  : `${leaderName} declined the Sundays you suggested for ${className}, so this request is now closed. Nothing has been added to your schedule.`}
 
+${detailsPlain(rows)}
+${replyPlain}
 Open the portal to see the full request:
 ${portalUrl}
 
 — ABF Scheduling`;
-  const datesHtml = accepted
-    ? `<p style="margin-top:18px;"><strong>You're scheduled for:</strong></p>
-       <p style="background:#f7eed7;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(agreedDays || '(see the portal)')}</p>`
+
+  const replyHtml = leaderReply
+    ? `<p style="margin-top:18px;"><strong>${escapeHtml(leaderName)}'s note:</strong></p>
+       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(leaderReply).replace(/\n/g, '<br>')}</p>`
     : '';
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
-  <p><strong>${escapeHtml(leaderName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${accepted ? 'accepted' : 'declined'}</span> the Sundays you counter-proposed for <strong>${escapeHtml(className)}</strong>.${accepted ? '' : ' This request is now closed — nothing has been added to your schedule.'}</p>
-  ${datesHtml}
+  <p><strong>${escapeHtml(leaderName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${accepted ? 'accepted' : 'declined'}</span> the Sundays you suggested for <strong>${escapeHtml(className)}</strong>.${accepted ? " You're on the schedule." : ' This request is now closed — nothing has been added to your schedule.'}</p>
+  ${detailsHtml(rows, accent)}
+  ${replyHtml}
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
   return { subject, plain, html };
 }
@@ -814,16 +991,20 @@ ${portalUrl}
   return { subject, plain, html };
 }
 
-function buildReminderEmail({ teacherName, leaderName, className, sundays, daysPending, portalUrl }) {
-  const subject = `Reminder: ${leaderName}'s teaching request is waiting for a reply`;
+function buildReminderEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, daysPending, portalUrl }) {
+  const compactShort = fmtSundaysCompact(sundayDates, true);
+  const subject = `Reminder: ${leaderName} is waiting on you — ${className}${compactShort ? `, ${compactShort}` : ''}`;
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    sundayRow('Requested Sundays', sundayDates),
+  ];
   const plain = `Hi ${teacherName},
 
 Just a friendly nudge — ${leaderName}'s request for you to teach in ${className} has been waiting ${daysPending} days for a response.
 
-Requested Sundays:
-${sundays}
+${detailsPlain(rows)}
 
-Even if the answer is "not this time," a quick decline helps ${leaderName} plan and ask someone else.
+Even if the answer is "not this time," a quick decline helps ${leaderName} plan and ask someone else. You can also suggest different Sundays if these don't work.
 
 Open the portal to respond:
 ${portalUrl}
@@ -832,9 +1013,8 @@ ${portalUrl}
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
   <p>Just a friendly nudge &mdash; <strong>${escapeHtml(leaderName)}</strong>'s request for you to teach in <strong>${escapeHtml(className)}</strong> has been waiting <strong>${daysPending} days</strong> for a response.</p>
-  <p style="margin-top:18px;"><strong>Requested Sundays:</strong></p>
-  <p style="background:#f7eed7;border-left:3px solid #BCA944;padding:10px 14px;margin:6px 0 18px;font-weight:600;">${escapeHtml(sundays)}</p>
-  <p>Even if the answer is &ldquo;not this time,&rdquo; a quick decline helps ${escapeHtml(leaderName)} plan and ask someone else.</p>
+  ${detailsHtml(rows)}
+  <p>Even if the answer is &ldquo;not this time,&rdquo; a quick decline helps ${escapeHtml(leaderName)} plan and ask someone else &mdash; and you can suggest different Sundays if these don't work.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
   return { subject, plain, html };
 }

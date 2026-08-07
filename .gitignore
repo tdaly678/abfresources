@@ -1,0 +1,4 @@
+# Wrangler build/deploy cache — regenerated on every `wrangler deploy`
+worker/.wrangler/
+node_modules/
+.DS_Store
