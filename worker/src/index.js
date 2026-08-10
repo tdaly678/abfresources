@@ -941,7 +941,11 @@ function sundayRow(label, dates, opts) {
 /* Class / service / room / course — the "what is this actually about" rows
    shared by every scheduling email. */
 function requestRows({ className, service, room, courseTitle }) {
-  const where = [service, room ? `Room ${room}` : ''].filter(Boolean).join(' · ');
+  // The Room field in Airtable already reads "Room A3", so prefixing it
+  // unconditionally produced "Room Room A3" in every scheduling email between
+  // 2026-08-06 and 2026-08-10. Only add the word when it isn't already there.
+  const roomLabel = room ? (/^room\b/i.test(String(room).trim()) ? String(room).trim() : `Room ${room}`) : '';
+  const where = [service, roomLabel].filter(Boolean).join(' · ');
   return [
     {
       label: 'ABF',
