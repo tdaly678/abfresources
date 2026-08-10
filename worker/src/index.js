@@ -42,7 +42,7 @@ import { handleApi } from './api.js';
 export default {
   async scheduled(event, env, ctx) {
     const cfg = buildConfig(env);
-    const results = { newRequests: 0, statusChanges: 0, newFeedback: 0, reminders: 0, errors: [] };
+    const results = { newRequests: 0, statusChanges: 0, newFeedback: 0, reminders: 0, upcoming: 0, errors: [] };
 
     try {
       results.newRequests = await processNewRequests(cfg);
@@ -61,6 +61,11 @@ export default {
       // stamp means only the first cron tick that hour actually sends.
       results.reminders = await processPendingReminders(cfg, false);
     } catch (e) { results.errors.push(`reminders: ${e.message}`); }
+
+    try {
+      // Same 7am gate: the one-month heads-up for classes already booked.
+      results.upcoming = await processUpcomingClassReminders(cfg, false);
+    } catch (e) { results.errors.push(`upcoming: ${e.message}`); }
 
     console.log('ABF email worker run complete', JSON.stringify(results));
   },
@@ -100,15 +105,21 @@ export default {
     if (path !== '/run') {
       return new Response('ABF email worker. POST /run with auth to trigger.', { status: 200 });
     }
-    const cfg = buildConfig(env);
     const auth = request.headers.get('x-trigger-auth');
     if (auth !== env.MANUAL_TRIGGER_AUTH) return new Response('forbidden', { status: 403 });
+    // POST /run?dry=1 forces dry-run for this call only, so a new flow can be
+    // checked against live Airtable data without mailing anyone. (2026-08-10)
+    const cfg = { ...buildConfig(env), dryRun: buildConfig(env).dryRun || new URL(request.url).searchParams.get('dry') === '1' };
+    const upcomingPreview = [];
     const results = {
+      dryRun: cfg.dryRun,
       newRequests: await processNewRequests(cfg),
       statusChanges: await processStatusChanges(cfg),
       newFeedback: await processNewFeedbackResponses(cfg),
       // Manual runs bypass the 7am gate so reminders are testable on demand.
       reminders: await processPendingReminders(cfg, true),
+      upcoming: await processUpcomingClassReminders(cfg, true, upcomingPreview),
+      upcomingPreview,
     };
     return new Response(JSON.stringify(results, null, 2), {
       headers: { 'content-type': 'application/json' },
@@ -563,6 +574,138 @@ async function processPendingReminders(cfg, force) {
   return sent;
 }
 
+// ─── Process: F — "You're teaching in a month" heads-up ─────────────────────
+//
+// Once a request is Accepted the whole thread goes quiet, and the class can be
+// months away. This sends ONE heads-up to the teacher AND the requesting leader
+// together, about a month before the first Sunday they agreed to, so nobody
+// arrives at a Sunday nobody prepared for. (added 2026-08-10)
+//
+// Rules:
+//   • Keyed to the EARLIEST Requested Sunday — a four-week series gets one
+//     email ahead of week one, not one per Sunday.
+//   • Fires at ≤30 days out, so a request accepted six months early still
+//     waits until the month mark.
+//   • Requests accepted inside that window get a grace period: no heads-up
+//     until the acceptance is 7 days old (they obviously already know), and
+//     the wording switches from "one month out" to "N days out".
+//   • Nothing goes out if the first Sunday is already past.
+//   • Teacher + requesting leader share the To line on purpose — if something
+//     needs sorting out, they can just hit reply and talk to each other.
+//
+// Idempotency: the "Teach Reminder Sent At" stamp is written BEFORE the send,
+// not after. If that field is missing from Airtable the PATCH throws and no
+// email goes out at all — which is the safe way to fail, because a stamp that
+// silently doesn't stick would mean re-sending this every single morning.
+
+const UPCOMING_REMINDER_DAYS = 30;   // how far out the heads-up fires
+const ACCEPT_GRACE_HOURS = 7 * 24;   // don't nudge someone who just accepted
+
+// 'YYYY-MM-DD' for today in America/New_York. Using UTC here would roll the
+// date over during the evening and mis-count "days until" by one.
+function nyToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/New_York',
+  }).format(new Date());
+}
+
+// Whole days from ISO day `fromIso` to ISO day `toIso` (negative = in the past).
+function daysBetweenIsoDays(fromIso, toIso) {
+  const a = parseIsoDay(fromIso), b = parseIsoDay(toIso);
+  if (!a || !b) return null;
+  return Math.round((Date.UTC(b.y, b.mo - 1, b.d) - Date.UTC(a.y, a.mo - 1, a.d)) / 864e5);
+}
+
+async function processUpcomingClassReminders(cfg, force, collect) {
+  const now = new Date();
+  if (!force && nyHour(now) !== REMINDER_SEND_HOUR) return 0;
+
+  const formula = `AND({Status}='Accepted', {Teach Reminder Sent At}=BLANK(), {Teacher}!='', {Requesting Leader}!='')`;
+  const requests = await airtableQuery(cfg, 'Requests', formula);
+
+  const today = nyToday();
+  let sent = 0;
+
+  for (const req of requests) {
+    try {
+      const sundayIds = req.fields['Requested Sundays'] || [];
+      if (!sundayIds.length) continue;
+
+      // Requested Sundays is the agreed set even after a counter-proposal —
+      // accepting one copies the counter dates in here (see the front end).
+      const sundayDates = await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date');
+      const days = sortedDays(sundayDates);
+      if (!days.length) continue;
+
+      const firstIso = isoOf(days[0]);
+      const daysUntil = daysBetweenIsoDays(today, firstIso);
+      if (daysUntil === null) continue;
+      if (daysUntil < 0) continue;                       // first Sunday already past
+      if (daysUntil > UPCOMING_REMINDER_DAYS) continue;  // not yet at the month mark
+
+      // Accepted inside the window? Give it a week before piling on. No stamp
+      // is written, so this record gets re-checked each morning and the email
+      // still goes out once the acceptance has aged (assuming time remains).
+      const acceptedIso = req.fields['Responded At'] || req.fields['Created At'] || req.createdTime;
+      if (acceptedIso) {
+        const acceptedAgeHours = (now - new Date(acceptedIso)) / 36e5;
+        if (acceptedAgeHours < ACCEPT_GRACE_HOURS) continue;
+      }
+
+      const teacherId = (req.fields['Teacher'] || [])[0];
+      const leaderId  = (req.fields['Requesting Leader'] || [])[0];
+      const classId   = (req.fields['ABF Class'] || [])[0];
+      if (!teacherId || !leaderId) continue;
+
+      const [teacher, leader, cls] = await Promise.all([
+        airtableGet(cfg, 'Teachers', teacherId),
+        airtableGet(cfg, 'ABF Leaders', leaderId),
+        classId ? airtableGet(cfg, 'ABF Classes', classId) : null,
+      ]);
+
+      const teacherEmail = teacher?.fields?.Email;
+      const leaderEmail  = leader?.fields?.Email;
+      if (!teacherEmail || !leaderEmail) continue;
+
+      const email = buildUpcomingClassEmail({
+        teacherName: teacher?.fields?.Name || 'the teacher',
+        leaderName:  leader?.fields?.Name || 'the ABF leader',
+        className:   cls?.fields?.Name || 'an ABF',
+        service:     cls?.fields?.Service || '',
+        room:        cls?.fields?.Room || '',
+        courseTitle: (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '',
+        sundayDates,
+        daysUntil,
+        portalUrl: cfg.portalUrl + '/?tab=scheduling',
+      });
+
+      // Everyone else who leads this ABF, plus the admin BCC.
+      const bccs = await getClassLeaderEmails(cfg, classId, leaderId);
+      if (cfg.bccEmail) bccs.push(cfg.bccEmail);
+
+      if (cfg.dryRun) {
+        const preview = { to: [teacherEmail, leaderEmail], bccs, daysUntil, firstIso, subject: email.subject };
+        console.log('DRY_RUN F:', JSON.stringify(preview));
+        if (collect) collect.push(preview);
+      } else {
+        // Stamp first: see the note above on why this order matters.
+        await airtableUpdate(cfg, 'Requests', req.id, {
+          'Teach Reminder Sent At': new Date().toISOString(),
+        });
+        await sendgridSendMulti(cfg, {
+          to: [teacherEmail, leaderEmail],
+          extraBccs: bccs,
+          ...email,
+        });
+      }
+      sent++;
+    } catch (e) {
+      console.error(`F error on record ${req.id}:`, e.message);
+    }
+  }
+  return sent;
+}
+
 // ─── Airtable client ────────────────────────────────────────────────────────
 
 async function airtableQuery(cfg, tableName, formula) {
@@ -676,17 +819,28 @@ async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs =
   await brevoRequest(cfg, payload);
 }
 
-// Send one email to several recipients (all on the To line). Used by the Rock board.
-async function sendgridSendMulti(cfg, { to, subject, plain, html }) {
+// Send one email to several recipients (all on the To line, so they can see
+// each other). Used by the Rock board and by the one-month teaching heads-up.
+// `extraBccs` is opt-in — callers that don't pass it get no BCC at all, which
+// is how the Rock board has always behaved.
+async function sendgridSendMulti(cfg, { to, subject, plain, html, extraBccs = [] }) {
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean).map(email => ({ email }));
-  await brevoRequest(cfg, {
+  const onTo = recipients.map(r => r.email.toLowerCase());
+  const bccs = [];
+  for (const e of extraBccs) {
+    const lower = (e || '').toLowerCase();
+    if (lower && !onTo.includes(lower) && !bccs.some(b => b.toLowerCase() === lower)) bccs.push(e);
+  }
+  const payload = {
     sender: { email: cfg.fromEmail, name: cfg.fromName },
     replyTo: { email: cfg.fromEmail, name: cfg.fromName },
     to: recipients,
     subject,
     textContent: plain,
     htmlContent: html,
-  });
+  };
+  if (bccs.length) payload.bcc = bccs.map(email => ({ email }));
+  await brevoRequest(cfg, payload);
 }
 
 // ─── Email templates ────────────────────────────────────────────────────────
@@ -1016,6 +1170,63 @@ ${portalUrl}
   ${detailsHtml(rows)}
   <p>Even if the answer is &ldquo;not this time,&rdquo; a quick decline helps ${escapeHtml(leaderName)} plan and ask someone else &mdash; and you can suggest different Sundays if these don't work.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* The one-month heads-up (flow F). One email, teacher and leader both on the
+   To line, so a reply goes to the person who can actually do something about
+   it. Written to read naturally to either of them — it names both rather than
+   assuming a single "you". (added 2026-08-10) */
+
+// "One month out" / "3 weeks out" / "9 days out" — however far out it actually is.
+function horizonLabel(days) {
+  if (days >= 25) return 'One month out';
+  if (days >= 8) return `${Math.round(days / 7)} weeks out`;
+  if (days <= 0) return 'This Sunday';
+  if (days === 1) return 'Tomorrow';
+  return `${days} days out`;
+}
+
+function buildUpcomingClassEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, daysUntil, portalUrl }) {
+  const first = sortedDays(sundayDates)[0];
+  const firstLong = first ? fmtSundayLong(isoOf(first)) : '';
+  const compactShort = fmtSundaysCompact(sundayDates, true);
+  const horizon = horizonLabel(daysUntil);
+  const teacherFirst = String(teacherName).split(' ')[0];
+  const leaderFirst  = String(leaderName).split(' ')[0];
+  const many = sortedDays(sundayDates).length > 1;
+
+  const subject = `${horizon}: ${teacherName} is teaching ${className}${compactShort ? ` — ${compactShort}` : ''}`;
+
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    { label: 'Teacher', value: teacherName },
+    sundayRow(many ? 'Sundays' : 'Sunday', sundayDates),
+  ];
+
+  const plain = `Hi ${teacherFirst} and ${leaderFirst},
+
+A heads-up on a class you both agreed to a while back: ${teacherName} is scheduled to teach in ${className}, starting ${firstLong}${many ? ` (${sortedDays(sundayDates).length} Sundays in all)` : ''}.
+
+${detailsPlain(rows)}
+
+${teacherFirst} — nothing to do here but prepare; this is just so the date doesn't sneak up on you.
+${leaderFirst} — if anything has changed on either end, now is a good time to sort it out rather than the week of.
+
+Reply to this email and you'll reach each other. The full request is in the portal:
+${portalUrl}
+
+— ABF Scheduling`;
+
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(teacherFirst)}</strong> and <strong>${escapeHtml(leaderFirst)}</strong>,</p>
+  <p>A heads-up on a class you both agreed to a while back: <strong>${escapeHtml(teacherName)}</strong> is scheduled to teach in <strong>${escapeHtml(className)}</strong>, starting <strong>${escapeHtml(firstLong)}</strong>${many ? ` — ${sortedDays(sundayDates).length} Sundays in all` : ''}.</p>
+  ${detailsHtml(rows, '#524B30')}
+  <p style="font-size:14px;"><strong>${escapeHtml(teacherFirst)}</strong> — nothing to do here but prepare; this is just so the date doesn't sneak up on you.<br>
+  <strong>${escapeHtml(leaderFirst)}</strong> — if anything has changed on either end, better to sort it out now than the week of.</p>
+  <p style="font-size:13px;color:#6b6050;">You're both on this email, so a reply reaches each other.</p>
+  <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
+
   return { subject, plain, html };
 }
 
