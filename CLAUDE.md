@@ -35,7 +35,7 @@ A combined video forces both audiences to sit through content that isn't theirs.
 
 ## Site sections (top-level nav)
 
-1. **ABF Classes** — directory of current classes by service (1st: Philippians, Faith Builders, Koinonia, Branches, Roots, Mosaic; 2nd: Agape, Synago). Room assignments (updated 2026-08-10): A3 = Philippians (1st) + Agape (2nd); A4 = Roots (1st) + Synago (2nd); A5 = Koinonia; A6 = Faith Builders; D6 = Mosaic; D7 = Branches. D5 is tagged ABF but has no class assigned. A1/A2 are multi-use, not ABF.
+1. **ABF Classes** — directory of current classes by service (1st: Philippians, Faith Builders, Koinonia, Branches, Roots, Mosaic; 2nd: Agape, Synago). Room assignments (updated 2026-08-10): A3 = Faith Builders (1st) + Agape (2nd); A4 = Roots (1st) + Synago (2nd); A5 = Koinonia; A6 = Philippians; D6 = Mosaic; D7 = Branches. D5 is tagged ABF but has no class assigned. A1/A2 are multi-use, not ABF.
 2. **Key Dates** — no-meeting Sundays, summer break, Easter, ABF resume dates.
 3. **Resources** — Training Videos (For New Leaders / For Existing Leaders / For New Teachers), Articles, Online Studies (renamed from "Online Courses" July 2026; Joshua WBF Spring 2026, plus Tutorials). *Default subsection on load: Training Videos.*
 4. **Teachers** — roster organized by stage (Veterans, Active, Up & Comers Years 2–3, Up & Comers Year 1). Also hosts **My Profile** (inline form, shown when signed in as a teacher; moved here from Scheduling July 2026).
@@ -78,6 +78,8 @@ Architecture details in memory: `project_feedback_tab.md`.
 ---
 
 ## Recent changes (August 2026)
+
+**2026-08-10 (later) — Philippians ↔ Faith Builders.** Philippians A3 → **A6**, Faith Builders A6 → **A3**; Agape stays in A3 (Tom's call — a 2nd-service class doesn't have to follow the 1st-service class out of a room). Reason: Faith Builders needed the larger room. **Measured room areas** (net, from the facility map): A3 636, A4 634, A5 637, A6 617, D6 573, D7 600 SF — so A3/A4/A5 are effectively identical and A6 is the only smaller one in that wing, by ~20 SF. Method and the pt-per-foot constants are in the `reference_facility_map_scale` project memory; the short version is that **the two plan sheets are placed at different scales** (page 1 = 1.8790 pt/ft, page 2 = 1.8364 pt/ft, ratio 1291.5/1262.25 read straight off the `cm` transforms in the PDF content stream) and the small storage closets' printed SF are gross, not net, so they're bad calibration targets.
 
 **2026-08-10 — Three-way room swap.** Faith Builders A4 → **A6**, Branches A6 → **D7**, Roots D7 → **A4**. Synago (2nd service) stays in A4, unaffected. Updated in four places: the static ABF Classes cards in `index.html`, the `abfClasses` JS seed array, the Home construction announcement (D7 is now billed as *Branches'* new home, plus the `photos/construction/d7.jpg` caption), and `facility-map.pdf` (+ regenerated `photos/facility-map-thumb.jpg`). Map edit method: the class-name lines are vector text from the July overlay, so this time they were removed with `add_redact_annot` + `apply_redactions(images=PDF_REDACT_IMAGE_NONE)` and redrawn centered on each room's tag — cleaner than stacking another white box, which leaves the old string in the text layer. Room centers: A4 x=343.5, A6 x=429.0, D7 (pg 2) x=399.8; class line is Helvetica 3.85 at baseline y=708.0 (pg 1) / 192.5 (pg 2). **Airtable `ABF Classes.Room` must be changed by hand** — the cloud session can't write to Airtable (PAT is a worker secret), and the ABFs tab reads room from Airtable, not the seed data.
 
