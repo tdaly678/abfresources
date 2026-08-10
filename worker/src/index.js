@@ -1188,8 +1188,10 @@ function horizonLabel(days) {
 }
 
 function buildUpcomingClassEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, daysUntil, portalUrl }) {
-  const first = sortedDays(sundayDates)[0];
+  const all = sortedDays(sundayDates);
+  const first = all[0], last = all[all.length - 1];
   const firstLong = first ? fmtSundayLong(isoOf(first)) : '';
+  const lastLong = last ? fmtSundayLong(isoOf(last)) : '';
   const compactShort = fmtSundaysCompact(sundayDates, true);
   const horizon = horizonLabel(daysUntil);
   const teacherFirst = String(teacherName).split(' ')[0];
@@ -1204,14 +1206,17 @@ function buildUpcomingClassEmail({ teacherName, leaderName, className, service, 
     sundayRow(many ? 'Sundays' : 'Sunday', sundayDates),
   ];
 
+  // "starting on X and ending on Y" for a series; a single Sunday just says
+  // "on X" — "starting and ending" on one date reads like a typo.
+  const span = many
+    ? `starting on ${firstLong} and ending on ${lastLong}`
+    : `on ${firstLong}`;
+
   const plain = `Hi ${teacherFirst} and ${leaderFirst},
 
-A heads-up on a class you both agreed to a while back: ${teacherName} is scheduled to teach in ${className}, starting ${firstLong}${many ? ` (${sortedDays(sundayDates).length} Sundays in all)` : ''}.
+A friendly reminder that ${teacherName} is scheduled to teach in ${className}, ${span}.
 
 ${detailsPlain(rows)}
-
-${teacherFirst} — nothing to do here but prepare; this is just so the date doesn't sneak up on you.
-${leaderFirst} — if anything has changed on either end, now is a good time to sort it out rather than the week of.
 
 Reply to this email and you'll reach each other. The full request is in the portal:
 ${portalUrl}
@@ -1220,10 +1225,8 @@ ${portalUrl}
 
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherFirst)}</strong> and <strong>${escapeHtml(leaderFirst)}</strong>,</p>
-  <p>A heads-up on a class you both agreed to a while back: <strong>${escapeHtml(teacherName)}</strong> is scheduled to teach in <strong>${escapeHtml(className)}</strong>, starting <strong>${escapeHtml(firstLong)}</strong>${many ? ` — ${sortedDays(sundayDates).length} Sundays in all` : ''}.</p>
+  <p>A friendly reminder that <strong>${escapeHtml(teacherName)}</strong> is scheduled to teach in <strong>${escapeHtml(className)}</strong>, ${escapeHtml(span)}.</p>
   ${detailsHtml(rows, '#524B30')}
-  <p style="font-size:14px;"><strong>${escapeHtml(teacherFirst)}</strong> — nothing to do here but prepare; this is just so the date doesn't sneak up on you.<br>
-  <strong>${escapeHtml(leaderFirst)}</strong> — if anything has changed on either end, better to sort it out now than the week of.</p>
   <p style="font-size:13px;color:#6b6050;">You're both on this email, so a reply reaches each other.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
 
