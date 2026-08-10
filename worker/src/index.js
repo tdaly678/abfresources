@@ -157,6 +157,9 @@ function buildConfig(env) {
     bccEmail: env.BCC_EMAIL || '',  // BCC every outgoing email here (admin visibility). Empty = no BCC.
     portalUrl: env.PORTAL_URL || 'https://www.abfresources.com',
     dryRun: env.DRY_RUN === 'true',
+    // KV (the namespace the /api layer rate-limits with) doubles as the store
+    // for flow F's "already reminded" markers — see processUpcomingClassReminders.
+    kv: env.RATE,
     // Rock Ideas & Feedback board (/bri): fixed recipient list, comma-separated.
     rockNotifyEmails: (env.ROCK_NOTIFY_EMAILS || 'daly@lefc.net, brianna.roberts@lefc.net')
       .split(',').map(s => s.trim()).filter(Boolean),
@@ -593,13 +596,22 @@ async function processPendingReminders(cfg, force) {
 //   • Teacher + requesting leader share the To line on purpose — if something
 //     needs sorting out, they can just hit reply and talk to each other.
 //
-// Idempotency: the "Teach Reminder Sent At" stamp is written BEFORE the send,
-// not after. If that field is missing from Airtable the PATCH throws and no
-// email goes out at all — which is the safe way to fail, because a stamp that
-// silently doesn't stick would mean re-sending this every single morning.
+// Idempotency: a "we already sent this" marker in **KV**, not an Airtable
+// field. Every other flow stamps a datetime column, but creating one needs
+// schema permission the worker's Airtable PAT doesn't have (verified
+// 2026-08-10: the Metadata API returns 403 for this token), and this shouldn't
+// wait on a manual field-add. The KV namespace already bound for rate limiting
+// serves fine. The marker is written BEFORE the send: a marker that silently
+// fails to stick would mean re-sending this every single morning, so if KV is
+// unavailable the record errors out and mails nobody.
+//
+// To force a re-send, delete the `f-sent:<recordId>` key (Cloudflare dashboard
+// → Workers → KV → the namespace bound as RATE).
 
 const UPCOMING_REMINDER_DAYS = 30;   // how far out the heads-up fires
 const ACCEPT_GRACE_HOURS = 7 * 24;   // don't nudge someone who just accepted
+const SENT_KEY_PREFIX = 'f-sent:';
+const SENT_KEY_TTL = 400 * 24 * 3600; // long past the 30-day window; keeps KV tidy
 
 // 'YYYY-MM-DD' for today in America/New_York. Using UTC here would roll the
 // date over during the evening and mis-count "days until" by one.
@@ -620,7 +632,7 @@ async function processUpcomingClassReminders(cfg, force, collect) {
   const now = new Date();
   if (!force && nyHour(now) !== REMINDER_SEND_HOUR) return 0;
 
-  const formula = `AND({Status}='Accepted', {Teach Reminder Sent At}=BLANK(), {Teacher}!='', {Requesting Leader}!='')`;
+  const formula = `AND({Status}='Accepted', {Teacher}!='', {Requesting Leader}!='')`;
   const requests = await airtableQuery(cfg, 'Requests', formula);
 
   const today = nyToday();
@@ -630,6 +642,11 @@ async function processUpcomingClassReminders(cfg, force, collect) {
     try {
       const sundayIds = req.fields['Requested Sundays'] || [];
       if (!sundayIds.length) continue;
+
+      if (!cfg.kv) throw new Error('no KV binding — cannot track which reminders were sent');
+      const sentKey = SENT_KEY_PREFIX + req.id;
+      const already = await cfg.kv.get(sentKey);
+      if (already && !cfg.dryRun) continue;
 
       // Requested Sundays is the agreed set even after a counter-proposal —
       // accepting one copies the counter dates in here (see the front end).
@@ -684,14 +701,20 @@ async function processUpcomingClassReminders(cfg, force, collect) {
       if (cfg.bccEmail) bccs.push(cfg.bccEmail);
 
       if (cfg.dryRun) {
-        const preview = { to: [teacherEmail, leaderEmail], bccs, daysUntil, firstIso, subject: email.subject };
+        // Dry runs report records that already went out too, flagged — that's
+        // the only readable answer to "who has been reminded?", since the
+        // marker lives in KV rather than a column Tom can see in Airtable.
+        const preview = {
+          request: req.fields['Request ID'] || req.id,
+          to: [teacherEmail, leaderEmail], bccs, daysUntil, firstIso,
+          subject: email.subject,
+          alreadySent: already || false,
+        };
         console.log('DRY_RUN F:', JSON.stringify(preview));
         if (collect) collect.push(preview);
       } else {
-        // Stamp first: see the note above on why this order matters.
-        await airtableUpdate(cfg, 'Requests', req.id, {
-          'Teach Reminder Sent At': new Date().toISOString(),
-        });
+        // Marker first: see the note above on why this order matters.
+        await cfg.kv.put(sentKey, new Date().toISOString(), { expirationTtl: SENT_KEY_TTL });
         await sendgridSendMulti(cfg, {
           to: [teacherEmail, leaderEmail],
           extraBccs: bccs,
