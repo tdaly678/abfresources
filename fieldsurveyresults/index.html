@@ -481,6 +481,13 @@
         pwError.textContent = 'Could not verify password.';
       } finally { pwBtn.disabled = false; }
     }
+    function unlock() {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      pwScreen.classList.add('hidden');
+      window.__gateUnlocked = true;
+      if (typeof window.__bootResults === 'function') window.__bootResults();
+    }
+
     pwBtn.addEventListener('click', tryPw);
     pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPw(); });
 
@@ -862,6 +869,7 @@
 
     document.getElementById('refresh-btn').addEventListener('click', load);
     window.__bootResults = load;
+    if (window.__gateUnlocked) load();
   })();
   </script>
 </body>
