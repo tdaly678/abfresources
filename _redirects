@@ -15,6 +15,12 @@
 /feedback/    /feedback    301
 
 # Friendly aliases
+# NOTE: do NOT add trailing-slash-stripping rules for real directories like
+# /corebeliefs-questions/ — Cloudflare Pages already 307s /foo -> /foo/ for a
+# directory index, so a /foo/ -> /foo rule here creates a redirect loop. The
+# tab routes above are safe because they are rewrites, not real directories.
+/cbquestions  /corebeliefs-questions/  301
+/cbquestions/ /corebeliefs-questions/  301
 /dates        /key-dates   301
 /dates/       /key-dates   301
 /leaders      /abfs        301

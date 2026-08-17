@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Beliefs — Submitted Questions | LEFC|U</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!--
+    ═══════════════════════════════════════════════════════════════
+    CORE BELIEFS — SUBMITTED QUESTIONS  (abfresources.com/corebeliefs-questions/results)
+    Built 2026-08-17. Prep sheet for the panel on Sunday, August 30, 2026.
+
+    Unlocked with the ADMIN PIN (not the shared site password). That's a
+    deliberate consequence of the ACL, not a preference: the worker only
+    returns Feedback Responses to an admin token or to the teacher who owns
+    the form (worker/src/api.js → apiBootstrap). A gate token gets an empty
+    list, so the `oikos` password used by /fieldsurveyresults cannot work here.
+
+    Data path: POST /api/admin {pin} → token → GET /api/bootstrap with that
+    token → filter feedbackResponses to FORM_ID. bootstrap is used rather than
+    /api/proxy GET because it pages through Airtable server-side (atListAll),
+    so there is no 100-record ceiling to handle here.
+    ═══════════════════════════════════════════════════════════════
+  -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-brown:  #342D25;
+      --gold:        #BCA944;
+      --olive:       #524B30;
+      --terra:       #AA3B24;
+      --steel:       #4A5A66;
+      --light-gray:  #E5E5E4;
+      --white:       #FFFFFF;
+      --text:        #2a2318;
+      --text-muted:  #6b6050;
+      --cream:       #f7eed7;
+      --cream-border:#ddcca5;
+      --radius:      10px;
+      --shadow:      0 2px 12px rgba(52,45,37,.10);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light-gray); color: var(--text);
+      min-height: 100vh; -webkit-font-smoothing: antialiased;
+    }
+    header {
+      background: var(--dark-brown); color: var(--white);
+      padding: 26px 24px; border-bottom: 4px solid var(--gold);
+    }
+    .header-inner { max-width: 880px; margin: 0 auto; }
+    .brand-stack .top { font-weight: 800; letter-spacing: .04em; font-size: 1.05rem; }
+    .brand-stack .top span { color: var(--gold); }
+    .brand-stack .sub {
+      font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cream); opacity: .85; margin-top: 3px;
+    }
+    main { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+    .subtitle {
+      color: var(--terra); font-weight: 700; font-size: .82rem;
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    h1 {
+      color: var(--dark-brown); font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 800; line-height: 1.18; margin-bottom: 18px;
+    }
+
+    /* ─── PIN gate ───────────────────────────────────────────── */
+    #gate {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--terra);
+      padding: 24px 22px; border-radius: var(--radius);
+      box-shadow: var(--shadow); max-width: 420px;
+    }
+    #gate h2 { color: var(--dark-brown); font-size: 1.1rem; margin-bottom: 6px; }
+    #gate p { color: var(--text-muted); font-size: .9rem; line-height: 1.5; margin-bottom: 14px; }
+    .pin-row { display: flex; gap: 10px; }
+    #pin {
+      flex: 1; font-family: inherit; font-size: 1.15rem; font-weight: 700;
+      letter-spacing: .35em; text-align: center;
+      padding: 12px 14px; border: 2px solid var(--cream-border);
+      border-radius: 8px; background: var(--white); color: var(--dark-brown);
+    }
+    #pin:focus { outline: none; border-color: var(--gold); }
+    button.btn {
+      font-family: inherit; font-weight: 700; font-size: .92rem;
+      border-radius: 8px; cursor: pointer; transition: all .15s;
+      border: 2px solid var(--cream-border); background: var(--white);
+      color: var(--dark-brown); padding: 10px 16px;
+    }
+    button.btn:hover { border-color: var(--gold); }
+    button.btn.primary {
+      background: var(--terra); border-color: var(--terra); color: var(--white);
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    button.btn.primary:hover { background: #8a2f1c; border-color: #8a2f1c; }
+    button.btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .status { font-size: .9rem; padding: 10px 14px; border-radius: 8px; line-height: 1.4; margin-top: 12px; }
+    .status.error { background: #fdecea; color: #7a1d0e; border: 1px solid #e8a59a; }
+    .status.info { background: var(--cream); color: var(--olive); border: 1px solid var(--cream-border); }
+
+    /* ─── Toolbar / stats ────────────────────────────────────── */
+    .statbar {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .stat {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-radius: var(--radius); padding: 12px 16px;
+      box-shadow: var(--shadow); flex: 0 1 auto;
+    }
+    .stat .n {
+      font-size: 1.5rem; font-weight: 800; color: var(--dark-brown); line-height: 1;
+    }
+    .stat .l {
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--text-muted); margin-top: 5px;
+    }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      margin-bottom: 20px;
+    }
+    .toolbar select {
+      font-family: inherit; font-size: .92rem; font-weight: 600;
+      color: var(--dark-brown); padding: 10px 14px;
+      border: 2px solid var(--cream-border); border-radius: 8px;
+      background: var(--white); cursor: pointer;
+    }
+    .toolbar select:focus { outline: none; border-color: var(--gold); }
+    .toolbar .spacer { flex: 1 1 auto; }
+
+    /* ─── Question cards ─────────────────────────────────────── */
+    .card {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--olive);
+      border-radius: var(--radius); padding: 18px 20px;
+      margin-bottom: 12px; box-shadow: var(--shadow);
+    }
+    .card.anon { border-left-color: var(--steel); }
+    .card-meta {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      margin-bottom: 10px;
+    }
+    .tag {
+      display: inline-block; font-size: .7rem; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 99px;
+      background: var(--cream); color: var(--olive);
+      border: 1px solid var(--cream-border);
+    }
+    .tag.week { background: var(--dark-brown); color: var(--gold); border-color: var(--dark-brown); }
+    .tag.general { background: var(--white); color: var(--text-muted); }
+    .card-date { font-size: .78rem; color: var(--text-muted); font-weight: 600; }
+    .card-q {
+      color: var(--text); font-size: 1.02rem; line-height: 1.6;
+      white-space: pre-wrap; overflow-wrap: break-word;
+    }
+    .card-who {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px dashed var(--cream-border);
+      font-size: .84rem; color: var(--text-muted); font-weight: 600;
+    }
+    .card-who a { color: var(--terra); }
+    .card-who .anonlabel { font-style: italic; font-weight: 500; }
+    .card-num {
+      float: right; font-size: .78rem; font-weight: 800;
+      color: var(--cream-border);
+    }
+
+    .empty {
+      background: var(--white); border: 1px solid var(--cream-border);
+      border-radius: var(--radius); padding: 34px 24px; text-align: center;
+      color: var(--text-muted); line-height: 1.6; box-shadow: var(--shadow);
+    }
+    .empty strong { color: var(--dark-brown); }
+    .group-head {
+      margin: 26px 0 12px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--gold);
+      color: var(--dark-brown); font-size: 1.05rem; font-weight: 800;
+    }
+    .group-head:first-of-type { margin-top: 4px; }
+    .group-head .cnt { color: var(--text-muted); font-weight: 700; font-size: .85rem; }
+
+    /* ─── Print: a clean prep sheet, no chrome ───────────────── */
+    @media print {
+      body { background: var(--white); }
+      header, .toolbar, #gate, .statbar, .printnote { display: none !important; }
+      main { max-width: none; padding: 0; }
+      h1 { font-size: 1.3rem; margin-bottom: 4px; }
+      .subtitle { color: #000; margin-bottom: 2px; }
+      .card {
+        box-shadow: none; border: 1px solid #bbb; border-left: 3px solid #666;
+        page-break-inside: avoid; margin-bottom: 8px; padding: 12px 14px;
+      }
+      .tag { border: 1px solid #999; background: #fff !important; color: #000 !important; }
+      .group-head { page-break-after: avoid; }
+      a { text-decoration: none; color: #000; }
+    }
+    .printnote { color: var(--text-muted); font-size: .8rem; margin-top: 22px; line-height: 1.5; }
+
+    @media (max-width: 540px) {
+      header { padding: 20px 18px; }
+      .card { padding: 15px 16px; }
+      .stat { flex: 1 1 45%; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand-stack">
+        <div class="top">LEFC<span>|U</span></div>
+        <div class="sub">Lancaster Evangelical Free Church</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="subtitle">Core Beliefs · Panel Prep</div>
+    <h1>Submitted questions &amp; feedback</h1>
+
+    <!-- ═══════ PIN GATE ═══════ -->
+    <div id="gate">
+      <h2>Admin PIN</h2>
+      <p>These submissions include names and email addresses, so this page is
+      locked. Use your admin PIN &mdash; the same one the hub uses for admin override.</p>
+      <div class="pin-row">
+        <input type="password" id="pin" inputmode="numeric" autocomplete="off"
+          maxlength="12" placeholder="••••" aria-label="Admin PIN" />
+        <button type="button" class="btn primary" id="unlockBtn">Unlock</button>
+      </div>
+      <div id="gateStatus" class="status" style="display:none"></div>
+    </div>
+
+    <!-- ═══════ CONTENT ═══════ -->
+    <div id="content" style="display:none">
+      <div class="statbar" id="statbar"></div>
+      <div class="toolbar">
+        <select id="weekFilter" aria-label="Filter by week"></select>
+        <select id="sortBy" aria-label="Sort or group">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="week">Grouped by week</option>
+        </select>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="copyBtn">Copy all</button>
+        <button type="button" class="btn" id="printBtn">Print</button>
+        <button type="button" class="btn" id="refreshBtn">Refresh</button>
+      </div>
+      <div id="list"></div>
+      <div class="printnote">
+        Anonymous submissions are allowed on the form, so a blank name is expected
+        and not an error. Nothing here is deleted automatically &mdash; the form
+        stays open after August 30.
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function(){
+    const API_BASE   = 'https://abf-email-worker.tdaly678.workers.dev/api';
+    const FORM_ID    = 'recVl45LLCj8z3eun';   // Core Beliefs — Panel Questions & Feedback
+    const TOKEN_KEY  = 'cbq_admin_token';
+
+    // Display order for grouping. Anything not in this list sorts to the end.
+    const WEEK_ORDER = [
+      'Introduction', 'God', 'The Bible', 'The Human Condition', 'Jesus Christ',
+      'The Work of Jesus Christ', 'The Holy Spirit', 'The Church',
+      'Christian Living', "Christ's Return", 'Response and Eternal Destiny',
+      'Not sure / general',
+    ];
+
+    const gate       = document.getElementById('gate');
+    const content    = document.getElementById('content');
+    const pinEl      = document.getElementById('pin');
+    const unlockBtn  = document.getElementById('unlockBtn');
+    const gateStatus = document.getElementById('gateStatus');
+    const listEl     = document.getElementById('list');
+    const statbarEl  = document.getElementById('statbar');
+    const weekFilter = document.getElementById('weekFilter');
+    const sortBy     = document.getElementById('sortBy');
+
+    let rows = [];   // [{ id, name, email, week, question, submittedAt }]
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function showGateStatus(msg, type) {
+      gateStatus.style.display = 'block';
+      gateStatus.className = 'status ' + type;
+      gateStatus.textContent = msg;
+    }
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return String(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+        ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    /* ─── Load ──────────────────────────────────────────────── */
+    async function load(token) {
+      listEl.innerHTML = '<div class="empty">Loading…</div>';
+      const res = await fetch(API_BASE + '/bootstrap', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (res.status === 401 || res.status === 403) {
+        // Token expired or was revoked — drop it and ask for the PIN again.
+        sessionStorage.removeItem(TOKEN_KEY);
+        content.style.display = 'none';
+        gate.style.display = 'block';
+        showGateStatus('That session expired. Enter the PIN again.', 'error');
+        return;
+      }
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+      const data = await res.json();
+
+      rows = (data.feedbackResponses || [])
+        .filter(r => ((r.fields || {}).Form || []).includes(FORM_ID))
+        .map(r => {
+          const f = r.fields || {};
+          // The form writes { week, question } into the Answers long-text
+          // field as JSON. Fall back to the raw string if it isn't JSON, so a
+          // hand-entered Airtable row still shows up rather than vanishing.
+          let week = '', question = '';
+          const raw = f.Answers || '';
+          try {
+            const a = JSON.parse(raw);
+            if (a && typeof a === 'object') {
+              week = a.week || '';
+              question = a.question || '';
+            } else {
+              question = String(raw);
+            }
+          } catch { question = String(raw); }
+          return {
+            id: r.id,
+            name: f['Submitter Name'] || '',
+            email: f['Submitter Email'] || '',
+            week: week,
+            question: question,
+            submittedAt: f['Submitted At'] || r.createdTime || '',
+          };
+        })
+        .filter(r => r.question.trim());
+
+      buildWeekFilter();
+      render();
+    }
+
+    function buildWeekFilter() {
+      const present = new Set(rows.map(r => r.week || ''));
+      const opts = ['<option value="__all">All weeks</option>'];
+      WEEK_ORDER.forEach(w => {
+        if (present.has(w)) {
+          const n = rows.filter(r => r.week === w).length;
+          opts.push('<option value="' + escapeHtml(w) + '">' + escapeHtml(w) + ' (' + n + ')</option>');
+        }
+      });
+      const blanks = rows.filter(r => !r.week).length;
+      if (blanks) opts.push('<option value="__none">No week given (' + blanks + ')</option>');
+      const keep = weekFilter.value;
+      weekFilter.innerHTML = opts.join('');
+      if (keep) weekFilter.value = keep;
+      if (!weekFilter.value) weekFilter.value = '__all';
+    }
+
+    function filtered() {
+      const w = weekFilter.value;
+      let out = rows.slice();
+      if (w === '__none') out = out.filter(r => !r.week);
+      else if (w && w !== '__all') out = out.filter(r => r.week === w);
+
+      const mode = sortBy.value;
+      if (mode === 'oldest') {
+        out.sort((a, b) => String(a.submittedAt).localeCompare(String(b.submittedAt)));
+      } else if (mode === 'week') {
+        out.sort((a, b) => {
+          const ia = WEEK_ORDER.indexOf(a.week); const ib = WEEK_ORDER.indexOf(b.week);
+          const ra = ia === -1 ? 999 : ia;       const rb = ib === -1 ? 999 : ib;
+          if (ra !== rb) return ra - rb;
+          return String(a.submittedAt).localeCompare(String(b.submittedAt));
+        });
+      } else {
+        out.sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)));
+      }
+      return out;
+    }
+
+    function render() {
+      const list = filtered();
+      const anon = rows.filter(r => !r.name.trim()).length;
+      const withEmail = rows.filter(r => r.email.trim()).length;
+
+      statbarEl.innerHTML =
+        stat(rows.length, rows.length === 1 ? 'Submission' : 'Submissions') +
+        stat(rows.length - anon, 'Named') +
+        stat(anon, 'Anonymous') +
+        stat(withEmail, 'Want a reply');
+
+      if (!list.length) {
+        listEl.innerHTML = '<div class="empty">' + (rows.length
+          ? '<strong>Nothing in this filter.</strong><br>Try “All weeks”.'
+          : '<strong>No submissions yet.</strong><br>The form is live at ' +
+            'abfresources.com/corebeliefs-questions') + '</div>';
+        return;
+      }
+
+      let html = '';
+      if (sortBy.value === 'week') {
+        let current = null;
+        list.forEach((r, i) => {
+          const label = r.week || 'No week given';
+          if (label !== current) {
+            current = label;
+            const n = list.filter(x => (x.week || 'No week given') === label).length;
+            html += '<div class="group-head">' + escapeHtml(label) +
+              ' <span class="cnt">' + n + '</span></div>';
+          }
+          html += cardHtml(r, i + 1);
+        });
+      } else {
+        list.forEach((r, i) => { html += cardHtml(r, i + 1); });
+      }
+      listEl.innerHTML = html;
+    }
+
+    function stat(n, label) {
+      return '<div class="stat"><div class="n">' + n + '</div><div class="l">' +
+        escapeHtml(label) + '</div></div>';
+    }
+
+    function cardHtml(r, num) {
+      const isAnon = !r.name.trim();
+      const weekTag = r.week
+        ? '<span class="tag week">' + escapeHtml(r.week) + '</span>'
+        : '<span class="tag general">No week given</span>';
+      let who;
+      if (isAnon && !r.email) {
+        who = '<span class="anonlabel">Submitted anonymously</span>';
+      } else {
+        const parts = [];
+        if (r.name) parts.push(escapeHtml(r.name));
+        if (r.email) parts.push('<a href="mailto:' + escapeHtml(r.email) + '">' +
+          escapeHtml(r.email) + '</a>');
+        who = parts.join(' · ');
+      }
+      return '<div class="card' + (isAnon ? ' anon' : '') + '">' +
+        '<span class="card-num">#' + num + '</span>' +
+        '<div class="card-meta">' + weekTag +
+          '<span class="card-date">' + escapeHtml(fmtDate(r.submittedAt)) + '</span>' +
+        '</div>' +
+        '<div class="card-q">' + escapeHtml(r.question) + '</div>' +
+        '<div class="card-who">' + who + '</div>' +
+      '</div>';
+    }
+
+    /* ─── Copy all (plain text, ready to paste into notes) ──── */
+    function plainText() {
+      const list = filtered();
+      const lines = ['CORE BELIEFS — SUBMITTED QUESTIONS & FEEDBACK',
+        list.length + ' of ' + rows.length + ' shown', ''];
+      list.forEach((r, i) => {
+        lines.push((i + 1) + '. [' + (r.week || 'No week given') + ']');
+        lines.push(r.question);
+        const who = r.name || (r.email ? '' : 'anonymous');
+        const bits = [who, r.email].filter(Boolean).join(' · ');
+        lines.push('   — ' + (bits || 'anonymous') + '  (' + fmtDate(r.submittedAt) + ')');
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('copyBtn');
+      const text = plainText();
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = 'Copied';
+      } catch {
+        // Clipboard API needs a secure context and can still be refused —
+        // fall back to a selectable textarea rather than failing silently.
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:10%;left:5%;width:90%;height:60%;z-index:9999';
+        document.body.appendChild(ta);
+        ta.select();
+        btn.textContent = 'Select & copy, then click again';
+        btn.onclick = () => { ta.remove(); btn.textContent = 'Copy all'; btn.onclick = null; };
+        return;
+      }
+      setTimeout(() => { btn.textContent = 'Copy all'; }, 2000);
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      const t = sessionStorage.getItem(TOKEN_KEY);
+      if (!t) return;
+      try { await load(t); } catch (e) {
+        listEl.innerHTML = '<div class="empty"><strong>Could not reload.</strong><br>' +
+          escapeHtml(e.message) + '</div>';
+      }
+    });
+    weekFilter.addEventListener('change', render);
+    sortBy.addEventListener('change', () => { render(); });
+
+    /* ─── Unlock ────────────────────────────────────────────── */
+    async function unlock(token) {
+      sessionStorage.setItem(TOKEN_KEY, token);
+      gate.style.display = 'none';
+      content.style.display = 'block';
+      try {
+        await load(token);
+      } catch (e) {
+        listEl.innerHTML = '<div class="empty"><strong>Could not load submissions.</strong><br>' +
+          escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    async function tryPin() {
+      const pin = pinEl.value.trim();
+      if (!pin) { showGateStatus('Enter your admin PIN.', 'error'); return; }
+      unlockBtn.disabled = true;
+      showGateStatus('Checking…', 'info');
+      try {
+        const res = await fetch(API_BASE + '/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pin }),
+        });
+        if (res.status === 429) {
+          showGateStatus('Too many attempts. Wait about 15 minutes and try again.', 'error');
+          unlockBtn.disabled = false;
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.token) {
+          showGateStatus('That PIN didn’t work.', 'error');
+          pinEl.value = '';
+          pinEl.focus();
+          unlockBtn.disabled = false;
+          return;
+        }
+        gateStatus.style.display = 'none';
+        await unlock(data.token);
+      } catch (e) {
+        console.error(e);
+        showGateStatus('Could not reach the server. Check your connection and try again.', 'error');
+        unlockBtn.disabled = false;
+      }
+    }
+
+    unlockBtn.addEventListener('click', tryPin);
+    pinEl.addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
+
+    // Re-entry within the same tab session skips the PIN.
+    const saved = sessionStorage.getItem(TOKEN_KEY);
+    if (saved) unlock(saved);
+  })();
+  </script>
+</body>
+</html>

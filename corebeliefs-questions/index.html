@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Beliefs — Questions &amp; Feedback | LEFC|U</title>
+  <meta name="description" content="Ask a question or leave feedback on the Core Beliefs class at Lancaster Evangelical Free Church." />
+  <meta name="robots" content="noindex" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!--
+    ═══════════════════════════════════════════════════════════════
+    CORE BELIEFS — QUESTIONS & FEEDBACK  (abfresources.com/corebeliefs-questions)
+    Built 2026-08-17 for the panel on Sunday, August 30, 2026.
+
+    One required question, an optional week selector, optional name/email.
+    Anonymous submissions are allowed by design.
+
+    BACKEND — no new Airtable table, no worker deploy needed:
+      Responses are written to the existing "Feedback Responses" table
+      (`feedbackResponses`) linked to the Feedback Forms record FORM_ID below
+      ("Core Beliefs — Panel Questions & Feedback", created 2026-08-17).
+      POST /api/proxy on that table is PUBLIC + rate-limited by IP in the
+      worker (see worker/src/api.js, case 'feedbackResponses'), so this page
+      needs no auth and holds no token.
+
+      The week + question text ride in the `Answers` long-text field as JSON:
+        { "week": "<selection or ''>", "question": "<their text>" }
+      That's the same field the hub's survey forms use, so nothing new had to
+      be added to the Airtable schema (the worker's PAT cannot create fields).
+
+    READING THE SUBMISSIONS: /corebeliefs-questions/results (admin PIN).
+    Side effect worth knowing: the email worker's Flow D sees each new
+    Feedback Response and emails the form's linked teacher (Tom) within
+    ~5 minutes. It links to /?tab=feedback, not the results page.
+    ═══════════════════════════════════════════════════════════════
+  -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-brown:  #342D25;
+      --gold:        #BCA944;
+      --olive:       #524B30;
+      --terra:       #AA3B24;
+      --light-gray:  #E5E5E4;
+      --white:       #FFFFFF;
+      --text:        #2a2318;
+      --text-muted:  #6b6050;
+      --cream:       #f7eed7;
+      --cream-border:#ddcca5;
+      --radius:      10px;
+      --shadow:      0 2px 12px rgba(52,45,37,.10);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light-gray);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    header {
+      background: var(--dark-brown);
+      color: var(--white);
+      padding: 28px 24px;
+      border-bottom: 4px solid var(--gold);
+    }
+    .header-inner {
+      max-width: 760px; margin: 0 auto;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .brand-stack { line-height: 1.15; }
+    .brand-stack .top { font-weight: 800; letter-spacing: .04em; font-size: 1.05rem; }
+    .brand-stack .top span { color: var(--gold); }
+    .brand-stack .sub {
+      font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cream); opacity: .85; margin-top: 3px;
+    }
+
+    main { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    h1.page-title {
+      color: var(--dark-brown);
+      font-size: clamp(1.45rem, 4vw, 1.95rem);
+      font-weight: 800; line-height: 1.18; margin-bottom: 8px;
+    }
+    .subtitle {
+      color: var(--terra); font-weight: 700; font-size: .82rem;
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 18px;
+    }
+    .intro {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--terra);
+      padding: 18px 20px;
+      border-radius: var(--radius);
+      color: var(--text); line-height: 1.55; font-size: .98rem;
+      box-shadow: var(--shadow); margin-bottom: 24px;
+    }
+    .intro p + p { margin-top: 10px; }
+    .intro .est {
+      display: inline-block; font-size: .78rem; color: var(--text-muted);
+      font-weight: 600; letter-spacing: .06em; margin-top: 8px;
+    }
+
+    /* ─── Question cards ─────────────────────────────────────── */
+    .q {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-radius: var(--radius);
+      padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .q-number {
+      display: inline-block;
+      background: var(--terra); color: var(--white);
+      font-weight: 800; font-size: .72rem;
+      padding: 3px 10px; border-radius: 99px;
+      letter-spacing: .06em; margin-bottom: 8px;
+    }
+    .q-number.optional { background: var(--olive); }
+    .q-text {
+      color: var(--dark-brown); font-weight: 700; font-size: 1.06rem;
+      line-height: 1.4; margin-bottom: 4px;
+    }
+    .q-text .opt { color: var(--text-muted); font-weight: 500; font-size: .85rem; }
+    .q-help { color: var(--text-muted); font-size: .88rem; margin-bottom: 12px; line-height: 1.45; }
+
+    .text-input, .text-area, .select-input {
+      width: 100%;
+      font-family: inherit; font-size: .98rem;
+      padding: 12px 14px;
+      border: 2px solid var(--cream-border);
+      border-radius: 8px;
+      background: var(--white); color: var(--text);
+      resize: vertical;
+    }
+    .text-input:focus, .text-area:focus, .select-input:focus {
+      outline: none; border-color: var(--gold);
+    }
+    .text-area { min-height: 150px; line-height: 1.55; }
+
+    /* Native select, restyled to match the text inputs. Kept native so it
+       behaves properly on phones (most people will fill this out on one). */
+    .select-input {
+      appearance: none; -webkit-appearance: none;
+      font-weight: 600; color: var(--dark-brown);
+      cursor: pointer;
+      padding-right: 42px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23AA3B24' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-size: 12px 8px;
+    }
+    .select-input:invalid, .select-input.placeholder { color: var(--text-muted); font-weight: 500; }
+
+    .field-pair { display: flex; gap: 14px; flex-wrap: wrap; }
+    .field-pair > div { flex: 1 1 220px; min-width: 0; }
+    .field-pair label {
+      display: block; font-weight: 700; font-size: .88rem;
+      color: var(--dark-brown); margin-bottom: 6px;
+    }
+
+    .char-count {
+      text-align: right; font-size: .78rem; color: var(--text-muted);
+      margin-top: 6px; font-weight: 600;
+    }
+
+    .submit-row {
+      margin-top: 22px;
+      display: flex; flex-direction: column; gap: 12px; align-items: stretch;
+    }
+    button.submit {
+      background: var(--terra); color: var(--white);
+      border: none; border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: inherit; font-size: 1.05rem; font-weight: 800;
+      letter-spacing: .04em; text-transform: uppercase;
+      cursor: pointer; transition: background .15s;
+    }
+    button.submit:hover { background: #8a2f1c; }
+    button.submit:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+    .status { font-size: .92rem; padding: 10px 14px; border-radius: 8px; line-height: 1.4; }
+    .status.error { background: #fdecea; color: #7a1d0e; border: 1px solid #e8a59a; }
+    .status.info { background: var(--cream); color: var(--olive); border: 1px solid var(--cream-border); }
+
+    .required-mark { color: var(--terra); font-weight: 800; margin-left: 2px; }
+
+    .thanks {
+      background: var(--white);
+      border: 1px solid var(--cream-border);
+      border-left: 4px solid var(--gold);
+      padding: 34px 28px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .thanks .check {
+      width: 56px; height: 56px;
+      border: 3px solid var(--gold); border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--gold); font-size: 1.8rem; font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .thanks h2 { color: var(--dark-brown); font-size: 1.55rem; margin-bottom: 14px; }
+    .thanks p { color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+    .thanks p:last-of-type { margin-bottom: 0; }
+    .thanks .sig {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px dashed var(--cream-border);
+      color: var(--olive); font-weight: 700; font-size: .95rem;
+    }
+    .thanks a { color: var(--terra); font-weight: 700; }
+    .again {
+      margin-top: 22px;
+      display: inline-block;
+      background: var(--white); color: var(--dark-brown);
+      border: 2px solid var(--cream-border); border-radius: 8px;
+      padding: 12px 20px;
+      font-family: inherit; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: border-color .15s;
+    }
+    .again:hover { border-color: var(--gold); }
+
+    footer.pagefoot {
+      max-width: 760px; margin: 0 auto; padding: 0 20px 40px;
+      color: var(--text-muted); font-size: .82rem; line-height: 1.5;
+    }
+
+    @media (max-width: 540px) {
+      header { padding: 22px 18px; }
+      .q { padding: 16px 16px; }
+      .thanks { padding: 26px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand-stack">
+        <div class="top">LEFC<span>|U</span></div>
+        <div class="sub">Lancaster Evangelical Free Church</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="form-view">
+      <div class="subtitle">Core Beliefs · Questions &amp; Feedback</div>
+      <h1 class="page-title">Ask your question</h1>
+
+      <div class="intro">
+        <p>Working through what we believe raises questions. That's a good sign, not a
+        problem. Ask yours here and we'll take as many as we can in the panel on
+        <strong>Sunday, August 30</strong>.</p>
+        <p>Feedback on the class is welcome too. Put your name on it or leave it blank
+        &mdash; both are fine, and nobody's grading you.</p>
+        <span class="est">One question. Takes about a minute.</span>
+      </div>
+
+      <!-- The question — required -->
+      <div class="q">
+        <div class="q-number">YOUR QUESTION</div>
+        <div class="q-text">What's your question, or your feedback?<span class="required-mark">*</span></div>
+        <div class="q-help">Write as much or as little as you want. A single sentence is plenty.</div>
+        <textarea class="text-area" id="question" data-field="question"
+          placeholder="Type it however it comes out — we'll sort out the wording."
+          maxlength="4000" aria-label="What's your question, or your feedback?"></textarea>
+        <div class="char-count"><span id="charCount">0</span> / 4000</div>
+      </div>
+
+      <!-- Week — optional -->
+      <div class="q">
+        <div class="q-number optional">OPTIONAL</div>
+        <div class="q-text">Which week is this about? <span class="opt">(optional)</span></div>
+        <div class="q-help">Helps us group the questions. Pick &ldquo;Not sure / general&rdquo; if it doesn't fit one week.</div>
+        <select class="select-input placeholder" id="week" aria-label="Which week is this about?">
+          <option value="">Choose a week…</option>
+        </select>
+      </div>
+
+      <!-- Name / email — optional -->
+      <div class="q">
+        <div class="q-number optional">OPTIONAL</div>
+        <div class="q-text">Your name and email <span class="opt">(optional)</span></div>
+        <div class="q-help">Only if you'd like a reply, or don't mind us knowing it's you.
+          Leave both blank to stay anonymous.</div>
+        <div class="field-pair">
+          <div>
+            <label for="name">Name</label>
+            <input type="text" class="text-input" id="name" data-field="name"
+              placeholder="First and last" autocomplete="name" maxlength="120" />
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input type="email" class="text-input" id="email" data-field="email"
+              placeholder="you@example.com" autocomplete="email" maxlength="200" />
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <div id="status" class="status" style="display:none"></div>
+        <button type="button" class="submit" id="submitBtn">Send it in</button>
+      </div>
+    </div>
+
+    <!-- ═══════ CONFIRMATION ═══════ -->
+    <div id="thanks-view" class="thanks" style="display:none">
+      <div class="check">&#10003;</div>
+      <h2>Thank you.</h2>
+      <p>Your question is in. We'll work through as many as we can on August 30, and
+      I'll be honest with you &mdash; we probably won't get to every one. Not because
+      yours isn't worth answering. Because good questions take time, and I'd rather
+      answer a few of them well than rush all of them.</p>
+      <p>If we don't get to yours, it isn't lost. Come find me after, or email me at
+      <a href="mailto:daly@lefc.net">daly@lefc.net</a>.</p>
+      <div class="sig">Tom</div>
+      <button type="button" class="again" id="againBtn">Ask another question</button>
+    </div>
+  </main>
+
+  <footer class="pagefoot">
+    Core Beliefs is part of LEFC|U adult ministry &middot;
+    <a href="https://www.abfresources.com/videos" style="color:var(--olive);font-weight:700">Watch the sessions</a>
+  </footer>
+
+  <script>
+  (function(){
+    // Submissions go through the worker API. Public + rate-limited server-side;
+    // no Airtable token or password lives in this file.
+    const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
+
+    // Feedback Forms record: "Core Beliefs — Panel Questions & Feedback"
+    // (created 2026-08-17, linked to Tom's teacher record).
+    const FORM_ID = 'recVl45LLCj8z3eun';
+
+    // Order matches the EFCA Statement of Faith articles as taught in the class.
+    const WEEKS = [
+      'Introduction',
+      'God',
+      'The Bible',
+      'The Human Condition',
+      'Jesus Christ',
+      'The Work of Jesus Christ',
+      'The Holy Spirit',
+      'The Church',
+      'Christian Living',
+      "Christ's Return",
+      'Response and Eternal Destiny',
+      'Not sure / general',
+    ];
+
+    const weekEl     = document.getElementById('week');
+    const questionEl = document.getElementById('question');
+    const nameEl     = document.getElementById('name');
+    const emailEl    = document.getElementById('email');
+    const statusEl   = document.getElementById('status');
+    const btn        = document.getElementById('submitBtn');
+    const countEl    = document.getElementById('charCount');
+
+    WEEKS.forEach(w => {
+      const o = document.createElement('option');
+      o.value = w;
+      o.textContent = w;
+      weekEl.appendChild(o);
+    });
+    // Grey placeholder styling until they actually pick something.
+    weekEl.addEventListener('change', () => {
+      weekEl.classList.toggle('placeholder', !weekEl.value);
+    });
+
+    questionEl.addEventListener('input', () => {
+      countEl.textContent = questionEl.value.length;
+      if (statusEl.style.display === 'block' && questionEl.value.trim()) {
+        statusEl.style.display = 'none';
+      }
+    });
+
+    function showStatus(msg, type) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'status ' + type;
+      statusEl.textContent = msg;
+      statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function emailLooksValid(e) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+    }
+
+    btn.addEventListener('click', async () => {
+      const question = questionEl.value.trim();
+      const week     = weekEl.value;
+      const name     = nameEl.value.trim();
+      const email    = emailEl.value.trim();
+
+      // The question is the only required field. Anonymous is fine.
+      if (!question) {
+        showStatus('Add your question or feedback before sending — that part we need.', 'error');
+        questionEl.focus();
+        return;
+      }
+      // Email is optional, but a typo'd address is worth catching since it's
+      // the only way back to them.
+      if (email && !emailLooksValid(email)) {
+        showStatus('That email address doesn’t look quite right. Fix it, or clear it to stay anonymous.', 'error');
+        emailEl.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      showStatus('Sending…', 'info');
+
+      const fields = {
+        'Form': [FORM_ID],
+        'Submitted At': new Date().toISOString(),
+        'Answers': JSON.stringify({ week: week, question: question }),
+      };
+      if (name)  fields['Submitter Name']  = name;
+      if (email) fields['Submitter Email'] = email;
+
+      try {
+        const res = await fetch(API_BASE + '/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'POST',
+            table: 'feedbackResponses',
+            body: { fields: fields, typecast: true },
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error('[submit]', res.status, txt);
+          if (res.status === 429) {
+            showStatus('That’s a lot of questions from one connection — give it an hour and try again, or email Tom at daly@lefc.net.', 'error');
+            btn.disabled = false;
+            return;
+          }
+          throw new Error('Server returned ' + res.status);
+        }
+        document.getElementById('form-view').style.display = 'none';
+        document.getElementById('thanks-view').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        console.error(err);
+        showStatus('Something went wrong sending that. Please try again, or email Tom at daly@lefc.net.', 'error');
+        btn.disabled = false;
+      }
+    });
+
+    // "Ask another question" — reset rather than reload, so people with more
+    // than one thing on their mind don't have to re-find the page.
+    document.getElementById('againBtn').addEventListener('click', () => {
+      questionEl.value = '';
+      countEl.textContent = '0';
+      weekEl.value = '';
+      weekEl.classList.add('placeholder');
+      // Name and email are intentionally kept — same person, next question.
+      statusEl.style.display = 'none';
+      btn.disabled = false;
+      document.getElementById('thanks-view').style.display = 'none';
+      document.getElementById('form-view').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      questionEl.focus();
+    });
+  })();
+  </script>
+</body>
+</html>
