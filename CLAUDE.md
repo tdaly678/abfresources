@@ -48,8 +48,17 @@ A combined video forces both audiences to sit through content that isn't theirs.
 
 ## Architecture
 
-- **Frontend**: static HTML at the root of this folder (`index.html`, `404.html`). Push to the GitHub repo to deploy. Repo and token details: see memory `reference_github.md`.
-- **Hosting (corrected 2026-08-03)**: served by **Cloudflare Pages**, *not* GitHub Pages. GitHub Pages is disabled on the repo (the Pages API returns 404); the leftover `CNAME` file was deleted 2026-08-03. Deploys propagate a few minutes after a push — if the live site looks stale, wait rather than assuming a cache problem.
+- **Frontend**: static HTML at the root of this folder (`index.html`, `404.html`). Repo and token details: see memory `reference_github.md`.
+- **Hosting (corrected 2026-08-17 — the earlier note here was wrong)**: served by a Cloudflare **Worker with static assets** named `abfresources`, *not* Cloudflare Pages and *not* GitHub Pages. There are **zero Pages projects** on the account (verified against the Cloudflare API). Both `www.abfresources.com` and the apex are Worker custom domains.
+- **⚠️ A GIT PUSH DOES NOT DEPLOY THE SITE.** Every deployment's source is `wrangler` — there is no GitHub integration, no Workers Build, and no `.github/` workflow. Pushing is version control only; deploying is a separate manual step. Do not wait for a push to propagate — it never will. (On 2026-08-17 a commit sat live-invisible for ~50 minutes because of this note.) Full deploy recipe, including two non-obvious gotchas, is in memory `reference_cloudflare.md`; the short version, run on Tom's Mac:
+  ```bash
+  rm -rf /tmp/abfdeploy && mkdir -p /tmp/abfdeploy/public
+  cd <clean clone> && tar --exclude='.git' --exclude='.wrangler' -cf - . \
+    | (cd /tmp/abfdeploy/public && tar -xf -)
+  cd /tmp/abfdeploy   # assets MUST be a subdir, or wrangler's own .wrangler/ cache gets published
+  npx wrangler@latest deploy --name abfresources --assets=./public --compatibility-date=2026-08-17
+  ```
+  `.git` must be excluded or the deploy hard-fails: the pack file is 43.6 MiB vs the 25 MiB per-asset limit. Allow ~40–60s for propagation after wrangler reports success.
   - **Canonical host is `www.abfresources.com`.** The apex `abfresources.com` 301-redirects to www. Note `abfresources.com/index.html` 307-redirects to `/`, so always test against `https://www.abfresources.com/` — the other forms return redirects with no body and can look like stale content.
   - **~~Known issue~~ RESOLVED (verified 2026-08-05):** the apex empty-`Location` redirect bug is fixed. A Redirect Rule named **"Apex to www"** now exists in the Cloudflare dashboard (Rules → Redirect Rules): custom filter `Hostname equals abfresources.com` → Dynamic redirect `concat("https://www.abfresources.com", http.request.uri.path)`, 301, preserve query string, placed First. Verified live: apex paths, `?f=` query strings, `/12345` short codes, and plain-http all redirect correctly to www with path intact. Don't recreate or "fix" this rule — it's correct as-is.
 - **Backend (scheduling + feedback)**: Airtable. Schema is documented in `SCHEDULING_TOOL_AIRTABLE_SETUP.md`.
@@ -184,7 +193,7 @@ ABF Resources/
 ## Operating notes for Claude
 
 - **The user's name is Tom.** Email: `daly@lefc.net`. He's the human backstop for everything ABF.
-- **Push changes via Git.** The site deploys from the GitHub repo (see memory). Don't expect Netlify-style auto-deploys outside that workflow.
+- **Push changes via Git, then deploy separately with `wrangler`.** There are **no auto-deploys of any kind** — not Netlify-style, not from the GitHub repo. See the Architecture section above for the deploy command, and memory `reference_cloudflare.md` for the full recipe.
 - **Don't auto-create new top-level docs at the root.** Use existing docs (`SCHEDULING_TODO_TOM.md`, `SCHEDULING_TOOL_AIRTABLE_SETUP.md`, this file) and the `walkthroughs/` subfolder. Add new docs to subfolders unless asked.
 - **Skills to use proactively for this project**: `lefc-branding` (any visual material), `lefc-sof` (any teaching/doctrinal content), `lefc-rock` (Rock RMS context if it ever comes up).
 - **For walkthrough/training content, default to the leader/teacher split** — confirm audience up front and produce two versions.
