@@ -37,6 +37,17 @@
 
 const STATUSES_TO_EMAIL = ['Accepted', 'Declined', 'Counter-Proposed'];
 
+// Feedback Forms that are free-text question boxes rather than template
+// surveys. Their `Answers` field is {week, question} instead of a big blob of
+// ratings, so Flow D can put the actual question in the notification and link
+// to that form's own results page. Any form NOT listed here keeps the generic
+// "someone submitted a response" email — dumping a template survey's Answers
+// JSON into an email would be unreadable.
+const QUESTION_BOX_FORMS = {
+  // Core Beliefs panel question box — /corebeliefs-questions (built 2026-08-17)
+  recVl45LLCj8z3eun: { resultsPath: '/corebeliefs-questions/results/' },
+};
+
 import { handleApi } from './api.js';
 
 export default {
@@ -423,10 +434,29 @@ async function processNewFeedbackResponses(cfg) {
         continue;
       }
 
-      const email = buildFeedbackResponseEmail({
-        teacherName, formTitle, submitterName, submittedAt,
-        portalUrl: cfg.portalUrl + '/?tab=feedback',
-      });
+      // Question-box forms get the question itself in the email; everything
+      // else keeps the generic notification.
+      const qbox = QUESTION_BOX_FORMS[formId];
+      let answers = null;
+      if (qbox) {
+        try { answers = JSON.parse(resp.fields['Answers'] || '{}'); } catch { answers = null; }
+      }
+      const hasQuestion = answers && typeof answers.question === 'string' && answers.question.trim();
+
+      const email = hasQuestion
+        ? buildQuestionBoxEmail({
+            teacherName, formTitle,
+            submitterName: resp.fields['Submitter Name'] || '',
+            submitterEmail: resp.fields['Submitter Email'] || '',
+            week: answers.week || '',
+            question: answers.question.trim(),
+            submittedAt,
+            resultsUrl: cfg.portalUrl + qbox.resultsPath,
+          })
+        : buildFeedbackResponseEmail({
+            teacherName, formTitle, submitterName, submittedAt,
+            portalUrl: cfg.portalUrl + '/?tab=feedback',
+          });
 
       if (cfg.dryRun) {
         console.log('DRY_RUN D:', JSON.stringify({ to: teacherEmail, subject: email.subject }));
@@ -1169,6 +1199,56 @@ ${portalUrl}
   <p style="background:#f7eed7;border-left:3px solid #524B30;padding:10px 14px;margin:14px 0;font-size:13px;color:#524B30;">Submitted ${escapeHtml(submittedReadable)}</p>
   <p style="margin-top:22px;">${ctaButton('See response in the portal', portalUrl)}</p>
   <p style="margin-top:14px;font-size:13px;color:#6b6050;">Tip: the portal's <strong>Summary</strong> view aggregates patterns across all responses; <strong>Individual</strong> shows each one.</p>`);
+  return { subject, plain, html };
+}
+
+/* Question-box notification (Flow D, for forms in QUESTION_BOX_FORMS).
+   Puts the submitted question in the body so Tom can read it from his phone
+   without opening anything, and links to that form's results page rather than
+   the Feedback tab. Anonymous submissions are expected — a blank name is
+   rendered as "Anonymous", not treated as missing data. */
+function buildQuestionBoxEmail({ teacherName, formTitle, submitterName, submitterEmail,
+                                 week, question, submittedAt, resultsUrl }) {
+  const who = submitterName.trim() || 'Anonymous';
+  const isAnon = !submitterName.trim();
+  const submittedReadable = formatTimestamp(submittedAt);
+  const weekLabel = week || 'No week given';
+
+  // Keep the subject readable in a phone notification: first line of the
+  // question, trimmed to something that won't get truncated mid-word.
+  let preview = question.replace(/\s+/g, ' ').trim();
+  if (preview.length > 80) preview = preview.slice(0, 77).replace(/\s+\S*$/, '') + '…';
+  const subject = `New question (${weekLabel}): ${preview}`;
+
+  const plain = `Hi ${teacherName},
+
+A new question came in on "${formTitle}".
+
+Week: ${weekLabel}
+From: ${who}${submitterEmail ? ' <' + submitterEmail + '>' : (isAnon ? ' (no name given)' : '')}
+Submitted: ${submittedReadable}
+
+${question}
+
+See every question in one list:
+${resultsUrl}
+
+— ABF Feedback`;
+
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
+  <p>A new question came in on <strong>"${escapeHtml(formTitle)}"</strong>.</p>
+  <p style="margin:14px 0 6px;">
+    <span style="display:inline-block;background:#342D25;color:#BCA944;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:99px;">${escapeHtml(weekLabel)}</span>
+  </p>
+  <div style="background:#fff;border:1px solid #ddcca5;border-left:4px solid #AA3B24;border-radius:6px;padding:16px 18px;margin:12px 0 16px;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(question)}</div>
+  <p style="font-size:13px;color:#6b6050;margin:0 0 4px;">
+    From: <strong>${escapeHtml(who)}</strong>${isAnon ? ' <em>(submitted anonymously)</em>' : ''}${submitterEmail ? ' &middot; <a href="mailto:' + escapeHtml(submitterEmail) + '" style="color:#AA3B24;">' + escapeHtml(submitterEmail) + '</a>' : ''}
+  </p>
+  <p style="font-size:13px;color:#6b6050;margin:0;">Submitted ${escapeHtml(submittedReadable)}</p>
+  <p style="margin-top:22px;">${ctaButton('See all questions', resultsUrl)}</p>
+  <p style="margin-top:14px;font-size:13px;color:#6b6050;">The results page needs your admin PIN. It groups questions by week and has copy/print for panel prep.</p>`);
+
   return { subject, plain, html };
 }
 
