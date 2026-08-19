@@ -122,7 +122,7 @@
     .q-number.optional { background: var(--olive); }
     .q-text {
       color: var(--dark-brown); font-weight: 700; font-size: 1.06rem;
-      line-height: 1.4; margin-bottom: 4px;
+      line-height: 1.4; margin-bottom: 12px;
     }
     .q-text .opt { color: var(--text-muted); font-weight: 500; font-size: .85rem; }
     .q-help { color: var(--text-muted); font-size: .88rem; margin-bottom: 12px; line-height: 1.45; }
@@ -271,7 +271,6 @@
       <div class="q">
         <div class="q-number optional">OPTIONAL</div>
         <div class="q-text">Which week is this about? <span class="opt">(optional)</span></div>
-        <div class="q-help">Helps us group the questions. Pick &ldquo;Not sure / general&rdquo; if it doesn't fit one week.</div>
         <select class="select-input placeholder" id="week" aria-label="Which week is this about?">
           <option value="">Choose a week…</option>
         </select>
@@ -281,8 +280,6 @@
       <div class="q">
         <div class="q-number optional">OPTIONAL</div>
         <div class="q-text">Your name and email <span class="opt">(optional)</span></div>
-        <div class="q-help">Only if you'd like a reply, or don't mind us knowing it's you.
-          Leave both blank to stay anonymous.</div>
         <div class="field-pair">
           <div>
             <label for="name">Name</label>
