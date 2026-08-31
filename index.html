@@ -1432,6 +1432,149 @@
       border-top: 1px solid var(--light-gray);
     }
 
+    /* Clickable catalog cards (added 2026-08-31) — the whole card opens
+       the course detail modal, which carries the Request CTA. Buttons and
+       links inside the card still win (they stopPropagation). */
+    .course-item.is-clickable { cursor: pointer; transition: transform .12s ease, box-shadow .15s ease, border-top-color .15s ease; }
+    .course-item.is-clickable:hover,
+    .course-item.is-clickable:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.13);
+      border-top-color: var(--terra);
+      outline: none;
+    }
+    .course-item .course-more {
+      font-size: .68rem; font-weight: 800;
+      letter-spacing: .05em; text-transform: uppercase;
+      color: var(--steel-blue);
+      margin-top: .1rem;
+    }
+
+    /* ── Course detail modal (added 2026-08-31) ───────────── */
+    .course-detail { padding: 1.6rem 1.6rem 1.4rem; }
+    .course-detail h2 {
+      font-size: 1.35rem; font-weight: 800;
+      color: var(--dark-brown); line-height: 1.25;
+      margin: 0 0 .3rem; padding-right: 1.5rem;
+    }
+    .course-detail .cd-teacher {
+      font-size: .85rem; font-weight: 700;
+      color: var(--steel-blue); margin-bottom: .15rem;
+    }
+    .course-detail .cd-weeks {
+      font-size: .72rem; font-weight: 700;
+      letter-spacing: .05em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: .8rem;
+    }
+    .course-detail .cd-desc {
+      font-size: .9rem; line-height: 1.65;
+      color: var(--text); margin: .9rem 0 1.1rem;
+      white-space: pre-wrap;
+    }
+    .course-detail .cd-actions {
+      display: flex; gap: .5rem; flex-wrap: wrap;
+      padding-top: .9rem; border-top: 1px solid var(--light-gray);
+    }
+    .course-detail .cd-note {
+      font-size: .72rem; color: var(--text-muted);
+      margin-top: .55rem; line-height: 1.5;
+    }
+
+    /* ── Mobilization tab (added 2026-08-31) ──────────────────
+       Ministry-visit accounts (LEFC Mobilization, LEFC Elders) get a
+       card-first view: no filters, a handful of cards, each showing the
+       Sundays that visit is actually open. */
+    .mob-group { margin-bottom: 2rem; }
+    .mob-group-head {
+      display: flex; align-items: baseline;
+      flex-wrap: wrap; gap: .6rem;
+      margin-bottom: .2rem;
+    }
+    .mob-group-head h3 {
+      font-size: 1.05rem; font-weight: 800;
+      color: var(--dark-brown); margin: 0;
+    }
+    .mob-group-contact { font-size: .76rem; color: var(--text-muted); }
+    .mob-group-contact a { color: var(--steel-blue); font-weight: 700; }
+    .mob-group-rule {
+      height: 3px; width: 46px; background: var(--gold);
+      border-radius: 2px; margin: .45rem 0 1rem;
+    }
+    .mob-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.1rem;
+    }
+    .mob-card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .mob-card .mob-ribbon {
+      background: linear-gradient(135deg, var(--terra), #6d2a19);
+      color: #fff;
+      font-size: .68rem; font-weight: 800;
+      letter-spacing: .09em; text-transform: uppercase;
+      padding: .5rem .95rem;
+    }
+    .mob-card.tone-steel .mob-ribbon { background: linear-gradient(135deg, var(--steel-blue), #2a3d47); }
+    .mob-card .mob-body { padding: .95rem 1.05rem 1.05rem; flex: 1; display: flex; flex-direction: column; }
+    .mob-card h4 {
+      font-size: 1.02rem; font-weight: 800;
+      color: var(--dark-brown); margin: 0 0 .3rem;
+    }
+    .mob-card .mob-weeks {
+      font-size: .7rem; font-weight: 700;
+      letter-spacing: .05em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: .5rem;
+    }
+    .mob-card .mob-desc {
+      font-size: .82rem; line-height: 1.6;
+      color: var(--text); margin-bottom: .8rem;
+    }
+    .mob-sundays-label {
+      font-size: .68rem; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase;
+      color: var(--dark-brown); margin-bottom: .4rem;
+    }
+    .mob-sundays {
+      display: flex; flex-wrap: wrap; gap: .3rem;
+      margin-bottom: .8rem;
+    }
+    .mob-sunday {
+      font-size: .7rem; font-weight: 700;
+      padding: .28em .6em; border-radius: 6px;
+      background: rgba(110,141,58,.16); color: #4c6029;
+      border: 1px solid rgba(110,141,58,.3);
+      white-space: nowrap;
+    }
+    .mob-sunday .svc { font-weight: 600; opacity: .8; }
+    .mob-sunday.tentative { background: rgba(188,169,68,.2); color: #6e5d12; border-color: rgba(188,169,68,.45); }
+    .mob-sunday.booked {
+      background: var(--light-gray); color: var(--text-muted);
+      border-color: var(--light-gray); text-decoration: line-through;
+    }
+    .mob-sunday.more {
+      background: transparent; color: var(--text-muted);
+      border-style: dashed; border-color: var(--text-muted);
+    }
+    .mob-sundays-none {
+      font-size: .78rem; font-style: italic;
+      color: var(--text-muted); margin-bottom: .8rem;
+    }
+    .mob-card .mob-actions {
+      margin-top: auto;
+      padding-top: .75rem; border-top: 1px solid var(--light-gray);
+      display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    }
+    .mob-card .mob-contact {
+      font-size: .7rem; color: var(--text-muted); line-height: 1.5;
+      margin-top: .5rem;
+    }
+    .mob-card .mob-contact a { color: var(--steel-blue); font-weight: 700; }
+
     /* Topic-tag pills shown on each course card and as togglable filter
        chips above the leader-side catalog. The .tone-* modifiers tint
        a tag by topic family (Scripture / Doctrine / Christian living /
@@ -2895,6 +3038,7 @@
       <button class="tab-btn" data-tab="courses">Video Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
       <button class="tab-btn" data-tab="catalog">Courses</button>
+      <button class="tab-btn" data-tab="mobilization">Mobilization</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
       <button class="tab-btn" data-tab="feedback">Feedback</button>
     </div>
@@ -3671,6 +3815,26 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ── MOBILIZATION (ministry visits) ──────────────────
+         Card view of the special-visit accounts — LEFC Mobilization
+         (global partners home from the field) and LEFC Elders. These
+         courses still live in the Courses catalog; this tab surfaces
+         them on their own so leaders can see, at a glance, who's in
+         town and which Sundays are open. Added 2026-08-31. -->
+    <div class="tab-pane" id="tab-mobilization">
+      <div class="page-header">
+        <h2>Mobilization</h2>
+        <div class="gold-rule"></div>
+        <p class="page-sub">Global partners and elders available to visit your ABF &mdash; usually for a single Sunday, and usually only while they&rsquo;re in town.</p>
+      </div>
+
+      <div class="sched-notice">
+        <strong>These visits are time-limited.</strong> Each card shows the Sundays that visit is actually open. ABF leaders: sign in and you can send the request straight from a card &mdash; the coordinator confirms the details with you directly.
+      </div>
+
+      <div id="mob-content"></div>
     </div>
 
     <!-- ── SCHEDULING ─────────────────────────────────────── -->
@@ -4532,6 +4696,19 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════
+     COURSE DETAIL MODAL (added 2026-08-31)
+     Opened by clicking any card in the Courses catalog. Carries the
+     full description plus the "Request this course" CTA so a leader
+     never has to leave for the Scheduling tab and re-pick the teacher.
+════════════════════════════════════════════════════════════ -->
+<div id="course-detail-modal" class="sched-modal">
+  <div class="sched-modal-inner">
+    <button type="button" class="sched-modal-close" id="course-detail-close" aria-label="Close">&times;</button>
+    <div class="course-detail" id="course-detail-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
      TEACHER SELF-REGISTRATION MODAL
 ════════════════════════════════════════════════════════════ -->
 <!-- ════════════════════════════════════════════════════════
@@ -5243,7 +5420,13 @@
       };
     },
     _mapLeader(r) { const f = r.fields || {}; return { id: r.id, name: f.Name || '', email: f.Email || '', phone: f.Phone || '', abfClassId: (f['ABF Class'] || [])[0] || '', active: !!f.Active }; },
-    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available }; },
+    /* 'Visit Sundays' (added 2026-08-31) is an optional link to the
+       Sundays table, used only by ministry-visit courses (LEFC
+       Mobilization / LEFC Elders). Availability lives on the teacher
+       ACCOUNT, so when several global partners share one account it
+       can't say which Sunday belongs to which partner — this field
+       can. Blank on every ordinary course. */
+    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available, visitSundayIds: Array.isArray(f['Visit Sundays']) ? f['Visit Sundays'].slice() : [] }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', service: f.Service || '1st Service', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
@@ -6103,7 +6286,11 @@
           if (document.getElementById('tab-scheduling').classList.contains('active')) renderScheduling();
           if (document.getElementById('tab-teachers').classList.contains('active')) renderTeachersRoster();
           if (document.getElementById('tab-catalog')?.classList.contains('active')) renderAvailableCoursesGrid();
+          if (document.getElementById('tab-mobilization')?.classList.contains('active')) renderMobilizationCards();
           if (document.getElementById('tab-leaders').classList.contains('active')) renderLeadersRoster();
+          // If they clicked "Request this course" before signing in, pick
+          // that request back up now (added 2026-08-31).
+          resumePendingCourseRequest();
         }).catch(err => console.warn('[signin] reload failed', err));
         toast('success', 'Signed in', isAdmin
           ? 'Acting as ' + person.name + ' (admin override).'
@@ -7527,7 +7714,12 @@
             : (c.minWeeks || '?') + '–' + (c.maxWeeks || '?') + ' weeks')
         : 'Weeks flexible';
       const item = document.createElement('div');
-      item.className = 'course-item';
+      // Whole card is clickable → course detail modal (added 2026-08-31).
+      item.className = 'course-item is-clickable';
+      item.tabIndex = 0;
+      item.setAttribute('role', 'button');
+      item.dataset.courseId = c.id;
+      item.setAttribute('aria-label', 'View details for ' + (c.title || 'this course'));
       item.innerHTML =
         '<h4>' + escapeHtml(c.title || '(untitled course)') + '</h4>' +
         '<div class="course-weeks">' + escapeHtml(wkLabel) + '</div>' +
@@ -7538,9 +7730,29 @@
             ? '<a href="#" class="course-teacher-link" data-teacher-id="' + teacher.id + '" style="color:var(--steel-blue);">' + escapeHtml(teacher.name) + '</a>'
             : escapeHtml(teacherName)) +
         '</div>' +
-        '<div class="course-desc">' + escapeHtml(c.description || 'No description provided.') + '</div>' +
+        '<div class="course-desc">' + escapeHtml(truncateText(c.description || 'No description provided.', 190)) + '</div>' +
+        '<div class="course-more">View details &rarr;</div>' +
         buildCatalogCourseActions(c);
       list.appendChild(item);
+    });
+
+    // Card click / Enter / Space → course detail modal. Buttons and the
+    // teacher link inside the card handle their own clicks (they call
+    // stopPropagation below), so they never double-fire.
+    list.querySelectorAll('.course-item.is-clickable').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button, a')) return;
+        openCourseDetailModal(card.dataset.courseId);
+      });
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openCourseDetailModal(card.dataset.courseId);
+        }
+      });
+    });
+    list.querySelectorAll('.course-item button, .course-item a').forEach(el => {
+      el.addEventListener('click', e => e.stopPropagation());
     });
 
     // Wire teacher-name links → open the same read-only profile modal the grid uses.
@@ -7566,7 +7778,7 @@
         } catch (e) { toast('error', 'Could not delete', 'Try again.'); console.error(e); }
       }
     }));
-    list.querySelectorAll('[data-request]').forEach(b => b.addEventListener('click', () => requestCourseFromCatalog(b.dataset.request)));
+    list.querySelectorAll('[data-request]').forEach(b => b.addEventListener('click', () => startCourseRequest(b.dataset.request)));
   }
 
   /* Action buttons on a catalog card: Edit/Remove on your own courses
@@ -7614,8 +7826,372 @@
       if (tSel) { tSel.value = c.teacherId || ''; if (tSel.onchange) tSel.onchange(); }
       const cSel = document.getElementById('l-req-course');
       if (cSel) { cSel.value = c.id; if (cSel.onchange) cSel.onchange(); }
+      // A ministry visit carries its own dates — pre-tick them so the
+      // leader isn't left hunting for the Sunday they just clicked.
+      const visits = courseVisitSundays(c).filter(v => !v.booked);
+      if (visits.length) {
+        visits.forEach(v => {
+          const pick = document.querySelector('#l-req-sundays .sunday-pick[data-sid="' + v.sunday.id + '"]');
+          if (pick && !pick.classList.contains('selected')) pick.click();
+        });
+        const wrap = document.getElementById('l-req-sundays');
+        if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }, 80);
   }
+
+  /* ─── Course detail modal + the shared "request this course" entry
+     point (added 2026-08-31) ─────────────────────────────────────
+     Before this, only a signed-in leader saw any affordance on a
+     catalog card — everyone else hit a dead end. Now the whole card
+     opens a detail modal, and the CTA inside it works for anyone:
+     leaders go straight to a pre-filled request; everyone else gets
+     the sign-in prompt and, once they sign in as a leader, the
+     request they wanted is resumed automatically. */
+
+  // Course a visitor asked to request before signing in. Consumed by
+  // resumePendingCourseRequest() after a successful sign-in.
+  let _pendingCourseRequestId = null;
+
+  function truncateText(s, max) {
+    const str = String(s == null ? '' : s).trim();
+    if (str.length <= max) return str;
+    return str.slice(0, max).replace(/\s+\S*$/, '') + '…';
+  }
+
+  /* The single entry point for "I want this course taught in my class."
+     Works from a catalog card, the detail modal, or a Mobilization card. */
+  function startCourseRequest(courseId) {
+    const c = DataStore.listCourses().find(x => x.id === courseId);
+    if (!c) return;
+    if (Identity.asLeader()) {
+      closeCourseDetailModal();
+      requestCourseFromCatalog(courseId);
+      return;
+    }
+    // Not signed in as a leader — remember what they wanted, then ask.
+    _pendingCourseRequestId = courseId;
+    closeCourseDetailModal();
+    const teacher = c.teacherId ? DataStore.getTeacher(c.teacherId) : null;
+    openLockedTabPrompt('leader', {
+      title: 'Sign in to send this request',
+      msg: 'Teaching requests come from an ABF leader, so we know which class is asking. Sign in with the last 4 digits of your phone number and we’ll pick right back up with ' +
+           (c.title ? '“' + c.title + '”' : 'this course') +
+           (teacher ? ' and ' + teacher.name : '') + ' already filled in.',
+    });
+  }
+
+  /* Called after a successful sign-in. If the person is now a leader and
+     asked for a course before signing in, resume that request. */
+  function resumePendingCourseRequest() {
+    if (!_pendingCourseRequestId) return;
+    const courseId = _pendingCourseRequestId;
+    _pendingCourseRequestId = null;
+    if (!Identity.asLeader()) return;
+    setTimeout(() => requestCourseFromCatalog(courseId), 120);
+  }
+
+  function openCourseDetailModal(courseId) {
+    const c = DataStore.listCourses().find(x => x.id === courseId);
+    if (!c) return;
+    const body = document.getElementById('course-detail-body');
+    if (!body) return;
+    const teacher = c.teacherId ? DataStore.getTeacher(c.teacherId) : null;
+    const wkLabel = (c.minWeeks || c.maxWeeks)
+      ? (c.minWeeks === c.maxWeeks
+          ? c.minWeeks + ' week' + (c.minWeeks === 1 ? '' : 's')
+          : (c.minWeeks || '?') + '–' + (c.maxWeeks || '?') + ' weeks')
+      : 'Weeks flexible';
+    const isLeader = !!Identity.asLeader();
+    body.innerHTML =
+      '<h2>' + escapeHtml(c.title || '(untitled course)') + '</h2>' +
+      (teacher
+        ? '<div class="cd-teacher">Taught by <a href="#" class="course-teacher-link" data-teacher-id="' + teacher.id + '" style="color:var(--steel-blue);">' + escapeHtml(teacher.name) + '</a></div>'
+        : '') +
+      '<div class="cd-weeks">' + escapeHtml(wkLabel) + '</div>' +
+      renderCourseTagPills(c.tags) +
+      // Ministry visits carry their own dates — show them here too.
+      (typeof courseVisitSundays === 'function' && courseVisitSundays(c).length
+        ? renderVisitSundayChips(courseVisitSundays(c))
+        : '') +
+      '<div class="cd-desc">' + escapeHtml(c.description || 'No description provided.') + '</div>' +
+      '<div class="cd-actions">' +
+        '<button class="btn btn-primary" id="cd-request">Request this course</button>' +
+        '<button class="btn btn-ghost" id="cd-cancel">Close</button>' +
+      '</div>' +
+      '<div class="cd-note">' + (isLeader
+        ? 'This opens a new request with the teacher and course already chosen &mdash; you just pick the Sundays.'
+        : 'ABF leaders can send this request after signing in. We&rsquo;ll keep your place.') +
+      '</div>';
+    document.getElementById('course-detail-modal').classList.add('visible');
+    const reqBtn = document.getElementById('cd-request');
+    if (reqBtn) reqBtn.addEventListener('click', () => startCourseRequest(c.id));
+    const cancelBtn = document.getElementById('cd-cancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeCourseDetailModal);
+    body.querySelectorAll('.course-teacher-link').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        closeCourseDetailModal();
+        openTeacherProfileModal(a.dataset.teacherId);
+      });
+    });
+  }
+  function closeCourseDetailModal() {
+    const m = document.getElementById('course-detail-modal');
+    if (m) m.classList.remove('visible');
+  }
+  function setupCourseDetailModal() {
+    const modal = document.getElementById('course-detail-modal');
+    if (!modal || modal.dataset.bound === '1') return;
+    modal.dataset.bound = '1';
+    const close = document.getElementById('course-detail-close');
+    if (close) close.addEventListener('click', closeCourseDetailModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeCourseDetailModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && modal.classList.contains('visible')) closeCourseDetailModal();
+    });
+  }
+  setupCourseDetailModal();
+
+  /* ════════════════════════════════════════════════════════
+     MOBILIZATION TAB (added 2026-08-31)
+     Ministry accounts are Teacher records that stand for a ministry,
+     not a person (see the "ministry accounts" project memory). Their
+     courses are one-Sunday visits that only make sense while the
+     partner is in town, so they get a card-first tab of their own —
+     no filters, no sort, just who's available and when. They still
+     appear in the Courses catalog; this is an additional view.
+  ════════════════════════════════════════════════════════════ */
+  const MINISTRY_ACCOUNTS = [
+    {
+      name: 'LEFC Mobilization',
+      heading: 'Global Partner Visits',
+      ribbon: 'Global Partner Visit',
+      tone: '',
+      contactName: 'Allison Garver',
+      contactEmail: 'a.garver@lefc.net',
+      blurb: 'Partners home from the field, available to share about their work and how your class can pray.',
+    },
+    {
+      name: 'LEFC Elders',
+      heading: 'Elder Visits',
+      ribbon: 'Elder Visit',
+      tone: 'steel',
+      contactName: 'Tyler Ranck',
+      contactEmail: 'elders@lefc.net',
+      blurb: 'Two elders visit your class to connect, answer questions, and cast vision for what’s ahead.',
+    },
+  ];
+
+  /* Sundays this ministry course is actually open, across both services.
+     Returns [{ sunday, services: [{ service, status, booked }] }] for
+     in-session Sundays that are today or later and have at least one
+     Available/Tentative answer. */
+  function ministryOpenSundays(teacherId) {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const avail = DataStore.listAvailabilityForTeacher(teacherId);
+    if (!avail.length) return [];
+    const bookedKeys = new Set();
+    DataStore.listRequests()
+      .filter(r => r.status === 'Accepted' && r.teacherId === teacherId)
+      .forEach(r => (r.requestedSundayIds || []).forEach(sid => {
+        bookedKeys.add(sid + '|' + (r.service || '1st Service'));
+      }));
+    const out = [];
+    DataStore.listSundaysInSession().forEach(s => {
+      if (!s.date || s.date < todayIso) return;
+      const services = avail
+        .filter(a => a.sundayId === s.id && (a.status === 'Available' || a.status === 'Tentative'))
+        .map(a => ({
+          service: a.service || '1st Service',
+          status: a.status,
+          booked: bookedKeys.has(s.id + '|' + (a.service || '1st Service')),
+        }))
+        .sort((a, b) => a.service.localeCompare(b.service));
+      if (services.length) out.push({ sunday: s, services });
+    });
+    return out;
+  }
+
+  /* The Sundays a specific visit is offering, from the course's own
+     'Visit Sundays' link (added 2026-08-31). This is what lets four
+     global partners share one LEFC Mobilization account and still show
+     four different sets of dates. A Sunday counts as taken only when
+     THIS course has an Accepted request on it — two partners visiting
+     two different classes on the same Sunday is normal, so we never
+     grey a date out because a sibling course was booked.
+     Returns [{ sunday, booked }] in date order; past Sundays dropped. */
+  function courseVisitSundays(course) {
+    const ids = (course && course.visitSundayIds) || [];
+    if (!ids.length) return [];
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const bookedSundayIds = new Set();
+    DataStore.listRequests()
+      .filter(r => r.status === 'Accepted' && r.courseId === course.id)
+      .forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSundayIds.add(sid)));
+    return DataStore.listSundays()
+      .filter(s => ids.indexOf(s.id) !== -1 && s.date && s.date >= todayIso)
+      .map(s => ({ sunday: s, booked: bookedSundayIds.has(s.id) }));
+  }
+
+  function renderVisitSundayChips(entries) {
+    const chips = entries.map(e =>
+      '<span class="mob-sunday ' + (e.booked ? 'booked' : '') + '" title="' +
+        (e.booked ? 'Already booked' : 'Open') + '">' +
+        escapeHtml(fmtSundayShort(e.sunday.date)) + '</span>');
+    return '<div class="mob-sundays-label">Visit date' + (entries.length === 1 ? '' : 's') + '</div>' +
+           '<div class="mob-sundays">' + chips.join('') + '</div>';
+  }
+
+  /* One chip per Sunday (not per service) so a ministry that's open all
+     year doesn't render 60 chips. Services are summarized on the chip;
+     a Sunday whose services are all booked is struck through. Only the
+     first MOB_CHIP_LIMIT are shown, with a "+N more" tail. */
+  const MOB_CHIP_LIMIT = 8;
+
+  function renderMinistrySundayChips(entries) {
+    if (!entries.length) {
+      return '<div class="mob-sundays-none">No open Sundays posted yet &mdash; check back, or email the coordinator below.</div>';
+    }
+    const shown = entries.slice(0, MOB_CHIP_LIMIT);
+    const chips = shown.map(e => {
+      const open = e.services.filter(s => !s.booked);
+      const allBooked = open.length === 0;
+      const pool = allBooked ? e.services : open;
+      const svcLabel = pool.length > 1
+        ? 'both'
+        : pool[0].service.replace(' Service', '');
+      const cls = allBooked
+        ? 'booked'
+        : (pool.every(s => s.status === 'Tentative') ? 'tentative' : '');
+      const title = allBooked
+        ? 'Already booked'
+        : pool.map(s => s.service + ': ' + s.status).join(' · ');
+      return '<span class="mob-sunday ' + cls + '" title="' + escapeHtml(title) + '">' +
+        escapeHtml(fmtSundayShort(e.sunday.date)) +
+        ' <span class="svc">' + escapeHtml(svcLabel) + '</span></span>';
+    });
+    const extra = entries.length - shown.length;
+    if (extra > 0) {
+      chips.push('<span class="mob-sunday more" title="See the Teacher Availability grid on the Scheduling tab for the full list">+' +
+        extra + ' more</span>');
+    }
+    return '<div class="mob-sundays-label">Open Sundays</div>' +
+           '<div class="mob-sundays">' + chips.join('') + '</div>';
+  }
+
+  function renderMobilizationCards() {
+    const host = document.getElementById('mob-content');
+    if (!host) return;
+    host.innerHTML = '';
+
+    const teachers = DataStore.listTeachers();
+    let anyCards = false;
+
+    MINISTRY_ACCOUNTS.forEach(acct => {
+      const teacher = teachers.find(t => (t.name || '').trim().toLowerCase() === acct.name.toLowerCase());
+      if (!teacher) return;
+      // Visits with dates first, soonest at the top; the rest after, A–Z.
+      const firstDate = c => {
+        const v = courseVisitSundays(c);
+        return v.length ? v[0].sunday.date : '';
+      };
+      const courses = DataStore.listCourses({ teacherId: teacher.id })
+        .slice()
+        .sort((a, b) => {
+          const da = firstDate(a), db = firstDate(b);
+          if (da && db) return da.localeCompare(db);
+          if (da) return -1;
+          if (db) return 1;
+          return (a.title || '').localeCompare(b.title || '');
+        });
+      if (!courses.length) return;
+      anyCards = true;
+
+      const group = document.createElement('div');
+      group.className = 'mob-group';
+      const contactLine = acct.contactEmail
+        ? 'Coordinated by <a href="mailto:' + escapeHtml(acct.contactEmail) + '">' +
+          escapeHtml(acct.contactName || acct.contactEmail) + '</a>'
+        : '';
+      group.innerHTML =
+        '<div class="mob-group-head">' +
+          '<h3>' + escapeHtml(acct.heading) + '</h3>' +
+          '<span class="mob-group-contact">' + contactLine + '</span>' +
+        '</div>' +
+        '<div class="mob-group-rule"></div>' +
+        '<div class="mob-list"></div>';
+
+      const list = group.querySelector('.mob-list');
+      const openSundays = ministryOpenSundays(teacher.id);
+      courses.forEach(c => {
+        // A course with its own Visit Sundays shows exactly those dates;
+        // otherwise fall back to whatever the ministry account has open.
+        const visitDates = courseVisitSundays(c);
+        const cardTitle = c.title || '(untitled visit)';
+        const sundayBlock = visitDates.length
+          ? renderVisitSundayChips(visitDates)
+          : renderMinistrySundayChips(openSundays);
+        const wkLabel = (c.minWeeks || c.maxWeeks)
+          ? (c.minWeeks === c.maxWeeks
+              ? c.minWeeks + ' Sunday' + (c.minWeeks === 1 ? '' : 's')
+              : (c.minWeeks || '?') + '–' + (c.maxWeeks || '?') + ' Sundays')
+          : 'Length flexible';
+        const card = document.createElement('div');
+        card.className = 'mob-card' + (acct.tone ? ' tone-' + acct.tone : '');
+        card.innerHTML =
+          '<div class="mob-ribbon">' + escapeHtml(acct.ribbon) + '</div>' +
+          '<div class="mob-body">' +
+            '<h4>' + escapeHtml(cardTitle) + '</h4>' +
+            '<div class="mob-weeks">' + escapeHtml(wkLabel) + '</div>' +
+            renderCourseTagPills(c.tags) +
+            '<div class="mob-desc">' + escapeHtml(truncateText(c.description || acct.blurb, 230)) + '</div>' +
+            sundayBlock +
+            '<div class="mob-actions">' +
+              '<button class="btn btn-primary btn-sm" data-mob-request="' + c.id + '">Request this visit</button>' +
+              '<button class="btn btn-ghost btn-sm" data-mob-detail="' + c.id + '">Details</button>' +
+            '</div>' +
+            (acct.contactEmail
+              ? '<div class="mob-contact">Questions? ' + escapeHtml(acct.contactName || '') +
+                ' &mdash; <a href="mailto:' + escapeHtml(acct.contactEmail) + '">' + escapeHtml(acct.contactEmail) + '</a></div>'
+              : '') +
+          '</div>';
+        list.appendChild(card);
+      });
+
+      host.appendChild(group);
+    });
+
+    if (!anyCards) {
+      host.innerHTML = '<div class="sched-empty">' +
+        '<div class="icon">🌍</div>' +
+        '<h3>No visits posted right now</h3>' +
+        '<p>When a global partner is home from the field, or the elders open a round of class visits, they’ll show up here with the Sundays they’re available.</p>' +
+        '</div>';
+      return;
+    }
+
+    host.querySelectorAll('[data-mob-request]').forEach(b =>
+      b.addEventListener('click', () => startCourseRequest(b.dataset.mobRequest)));
+    host.querySelectorAll('[data-mob-detail]').forEach(b =>
+      b.addEventListener('click', () => openCourseDetailModal(b.dataset.mobDetail)));
+  }
+
+  /* Render the Mobilization tab (loads Airtable first if needed). */
+  async function renderMobilizationTab() {
+    const host = document.getElementById('mob-content');
+    if (!Airtable._cache) {
+      if (host) host.innerHTML = '<div class="sched-empty"><p>Loading visits…</p></div>';
+      try { await Airtable.ensureLoaded(); }
+      catch (e) {
+        if (host) host.innerHTML = '<div class="sched-empty"><div class="icon">⚠️</div>' +
+          '<h3>Couldn’t load visits</h3><p>Check your connection and refresh.</p></div>';
+        return;
+      }
+    }
+    renderMobilizationCards();
+  }
+  window.renderMobilizationTab = renderMobilizationTab;
 
   /* Build (or refresh) the controls above the catalog list. Safe to
      call repeatedly — we set a flag so listeners are only bound once,
@@ -10023,17 +10599,19 @@
       return;
     }
     origShowTab(id);
-    if (id === 'scheduling') renderScheduling();
-    if (id === 'catalog')    renderCatalogTab();
-    if (id === 'teachers')   renderTeachersRoster();
-    if (id === 'feedback')   renderFeedbackTab();
+    if (id === 'scheduling')   renderScheduling();
+    if (id === 'catalog')      renderCatalogTab();
+    if (id === 'mobilization') renderMobilizationTab();
+    if (id === 'teachers')     renderTeachersRoster();
+    if (id === 'feedback')     renderFeedbackTab();
   };
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.tab === 'scheduling') renderScheduling();
-      if (btn.dataset.tab === 'catalog')    renderCatalogTab();
-      if (btn.dataset.tab === 'teachers')   renderTeachersRoster();
-      if (btn.dataset.tab === 'feedback')   renderFeedbackTab();
+      if (btn.dataset.tab === 'scheduling')   renderScheduling();
+      if (btn.dataset.tab === 'catalog')      renderCatalogTab();
+      if (btn.dataset.tab === 'mobilization') renderMobilizationTab();
+      if (btn.dataset.tab === 'teachers')     renderTeachersRoster();
+      if (btn.dataset.tab === 'feedback')     renderFeedbackTab();
     });
   });
 
@@ -10050,13 +10628,14 @@
     courses:    '/videos',      // tab id 'courses' is the Video Resources tab; /resources 301s here
     teachers:   '/teachers',
     catalog:    '/courses',     // tab id 'catalog' is the Courses catalog
+    mobilization: '/mobilization',
     scheduling: '/scheduling',
     feedback:   '/feedback'
   };
   const TAB_TITLES = {
     classes: 'ABF Classes', leaders: 'ABFs', dates: 'Key Dates',
     courses: 'Video Resources', teachers: 'Teachers', catalog: 'Courses',
-    scheduling: 'Scheduling', feedback: 'Feedback'
+    mobilization: 'Mobilization', scheduling: 'Scheduling', feedback: 'Feedback'
   };
   const BASE_TITLE = 'ABF Leader Resources | LEFC';
   const PATH_TO_TAB = {};
@@ -10212,6 +10791,7 @@
     if (document.getElementById('tab-teachers').classList.contains('active'))   renderTeachersRoster();
     if (document.getElementById('tab-leaders').classList.contains('active'))    renderLeadersRoster();
     if (document.getElementById('tab-catalog')?.classList.contains('active'))   renderAvailableCoursesGrid();
+    if (document.getElementById('tab-mobilization')?.classList.contains('active')) renderMobilizationCards();
   });
 
   // Initial refresh: the Feedback tab's "Create Survey" / "My Surveys"

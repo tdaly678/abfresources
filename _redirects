@@ -11,6 +11,7 @@
 /videos/      /videos      301
 /teachers/    /teachers    301
 /courses/     /courses     301
+/mobilization/ /mobilization 301
 /scheduling/  /scheduling  301
 /feedback/    /feedback    301
 
@@ -35,5 +36,6 @@
 /videos       /            200
 /teachers     /            200
 /courses      /            200
+/mobilization /            200
 /scheduling   /            200
 /feedback     /            200
