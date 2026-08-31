@@ -3038,7 +3038,7 @@
       <button class="tab-btn" data-tab="courses">Video Resources</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
       <button class="tab-btn" data-tab="catalog">Courses</button>
-      <button class="tab-btn" data-tab="mobilization">Mobilization</button>
+      <button class="tab-btn" data-tab="mobilization">Special Visits</button>
       <button class="tab-btn" data-tab="scheduling">Scheduling</button>
       <button class="tab-btn" data-tab="feedback">Feedback</button>
     </div>
@@ -3817,15 +3817,17 @@
       </div>
     </div>
 
-    <!-- ── MOBILIZATION (ministry visits) ──────────────────
+    <!-- ── SPECIAL VISITS (ministry visits) ─────────────────
          Card view of the special-visit accounts — LEFC Mobilization
          (global partners home from the field) and LEFC Elders. These
          courses still live in the Courses catalog; this tab surfaces
          them on their own so leaders can see, at a glance, who's in
-         town and which Sundays are open. Added 2026-08-31. -->
+         town and which Sundays are open. Added 2026-08-31; renamed from
+         "Mobilization" the same day so it covers elder visits too. The
+         internal tab id stays `mobilization`. -->
     <div class="tab-pane" id="tab-mobilization">
       <div class="page-header">
-        <h2>Mobilization</h2>
+        <h2>Special Visits</h2>
         <div class="gold-rule"></div>
         <p class="page-sub">Global partners and elders available to visit your ABF &mdash; usually for a single Sunday, and usually only while they&rsquo;re in town.</p>
       </div>
@@ -10628,18 +10630,20 @@
     courses:    '/videos',      // tab id 'courses' is the Video Resources tab; /resources 301s here
     teachers:   '/teachers',
     catalog:    '/courses',     // tab id 'catalog' is the Courses catalog
-    mobilization: '/mobilization',
+    mobilization: '/special-visits', // tab id 'mobilization'; /mobilization 301s here
     scheduling: '/scheduling',
     feedback:   '/feedback'
   };
   const TAB_TITLES = {
     classes: 'ABF Classes', leaders: 'ABFs', dates: 'Key Dates',
     courses: 'Video Resources', teachers: 'Teachers', catalog: 'Courses',
-    mobilization: 'Mobilization', scheduling: 'Scheduling', feedback: 'Feedback'
+    mobilization: 'Special Visits', scheduling: 'Scheduling', feedback: 'Feedback'
   };
   const BASE_TITLE = 'ABF Leader Resources | LEFC';
   const PATH_TO_TAB = {};
   Object.keys(TAB_ROUTES).forEach(t => { PATH_TO_TAB[TAB_ROUTES[t]] = t; });
+  // Old paths that should still open the right tab if someone kept a link.
+  PATH_TO_TAB['/mobilization'] = 'mobilization';
 
   function currentRoutePath() {
     const p = location.pathname.replace(/\/+$/, '');

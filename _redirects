@@ -11,7 +11,7 @@
 /videos/      /videos      301
 /teachers/    /teachers    301
 /courses/     /courses     301
-/mobilization/ /mobilization 301
+/special-visits/ /special-visits 301
 /scheduling/  /scheduling  301
 /feedback/    /feedback    301
 
@@ -28,6 +28,8 @@
 /leaders/     /abfs        301
 /resources    /videos      301
 /resources/   /videos      301
+/mobilization  /special-visits  301
+/mobilization/ /special-visits  301
 
 # Tab routes -> the single-page hub
 /classes      /            200
@@ -36,6 +38,6 @@
 /videos       /            200
 /teachers     /            200
 /courses      /            200
-/mobilization /            200
+/special-visits /          200
 /scheduling   /            200
 /feedback     /            200
