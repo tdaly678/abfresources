@@ -2082,6 +2082,19 @@
       background: rgba(170,59,36,.06);
       cursor: pointer;
     }
+    /* Ministry visits (global partner / elder) only offer specific Sundays;
+       every other date is locked rather than merely discouraged. */
+    .sunday-pick.locked {
+      opacity: .3;
+      background: repeating-linear-gradient(45deg, #f4f2ee, #f4f2ee 4px, #e9e5dd 4px, #e9e5dd 8px);
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+    .sunday-pick.locked:hover { border-color: var(--light-gray); }
+    /* Live count under the request picker: green once the pick count is
+       inside the course's Min/Max Weeks, muted-red while it's short. */
+    .pick-count-ok    { color: #4c6029; font-weight: 700; }
+    .pick-count-short { color: var(--terra); font-weight: 700; }
     /* Marks the Sundays the leader originally asked for, inside the
        teacher's counter-propose picker (added 2026-08-06). */
     .sunday-pick.requested {
@@ -3954,8 +3967,10 @@
 
             <div class="form-row">
               <label class="form-label">Sundays you'd like them</label>
+              <p class="sched-notice" id="l-req-sundays-note" style="display:none;margin-bottom:.7rem;"></p>
               <div class="sunday-picker" id="l-req-sundays"></div>
-              <p class="form-help">Click multiple. We'll mark dates the teacher has flagged as unavailable, but you can still send the request.</p>
+              <p class="form-help" id="l-req-sundays-help">Click multiple. We'll mark dates the teacher has flagged as unavailable, but you can still send the request.</p>
+              <p class="form-help" id="l-req-sundays-count" style="margin-top:.2rem;"></p>
             </div>
 
             <div class="form-row">
@@ -7828,14 +7843,15 @@
       if (tSel) { tSel.value = c.teacherId || ''; if (tSel.onchange) tSel.onchange(); }
       const cSel = document.getElementById('l-req-course');
       if (cSel) { cSel.value = c.id; if (cSel.onchange) cSel.onchange(); }
-      // A ministry visit carries its own dates — pre-tick them so the
-      // leader isn't left hunting for the Sunday they just clicked.
+      // A ministry visit is a single Sunday: pre-tick it only when the visit
+      // offers exactly one open date. With several on offer the leader has a
+      // real choice to make, so we scroll to the picker and leave it to them.
       const visits = courseVisitSundays(c).filter(v => !v.booked);
+      if (visits.length === 1) {
+        const pick = document.querySelector('#l-req-sundays .sunday-pick[data-sid="' + visits[0].sunday.id + '"]');
+        if (pick && !pick.classList.contains('selected')) pick.click();
+      }
       if (visits.length) {
-        visits.forEach(v => {
-          const pick = document.querySelector('#l-req-sundays .sunday-pick[data-sid="' + v.sunday.id + '"]');
-          if (pick && !pick.classList.contains('selected')) pick.click();
-        });
         const wrap = document.getElementById('l-req-sundays');
         if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -8593,6 +8609,9 @@
       const isOther = sel.value === '__other__';
       if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
       if (!isOther && otherInp) otherInp.value = '';
+      // The Sunday picker depends on the course for ministry visits (their
+      // dates live on the course), so re-render it whenever this changes.
+      renderSundayPicker(teacherId, sel.value);
     };
     // Reset visibility on every re-render.
     if (otherWrap) otherWrap.style.display = 'none';
@@ -8600,7 +8619,54 @@
   }
 
   let _selectedSundayIds = [];
-  function renderSundayPicker(teacherId) {
+
+  /* Is this teacher one of the ministry-visit accounts (LEFC Mobilization /
+     LEFC Elders)? Returns the MINISTRY_ACCOUNTS entry, or null. */
+  function ministryAccountForTeacher(teacherId) {
+    if (!teacherId || typeof MINISTRY_ACCOUNTS === 'undefined') return null;
+    const t = DataStore.getTeacher(teacherId);
+    if (!t) return null;
+    const name = (t.name || '').trim().toLowerCase();
+    return MINISTRY_ACCOUNTS.find(a => a.name.toLowerCase() === name) || null;
+  }
+
+  /* Ministry visits (a global partner home from the field, an elder visit)
+     are ONE Sunday on a date the ministry has already committed to — not a
+     "here are five Sundays that work for us, pick one" request. So when the
+     chosen course belongs to a ministry account the picker changes shape
+     (added 2026-08-31):
+       • only that visit's own Sundays are selectable — everything else is
+         locked, because asking a partner for a Sunday they aren't in town
+         for just creates an email round-trip to decline it;
+       • picking is single-select — a second click moves the choice rather
+         than adding to it.
+     Allowed dates come from the course's own Visit Sundays; a ministry
+     course without them (the elders) falls back to the account's Available
+     /Tentative Sundays for this class's service.
+     Everything else in the catalog keeps the old multi-select behavior. */
+  function ministryPickerRules(teacherId, courseId, svc) {
+    const acct = ministryAccountForTeacher(teacherId);
+    if (!acct) return null;
+    const course = courseId && courseId !== '__other__'
+      ? DataStore.listCourses().find(c => c.id === courseId)
+      : null;
+    // "Other (describe below)" or no course chosen yet: single-select, but
+    // fall back to the account's own availability for the allowed set.
+    const visit = course ? courseVisitSundays(course) : [];
+    let allowed;
+    if (visit.length) {
+      allowed = new Set(visit.filter(v => !v.booked).map(v => v.sunday.id));
+    } else {
+      allowed = new Set(
+        DataStore.listAvailabilityForTeacher(teacherId, svc)
+          .filter(a => a.status === 'Available' || a.status === 'Tentative')
+          .map(a => a.sundayId)
+      );
+    }
+    return { acct, allowed, single: true, hasVisitDates: visit.length > 0 };
+  }
+
+  function renderSundayPicker(teacherId, courseId) {
     _selectedSundayIds = [];
     const wrap = document.getElementById('l-req-sundays');
     wrap.innerHTML = '';
@@ -8614,15 +8680,82 @@
     const availMap = {};
     teacherAvail.forEach(a => availMap[a.sundayId] = a.status);
 
+    // If the course argument wasn't passed, read whatever the course
+    // dropdown currently holds — the picker is re-rendered from both.
+    if (courseId === undefined) {
+      const cSel = document.getElementById('l-req-course');
+      courseId = cSel ? cSel.value : '';
+    }
+    const rules = teacherId ? ministryPickerRules(teacherId, courseId, svc) : null;
+
+    // A one-line explanation above the grid, so a locked-out date doesn't
+    // read as a bug. Removed again for ordinary courses.
+    const note = document.getElementById('l-req-sundays-note');
+    if (note) {
+      if (rules) {
+        note.style.display = '';
+        note.innerHTML = rules.allowed.size
+          ? '<strong>' + escapeHtml(rules.acct.ribbon) + ':</strong> pick <strong>one</strong> Sunday. ' +
+            (rules.hasVisitDates
+              ? 'Only the dates this visit is offering can be chosen.'
+              : 'Only the Sundays this ministry has open can be chosen.')
+          : '<strong>' + escapeHtml(rules.acct.ribbon) + ':</strong> no open Sundays are posted for this visit yet — email ' +
+            escapeHtml(rules.acct.contactName || 'the coordinator') +
+            ' at <a href="mailto:' + escapeHtml(rules.acct.contactEmail || '') + '">' +
+            escapeHtml(rules.acct.contactEmail || '') + '</a> and they can add dates.';
+      } else {
+        note.style.display = 'none';
+        note.innerHTML = '';
+      }
+    }
+    // How many Sundays this course expects. A "2–4 weeks" course means the
+    // leader should pick 2, 3 or 4 dates — picking one and letting the
+    // teacher guess the rest is how requests used to arrive underspecified.
+    // Courses with no min/max stay free-form. (Added 2026-08-31.)
+    const limits = sundayPickLimits(courseId, rules);
+    _pickLimits = limits;
+
+    const help = document.getElementById('l-req-sundays-help');
+    if (help) {
+      if (rules) {
+        help.textContent = 'One Sunday per visit. Dates that aren’t part of this visit are locked.';
+      } else if (limits.max === Infinity && limits.min <= 1) {
+        help.textContent = 'Click multiple. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.';
+      } else {
+        help.textContent = 'This course runs ' + describePickRange(limits) +
+          '. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.';
+      }
+    }
+
     sundays.forEach(s => {
       const btn = document.createElement('div');
       btn.className = 'sunday-pick';
       const status = availMap[s.id];
       if (status === 'Unavailable') btn.classList.add('unavail');
+      const locked = !!rules && !rules.allowed.has(s.id);
+      if (locked) {
+        btn.classList.add('locked');
+        btn.title = 'Not one of this visit’s dates';
+        btn.setAttribute('aria-disabled', 'true');
+      }
       btn.dataset.sid = s.id;
       btn.innerHTML = '<div style="font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);">' + fmtMonthShort(s.date) + '</div>' +
                       '<div style="font-size:.95rem;font-weight:800;">' + fmtDayNum(s.date) + '</div>';
       btn.addEventListener('click', () => {
+        if (locked) return;
+        const wasSelected = btn.classList.contains('selected');
+        if (!wasSelected && _selectedSundayIds.length >= limits.max) {
+          if (limits.max === 1) {
+            // Exactly one Sunday: clicking a different date moves the choice
+            // rather than refusing it.
+            wrap.querySelectorAll('.sunday-pick.selected').forEach(o => o.classList.remove('selected'));
+            _selectedSundayIds = [];
+          } else {
+            toast('error', 'That\u2019s the most this course runs',
+              'It goes up to ' + limits.max + ' Sundays. Unpick one of your dates first.');
+            return;
+          }
+        }
         btn.classList.toggle('selected');
         const sid = btn.dataset.sid;
         if (btn.classList.contains('selected')) {
@@ -8630,9 +8763,53 @@
         } else {
           _selectedSundayIds = _selectedSundayIds.filter(x => x !== sid);
         }
+        refreshSundayPickCount();
       });
       wrap.appendChild(btn);
     });
+
+    refreshSundayPickCount();
+  }
+
+  /* How many Sundays the chosen course expects. Ministry visits are always
+     exactly one. Otherwise it's the course's own Min/Max Weeks; a course
+     with neither stays free-form (1 to unlimited), which is what "no
+     specific course" and "Other" get too. */
+  let _pickLimits = { min: 1, max: Infinity };
+  function sundayPickLimits(courseId, rules) {
+    if (rules) return { min: 1, max: 1 };
+    const course = courseId && courseId !== '__other__'
+      ? DataStore.listCourses().find(c => c.id === courseId)
+      : null;
+    if (!course) return { min: 1, max: Infinity };
+    const min = course.minWeeks || 1;
+    const max = course.maxWeeks || (course.minWeeks || Infinity);
+    return { min, max: Math.max(min, max) };
+  }
+
+  function describePickRange(limits) {
+    if (limits.max === Infinity) return 'at least ' + limits.min + ' Sunday' + (limits.min === 1 ? '' : 's');
+    if (limits.min === limits.max) return 'exactly ' + limits.min + ' Sunday' + (limits.min === 1 ? '' : 's');
+    return limits.min + '\u2013' + limits.max + ' Sundays \u2014 pick that many';
+  }
+
+  /* Live "2 of 2\u20134 picked" counter under the grid, so the leader can see
+     where they stand before hitting Send. */
+  function refreshSundayPickCount() {
+    const el = document.getElementById('l-req-sundays-count');
+    if (!el) return;
+    const n = _selectedSundayIds.length;
+    const lim = _pickLimits || { min: 1, max: Infinity };
+    if (lim.max === Infinity && lim.min <= 1) {
+      el.textContent = n ? n + ' Sunday' + (n === 1 ? '' : 's') + ' picked.' : '';
+      el.className = 'form-help';
+      return;
+    }
+    const target = lim.min === lim.max ? String(lim.min) : lim.min + '\u2013' + lim.max;
+    const ok = n >= lim.min && n <= lim.max;
+    el.textContent = n + ' of ' + target + ' picked.' +
+      (ok ? '' : (n < lim.min ? ' Pick ' + (lim.min - n) + ' more.' : ''));
+    el.className = 'form-help' + (ok ? ' pick-count-ok' : ' pick-count-short');
   }
 
   async function submitNewRequest() {
@@ -8662,6 +8839,40 @@
 
     if (!teacherId) { toast('error', 'Choose a teacher', 'Pick someone to send this request to.'); return; }
     if (!_selectedSundayIds.length) { toast('error', 'Pick at least one Sunday', 'Select the Sundays you\u2019d like the teacher.'); return; }
+
+    // Ministry visits are one Sunday, on one of that visit's own dates. The
+    // picker already enforces this; re-check here so a stale form can't slip
+    // a multi-Sunday or off-date request through.
+    {
+      const clsForSvc = DataStore.getABFClass(l.abfClassId);
+      const mRules = ministryPickerRules(teacherId, courseId,
+        (clsForSvc && clsForSvc.service) ? clsForSvc.service : '1st Service');
+      if (mRules) {
+        if (_selectedSundayIds.length > 1) {
+          toast('error', 'Pick one Sunday', 'A ' + mRules.acct.ribbon.toLowerCase() + ' is a single Sunday \u2014 choose just one date.');
+          return;
+        }
+        if (!mRules.allowed.has(_selectedSundayIds[0])) {
+          toast('error', 'That date isn\u2019t offered', 'Choose one of the Sundays highlighted for this visit.');
+          return;
+        }
+      } else {
+        // Ordinary course: honour its Min/Max Weeks. The picker caps the
+        // maximum as you click; this catches the "too few" case.
+        const lim = sundayPickLimits(courseId, null);
+        if (_selectedSundayIds.length < lim.min) {
+          toast('error', 'Pick a few more Sundays',
+            'This course runs ' + describePickRange(lim) + '. You\u2019ve picked ' +
+            _selectedSundayIds.length + '.');
+          return;
+        }
+        if (_selectedSundayIds.length > lim.max) {
+          toast('error', 'That\u2019s more than this course runs',
+            'It goes up to ' + lim.max + ' Sundays.');
+          return;
+        }
+      }
+    }
 
     const t = DataStore.getTeacher(teacherId);
     const cls = DataStore.getABFClass(l.abfClassId);
