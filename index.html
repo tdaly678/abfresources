@@ -1574,6 +1574,14 @@
       margin-top: .5rem;
     }
     .mob-card .mob-contact a { color: var(--steel-blue); font-weight: 700; }
+    /* "2nd Service only" — shown when a visit's Services field restricts it. */
+    .mob-svc-badge {
+      display: inline-block; margin-left: .4em;
+      font-size: .62rem; font-weight: 800;
+      letter-spacing: .05em; text-transform: uppercase;
+      padding: .18em .5em; border-radius: 4px;
+      background: rgba(63,87,101,.14); color: var(--steel-blue);
+    }
 
     /* Topic-tag pills shown on each course card and as togglable filter
        chips above the leader-side catalog. The .tone-* modifiers tint
@@ -5443,7 +5451,7 @@
        ACCOUNT, so when several global partners share one account it
        can't say which Sunday belongs to which partner — this field
        can. Blank on every ordinary course. */
-    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available, visitSundayIds: Array.isArray(f['Visit Sundays']) ? f['Visit Sundays'].slice() : [] }; },
+    _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available, visitSundayIds: Array.isArray(f['Visit Sundays']) ? f['Visit Sundays'].slice() : [], services: Array.isArray(f.Services) ? f.Services.slice() : [] }; },
     _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', service: f.Service || '1st Service', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
@@ -7926,7 +7934,11 @@
       (teacher
         ? '<div class="cd-teacher">Taught by <a href="#" class="course-teacher-link" data-teacher-id="' + teacher.id + '" style="color:var(--steel-blue);">' + escapeHtml(teacher.name) + '</a></div>'
         : '') +
-      '<div class="cd-weeks">' + escapeHtml(wkLabel) + '</div>' +
+      '<div class="cd-weeks">' + escapeHtml(wkLabel) +
+        ((c.services || []).length === 1
+          ? ' <span class="mob-svc-badge">' + escapeHtml(c.services[0]) + ' only</span>'
+          : '') +
+      '</div>' +
       renderCourseTagPills(c.tags) +
       // Ministry visits carry their own dates — show them here too.
       (typeof courseVisitSundays === 'function' && courseVisitSundays(c).length
@@ -8161,7 +8173,11 @@
           '<div class="mob-ribbon">' + escapeHtml(acct.ribbon) + '</div>' +
           '<div class="mob-body">' +
             '<h4>' + escapeHtml(cardTitle) + '</h4>' +
-            '<div class="mob-weeks">' + escapeHtml(wkLabel) + '</div>' +
+            '<div class="mob-weeks">' + escapeHtml(wkLabel) +
+              ((c.services || []).length === 1
+                ? ' <span class="mob-svc-badge">' + escapeHtml(c.services[0]) + ' only</span>'
+                : '') +
+            '</div>' +
             renderCourseTagPills(c.tags) +
             '<div class="mob-desc">' + escapeHtml(truncateText(c.description || acct.blurb, 230)) + '</div>' +
             sundayBlock +
@@ -8653,6 +8669,18 @@
     // "Other (describe below)" or no course chosen yet: single-select, but
     // fall back to the account's own availability for the allowed set.
     const visit = course ? courseVisitSundays(course) : [];
+
+    // 'Services' on the course (added 2026-08-31) says which service this
+    // visit can do. Blank means either — that's every ordinary course and
+    // any visit nobody has restricted. A leader's service is fixed by their
+    // ABF class, so a mismatch is a hard no, not a choice they can change.
+    const svcList = (course && course.services) || [];
+    if (svcList.length && svcList.indexOf(svc) === -1) {
+      return { acct, allowed: new Set(), single: true,
+               hasVisitDates: visit.length > 0,
+               serviceMismatch: true, services: svcList, mySvc: svc };
+    }
+
     let allowed;
     if (visit.length) {
       allowed = new Set(visit.filter(v => !v.booked).map(v => v.sunday.id));
@@ -8692,7 +8720,14 @@
     // read as a bug. Removed again for ordinary courses.
     const note = document.getElementById('l-req-sundays-note');
     if (note) {
-      if (rules) {
+      if (rules && rules.serviceMismatch) {
+        note.style.display = '';
+        note.innerHTML = '<strong>' + escapeHtml(rules.acct.ribbon) + ':</strong> this visit is only offered at <strong>' +
+          escapeHtml(rules.services.join(' and ')) + '</strong>, and your class meets at ' +
+          escapeHtml(rules.mySvc) + '. Email ' + escapeHtml(rules.acct.contactName || 'the coordinator') +
+          ' at <a href="mailto:' + escapeHtml(rules.acct.contactEmail || '') + '">' +
+          escapeHtml(rules.acct.contactEmail || '') + '</a> if that has changed.';
+      } else if (rules) {
         note.style.display = '';
         note.innerHTML = rules.allowed.size
           ? '<strong>' + escapeHtml(rules.acct.ribbon) + ':</strong> pick <strong>one</strong> Sunday. ' +
@@ -8850,6 +8885,11 @@
       if (mRules) {
         if (_selectedSundayIds.length > 1) {
           toast('error', 'Pick one Sunday', 'A ' + mRules.acct.ribbon.toLowerCase() + ' is a single Sunday \u2014 choose just one date.');
+          return;
+        }
+        if (mRules.serviceMismatch) {
+          toast('error', 'Wrong service', 'This visit is only offered at ' + mRules.services.join(' and ') +
+            '. Your class meets at ' + mRules.mySvc + '.');
           return;
         }
         if (!mRules.allowed.has(_selectedSundayIds[0])) {
