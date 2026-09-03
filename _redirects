@@ -15,7 +15,10 @@
 /videos/      /lefcu       301
 /lefcu/joshua/      /lefcu/joshua       301
 /lefcu/corebeliefs/ /lefcu/corebeliefs  301
-/lefcu/tutorials/   /lefcu/tutorials    301
+/lefcu/training/    /lefcu/training     301
+/lefcu/articles/    /lefcu/articles     301
+/lefcu/tutorials    /lefcu/training     301
+/lefcu/tutorials/   /lefcu/training     301
 /teachers/    /teachers    301
 /courses/     /courses     301
 /special-visits/ /special-visits 301
@@ -43,8 +46,10 @@
 /joshua/       /lefcu/joshua       301
 /corebeliefs   /lefcu/corebeliefs  301
 /corebeliefs/  /lefcu/corebeliefs  301
-/tutorials     /lefcu/tutorials    301
-/tutorials/    /lefcu/tutorials    301
+# Tutorials retired from Online Studies 2026-09-03 — the walkthroughs now
+# live in LEFC|U -> Training Videos.
+/tutorials     /lefcu/training     301
+/tutorials/    /lefcu/training     301
 
 /mobilization  /special-visits  301
 /mobilization/ /special-visits  301
@@ -56,7 +61,8 @@
 /lefcu        /            200
 /lefcu/joshua      /       200
 /lefcu/corebeliefs /       200
-/lefcu/tutorials   /       200
+/lefcu/training    /       200
+/lefcu/articles    /       200
 /teachers     /            200
 /courses      /            200
 /special-visits /          200

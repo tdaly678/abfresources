@@ -4473,22 +4473,9 @@
             </div>
           </div>
 
-          <div class="course-card" onclick="showCourse('tutorials')">
-            <div class="course-thumb" style="background: linear-gradient(135deg, var(--terra) 0%, #6b2516 100%);">
-              <span class="course-thumb-title">Tutorials</span>
-              <div class="course-play-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-              </div>
-            </div>
-            <div class="course-body">
-              <h3>Tutorials</h3>
-              <div class="course-meta">
-                <span class="course-tag ministry">Site Help</span>
-                <span class="course-tag semester">2026</span>
-                <span class="course-tag">2 Sessions</span>
-              </div>
-            </div>
-          </div>
+          <!-- Tutorials retired from Online Studies 2026-09-03 — the two
+               scheduling walkthroughs now live only in Training Videos
+               ("Scheduling Tool Tutorials"). /tutorials 301s to /lefcu/training. -->
 
         </div>
       </div>
@@ -4546,6 +4533,34 @@
       <!-- Training videos section -->
       <div class="lefcu-section" data-lefcu-section="training" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Video resources for every stage of ABF leadership.</p>
+
+        <!-- Scheduling Tool Tutorials -->
+        <div class="training-section">
+          <div class="training-section-header">
+            <h3>Scheduling Tool Tutorials</h3>
+            <span class="audience-badge exist">Leaders &amp; Teachers</span>
+          </div>
+          <div class="video-grid">
+            <div class="video-card">
+              <div class="video-embed">
+                <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              </div>
+              <div class="video-body">
+                <h4>Scheduling Tutorial — ABF Leaders</h4>
+                <p>A walkthrough of the in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year. Watch this first before using the Scheduling tab.</p>
+              </div>
+            </div>
+            <div class="video-card">
+              <div class="video-embed">
+                <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              </div>
+              <div class="video-body">
+                <h4>Scheduling Tutorial — ABF Teachers</h4>
+                <p>How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders. Quick orientation to your side of the scheduling tool.</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- New Leaders -->
         <div class="training-section">
@@ -4721,34 +4736,6 @@
           </div>
         </div>
 
-        <!-- Scheduling Tool Tutorials -->
-        <div class="training-section">
-          <div class="training-section-header">
-            <h3>Scheduling Tool Tutorials</h3>
-            <span class="audience-badge exist">Leaders &amp; Teachers</span>
-          </div>
-          <div class="video-grid">
-            <div class="video-card">
-              <div class="video-embed">
-                <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-              </div>
-              <div class="video-body">
-                <h4>Scheduling Tutorial — ABF Leaders</h4>
-                <p>A walkthrough of the in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year. Watch this first before using the Scheduling tab.</p>
-              </div>
-            </div>
-            <div class="video-card">
-              <div class="video-embed">
-                <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-              </div>
-              <div class="video-body">
-                <h4>Scheduling Tutorial — ABF Teachers</h4>
-                <p>How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders. Quick orientation to your side of the scheduling tool.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -4775,36 +4762,6 @@
         </div>
       </div>
 
-      <!-- Tutorials — Scheduling tool walkthroughs -->
-      <div id="course-videos-tutorials" class="course-video-grid" style="display:none;">
-
-        <div class="course-video-card">
-          <div class="course-video-embed">
-            <iframe src="https://player.vimeo.com/video/1188153596?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-          </div>
-          <div class="course-video-body">
-            <h4>Scheduling Tutorial — ABF Leaders</h4>
-            <span class="vid-duration">Coming soon</span>
-            <p style="font-size:.78rem;color:var(--text-muted);margin-top:.4rem;line-height:1.5;">
-              A walkthrough of the new in-portal scheduling tool: requesting teachers, reading the availability grid, and managing your year.
-            </p>
-          </div>
-        </div>
-
-        <div class="course-video-card">
-          <div class="course-video-embed">
-            <iframe src="https://player.vimeo.com/video/1188153632?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-          </div>
-          <div class="course-video-body">
-            <h4>Scheduling Tutorial — ABF Teachers</h4>
-            <span class="vid-duration">Coming soon</span>
-            <p style="font-size:.78rem;color:var(--text-muted);margin-top:.4rem;line-height:1.5;">
-              How to set your availability, list the courses you offer, and respond to teaching requests from ABF leaders.
-            </p>
-          </div>
-        </div>
-
-      </div><!-- /#course-videos-tutorials -->
 
       <!-- Joshua — WBF Spring 2026 -->
       <div id="course-videos-joshua" class="course-video-grid">
@@ -5629,13 +5586,6 @@
 
   // ─── Course Detail Navigation ────────────────────────────
   const courses = {
-    'tutorials': {
-      title: 'Tutorials',
-      ministry: 'Site Help',
-      semester: '2026',
-      sessions: '2 Sessions',
-      spotify: ''
-    },
     'joshua': {
       title: 'Joshua',
       ministry: 'WBF',
@@ -11352,19 +11302,26 @@
   PATH_TO_TAB['/mobilization'] = 'mobilization';
   PATH_TO_TAB['/videos']       = 'courses';   // LEFC|U tab's route until 2026-09-03
   PATH_TO_TAB['/resources']    = 'courses';
+  // LEFC|U inner-section deep links (added 2026-09-03). showTab('training' |
+  // 'articles') opens the LEFC|U tab on that subsection (see the legacy-id
+  // wrapper above), so these paths land a visitor straight on it. The subnav
+  // buttons themselves don't push URLs — these are for shared/emailed links.
+  PATH_TO_TAB['/lefcu/training'] = 'training';
+  PATH_TO_TAB['/lefcu/articles'] = 'articles';
+  // Tutorials moved out of Online Studies 2026-09-03; old link -> Training Videos.
+  PATH_TO_TAB['/lefcu/tutorials'] = 'training';
 
   // ─── Course detail routes (added 2026-09-03) ──────────────
   // Each LEFC|U course gets its own shareable URL so a single course can be
-  // emailed as a link. Short root aliases (/corebeliefs, /joshua, /tutorials)
+  // emailed as a link. Short root aliases (/corebeliefs, /joshua)
   // 301 to these in _redirects. ADDING A COURSE: add it here AND add three
   // lines to _redirects (trailing-slash 301, alias 301, and the 200 rewrite).
   const COURSE_ROUTES = {
     joshua:      '/lefcu/joshua',
-    corebeliefs: '/lefcu/corebeliefs',
-    tutorials:   '/lefcu/tutorials'
+    corebeliefs: '/lefcu/corebeliefs'
   };
   const COURSE_TITLES = {
-    joshua: 'Joshua', corebeliefs: 'Core Beliefs', tutorials: 'Tutorials'
+    joshua: 'Joshua', corebeliefs: 'Core Beliefs'
   };
   const PATH_TO_COURSE = {};
   Object.keys(COURSE_ROUTES).forEach(c => { PATH_TO_COURSE[COURSE_ROUTES[c]] = c; });

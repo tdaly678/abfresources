@@ -88,6 +88,8 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ## Recent changes (September 2026)
 
+**2026-09-03 — Tutorials moved out of Online Studies into Training Videos.** The scheduling walkthroughs are no longer a "course." The Tutorials card is gone from LEFC|U → Online Studies, and the `tutorials` entry was removed from `courses{}`, `COURSE_ROUTES`, `COURSE_TITLES` and the `#course-videos-tutorials` detail grid. The two Vimeo embeds (`1188153596` leaders / `1188153632` teachers) now live **only** in the "Scheduling Tool Tutorials" block under Training Videos, which was moved to the **top** of that section since the other three blocks are still placeholders. New: **LEFC|U inner-section deep links** — `/lefcu/training` and `/lefcu/articles` open the tab on that subsection (piggybacking the existing `showTab('training'|'articles')` legacy-id mapping via `PATH_TO_TAB`); the subnav buttons still don't push URLs, so these are for emailed/shared links only. `/tutorials`, `/tutorials/` and `/lefcu/tutorials` all 301 to `/lefcu/training`. Verified locally (deep link opens Training Videos with the URL intact, no console errors).
+
 **2026-09-03 — Home page rebuilt around a rotating Key Announcements banner.** The old `.welcome-banner` + stacked construction/map cards were replaced by a single hero carousel (`#home-hero`, `.hero-carousel`) with **four slides**, left-to-right:
 
 1. **Fall kickoff** (gold) — "ABFs Are Back. September 13." with a SEP 13 date medallion; CTAs → ABF Classes, Key Dates.
