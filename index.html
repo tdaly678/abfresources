@@ -5118,7 +5118,7 @@
   </main>
 
   <footer>
-    <p>Lancaster Evangelical Free Church &nbsp;·&nbsp; ABF Leader Resources &nbsp;·&nbsp; <a href="https://www.lefc.net" target="_blank">lefc.net</a></p>
+    <p>Lancaster Evangelical Free Church &nbsp;·&nbsp; ABF Resources &nbsp;·&nbsp; <a href="https://www.lefc.net" target="_blank">lefc.net</a></p>
     <p style="margin-top:.35rem;">For questions, contact <a href="mailto:daly@lefc.net">Tom Daly</a></p>
   </footer>
 
@@ -11324,7 +11324,7 @@
     // Legacy ids land on the Resources tab; use its route/title.
     const canonical = (id === 'articles' || id === 'training') ? 'courses' : id;
     document.title = TAB_TITLES[canonical]
-      ? TAB_TITLES[canonical] + ' | ABF Leader Resources'
+      ? TAB_TITLES[canonical] + ' | ABF Resources'
       : BASE_TITLE;
     const route = TAB_ROUTES[canonical];
     if (pushUrl && route && window.history && history.pushState &&
