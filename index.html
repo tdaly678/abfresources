@@ -2936,6 +2936,276 @@
       .construction-gallery figure.hero { aspect-ratio: 16 / 10; }
     }
 
+    /* ─── Home hero carousel (added 2026-09-03) ─────────────────── */
+    .hero-carousel {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(52,45,37,.16);
+      background: var(--dark-brown);
+      margin-bottom: 1.5rem;
+    }
+    .hc-viewport { overflow: hidden; transition: height .35s ease; }
+    .hc-track {
+      display: flex;
+      align-items: stretch;
+      transition: transform .55s cubic-bezier(.4,0,.2,1);
+      will-change: transform;
+    }
+    .hc-slide {
+      flex: 0 0 100%;
+      min-width: 100%;
+      position: relative;
+      color: #fff;
+      background: var(--dark-brown);
+      --accent: var(--gold);
+      --accent-lt: #DCCB7C;
+    }
+    .hc-slide.terra { --accent: var(--terra);      --accent-lt: #E79A80; }
+    .hc-slide.steel { --accent: var(--steel-blue); --accent-lt: #A5C6DA; }
+    .hc-slide.olive { --accent: var(--olive);      --accent-lt: #C3BC8C; }
+    /* organic wash — LEFC textural feel, kept subtle */
+    .hc-slide::before {
+      content: "";
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(circle at 86% 6%,  color-mix(in srgb, var(--accent) 62%, transparent), transparent 58%),
+        radial-gradient(circle at 4% 100%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 55%);
+      opacity: .85;
+      pointer-events: none;
+    }
+    .hc-inner {
+      position: relative; z-index: 1;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(0,1.25fr) minmax(0,.85fr);
+      gap: 2rem;
+      align-items: center;
+      padding: 2.5rem 2.4rem 3.6rem;
+      min-height: 330px;
+    }
+    .hc-inner.solo { grid-template-columns: minmax(0,1fr); }
+    .hc-eyebrow {
+      display: inline-block;
+      font-size: .66rem; font-weight: 800;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--accent-lt);
+      margin-bottom: .6rem;
+    }
+    .hc-copy h2 {
+      font-size: 2.05rem; font-weight: 800;
+      letter-spacing: -.025em; line-height: 1.08;
+      margin-bottom: .6rem;
+      max-width: 22ch;
+    }
+    .hc-copy h2 em { font-style: normal; color: var(--accent-lt); }
+    .hc-copy > p {
+      font-size: .9rem; line-height: 1.65;
+      color: rgba(255,255,255,.82);
+      max-width: 50ch;
+    }
+    .hc-points {
+      list-style: none;
+      margin: .95rem 0 0;
+      display: flex; flex-direction: column; gap: .42rem;
+    }
+    .hc-points li {
+      position: relative;
+      padding-left: 1.35rem;
+      font-size: .82rem; line-height: 1.5;
+      color: rgba(255,255,255,.9);
+    }
+    .hc-points li::before {
+      content: "";
+      position: absolute; left: 0; top: .5em;
+      width: .48rem; height: .48rem;
+      border-radius: 50%;
+      background: var(--accent-lt);
+    }
+    .hc-actions {
+      display: flex; flex-wrap: wrap; gap: .6rem;
+      margin-top: 1.35rem;
+    }
+    .hc-btn {
+      display: inline-flex; align-items: center; gap: .45em;
+      background: var(--accent);
+      color: #fff;
+      font-size: .78rem; font-weight: 700; letter-spacing: .03em;
+      padding: .68em 1.25em;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .hc-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0,0,0,.28); }
+    .hc-slide.gold-btn-dark .hc-btn { color: var(--dark-brown); }
+    .hc-btn.ghost {
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.38);
+      color: #fff;
+    }
+    .hc-btn.ghost:hover { background: rgba(255,255,255,.15); }
+
+    /* Slide 1 date medallion */
+    .hc-medallion {
+      justify-self: center;
+      text-align: center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 18px;
+      padding: 1.5rem 2.1rem 1.35rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .hc-medallion .kicker {
+      font-size: .62rem; font-weight: 800; letter-spacing: .2em;
+      text-transform: uppercase; color: rgba(255,255,255,.6);
+    }
+    .hc-medallion .mon {
+      display: block; margin-top: .5rem;
+      font-size: 1.05rem; font-weight: 800; letter-spacing: .3em;
+      text-transform: uppercase; color: var(--accent-lt);
+    }
+    .hc-medallion .day {
+      display: block;
+      font-size: 4.6rem; font-weight: 800; line-height: .95;
+      letter-spacing: -.04em; color: #fff;
+    }
+    .hc-medallion .yr {
+      display: block; margin-top: .3rem;
+      font-size: .7rem; font-weight: 700; letter-spacing: .18em;
+      color: rgba(255,255,255,.55);
+    }
+
+    /* Media column: stacked device/photo cards */
+    .hc-thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .hc-thumbs figure {
+      margin: 0; border-radius: 9px; overflow: hidden;
+      aspect-ratio: 4 / 3;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.16);
+      position: relative;
+    }
+    .hc-thumbs figure.wide { grid-column: 1 / -1; aspect-ratio: 21 / 9; }
+    .hc-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hc-thumbs figcaption {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 1rem .55rem .4rem;
+      font-size: .63rem; font-weight: 700; color: #fff;
+      background: linear-gradient(transparent, rgba(20,14,8,.8));
+    }
+
+    /* Steps card (attendance slide) */
+    .hc-steps {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 14px;
+      padding: 1.15rem 1.25rem 1.2rem;
+    }
+    .hc-steps .hd {
+      font-size: .62rem; font-weight: 800; letter-spacing: .16em;
+      text-transform: uppercase; color: rgba(255,255,255,.6);
+      margin-bottom: .7rem;
+    }
+    .hc-steps .hc-points { margin-top: 0; gap: .55rem; }
+    .hc-steps ol { list-style: none; counter-reset: s; margin: 0; }
+    .hc-steps ol li {
+      counter-increment: s;
+      position: relative;
+      padding-left: 2rem;
+      font-size: .8rem; line-height: 1.45;
+      color: rgba(255,255,255,.9);
+    }
+    .hc-steps ol li + li { margin-top: .6rem; }
+    .hc-steps ol li::before {
+      content: counter(s);
+      position: absolute; left: 0; top: -.05em;
+      width: 1.4rem; height: 1.4rem;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: .68rem; font-weight: 800;
+    }
+
+    /* Controls — arrows flank the dots in one bar, so nothing
+       ever sits on top of the headline copy. */
+    .hc-controls {
+      position: absolute; z-index: 3;
+      left: 0; right: 0; bottom: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      gap: .9rem;
+    }
+    .hc-arrow {
+      width: 1.9rem; height: 1.9rem;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: rgba(20,14,8,.35);
+      border: 1px solid rgba(255,255,255,.32);
+      color: #fff; font-size: .78rem; line-height: 1;
+      cursor: pointer;
+      transition: background .15s ease;
+    }
+    .hc-arrow:hover { background: rgba(20,14,8,.72); }
+    .hc-dots {
+      display: flex; justify-content: center; align-items: center; gap: .45rem;
+    }
+    .hc-dot {
+      width: .55rem; height: .55rem;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.55);
+      background: transparent;
+      cursor: pointer;
+      transition: background .2s ease, transform .2s ease, width .2s ease;
+    }
+    .hc-dot.active { background: #fff; width: 1.5rem; border-radius: 99px; }
+    .hc-label {
+      position: absolute; z-index: 3; top: .9rem; left: 2.4rem;
+      font-size: .6rem; font-weight: 800; letter-spacing: .18em;
+      text-transform: uppercase; color: rgba(255,255,255,.45);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hc-track { transition: none; }
+      .hc-btn:hover { transform: none; }
+    }
+    @media (max-width: 860px) {
+      .hc-inner {
+        grid-template-columns: minmax(0,1fr);
+        gap: 1.4rem;
+        padding: 2.1rem 1.5rem 3.5rem;
+        min-height: 0;
+      }
+      .hc-copy h2 { font-size: 1.6rem; max-width: none; }
+      .hc-label { left: 1.5rem; }
+      .hc-medallion { justify-self: start; padding: 1.1rem 1.6rem 1rem; }
+      .hc-medallion .day { font-size: 3.4rem; }
+    }
+    @media (max-width: 560px) {
+      .hc-btn { flex: 1 1 auto; justify-content: center; }
+    }
+
+    /* Quick-access card with its own links (no whole-card click) */
+    .home-nav-card.no-click { cursor: default; }
+    .hnc-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .8rem; }
+    .hnc-btn {
+      display: inline-block;
+      background: var(--steel-blue);
+      color: #fff;
+      font-size: .68rem; font-weight: 700; letter-spacing: .03em;
+      padding: .5em .85em;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: filter .15s ease;
+    }
+    .hnc-btn:hover { filter: brightness(1.12); }
+    .hnc-btn.ghost {
+      background: var(--cream);
+      border: 1px solid var(--cream-border);
+      color: var(--dark-brown);
+    }
+
     /* ─── Responsive ────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .abf-grid, .video-grid, .articles-grid, .teachers-grid { grid-template-columns: repeat(2, 1fr); }
@@ -3070,41 +3340,127 @@
 
     <!-- ── HOME ─────────────────────────────────────────── -->
     <div class="tab-pane active" id="tab-home">
-      <div class="welcome-banner">
-        <h2>Welcome, <span>ABF Leaders.</span></h2>
-        <p>This is your central hub for resources, training, and information to help you lead well. ABFs are a primarily lay-led ministry — this site is here to equip and support you as you serve autonomously and faithfully.</p>
-      </div>
+      <!-- ── KEY ANNOUNCEMENTS CAROUSEL (2026-09-03) ─────────── -->
+      <section class="hero-carousel" id="home-hero"
+               aria-roledescription="carousel" aria-label="Key announcements">
+        <span class="hc-label">Key Announcements</span>
 
-      <!-- ── KEY ANNOUNCEMENTS ──────────────────────────────── -->
-      <div class="announcements-section">
-        <div class="section-title">Key Announcements</div>
+        <div class="hc-viewport">
+          <div class="hc-track" id="hc-track">
 
-        <div class="construction-card">
-          <div class="construction-body">
-            <span class="announcement-eyebrow">Construction Update &mdash; July 2026</span>
-            <h3>Our New ABF Spaces Are Taking Shape</h3>
-            <p>Fresh paint, new carpet, and ceilings going in &mdash; the new wing is coming together fast. Here's a first look at the rooms and commons area some of our ABFs will call home this fall, including <strong>Room D6 (Mosaic)</strong> and <strong>Room D7 (Branches)</strong>.</p>
-          </div>
-          <div class="construction-gallery">
-            <figure class="hero">
-              <img src="photos/construction/lower-atrium.jpg" alt="The new lower atrium under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
-              <figcaption>The new lower atrium &mdash; gathering space just outside the classrooms</figcaption>
-            </figure>
-            <figure>
-              <img src="photos/construction/d5-d6.jpg" alt="Rooms D5 and D6 under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
-              <figcaption>Rooms D5 &amp; D6 along the new hallway</figcaption>
-            </figure>
-            <figure>
-              <img src="photos/construction/d6.jpg" alt="Room D6 under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
-              <figcaption>Room D6 &mdash; Mosaic's new home</figcaption>
-            </figure>
-            <figure>
-              <img src="photos/construction/d7.jpg" alt="Room D7 under construction" loading="lazy" onerror="this.parentElement.style.display='none'" />
-              <figcaption>Room D7 &mdash; Branches' new home</figcaption>
-            </figure>
+            <!-- 1 · Fall kickoff -->
+            <div class="hc-slide gold-btn-dark" role="group" aria-roledescription="slide" aria-label="1 of 4: ABFs resume September 13">
+              <div class="hc-inner">
+                <div class="hc-copy">
+                  <span class="hc-eyebrow">Welcome back, ABF Leaders</span>
+                  <h2>ABFs Are Back. <em>September&nbsp;13.</em></h2>
+                  <p>Eight fellowships. Two services. One Sunday morning. Rooms are ready, the coffee's on, and the fall ABF year starts <strong>Sunday, September&nbsp;13</strong>. Let's open the doors wide.</p>
+                  <div class="hc-actions">
+                    <button type="button" class="hc-btn" onclick="showTab('classes')">See the 8 ABFs</button>
+                    <button type="button" class="hc-btn ghost" onclick="showTab('dates')">Key Dates &rarr;</button>
+                  </div>
+                </div>
+                <div class="hc-medallion">
+                  <span class="kicker">Kickoff Sunday</span>
+                  <span class="mon">Sep</span>
+                  <span class="day">13</span>
+                  <span class="yr">2026</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2 · Attendance -->
+            <div class="hc-slide steel" role="group" aria-roledescription="slide" aria-label="2 of 4: How to take attendance">
+              <div class="hc-inner">
+                <div class="hc-copy">
+                  <span class="hc-eyebrow">New &mdash; Take Attendance in 30 Seconds</span>
+                  <h2>Every Name You Check Is a Person <em>We Won't Lose.</em></h2>
+                  <p>Thirty seconds a week. It's how we notice people.</p>
+                  <ul class="hc-points">
+                    <li>Catch someone slipping away <em>before</em> they're gone &mdash; so a friend can reach out.</li>
+                    <li>See where people are actually connected across the church.</li>
+                    <li>Know which ABFs are growing, and where to plant the next one.</li>
+                    <li>Growth is the clearest read we have on how we're doing at inviting.</li>
+                  </ul>
+                  <div class="hc-actions">
+                    <a class="hc-btn" href="ABF-Attendance-Instructions.pdf" target="_blank" rel="noopener">Download the Instructions (PDF)</a>
+                    <a class="hc-btn ghost" href="https://rock.lefc.net/volunteerportal" target="_blank" rel="noopener">Open the Volunteer Portal &rarr;</a>
+                  </div>
+                </div>
+                <div class="hc-steps">
+                  <div class="hd">On your phone</div>
+                  <ol>
+                    <li>Open the <strong>LEFC app</strong> and tap <strong>My Groups</strong>.</li>
+                    <li>Tap your ABF, then <strong>Take Attendance</strong>.</li>
+                    <li>Tap everyone who's here. That's it.</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 · Be invitational -->
+            <div class="hc-slide terra" role="group" aria-roledescription="slide" aria-label="3 of 4: Be invitational this fall">
+              <div class="hc-inner">
+                <div class="hc-copy">
+                  <span class="hc-eyebrow">First Few Weeks of Fall</span>
+                  <h2>Leave an Empty Chair. <em>Then Go Fill It.</em></h2>
+                  <p>The first few Sundays set the tone for the whole year. Somebody is walking your hallway this week quietly wondering whether they'd belong here &mdash; make it easy for them to find out. Ask your class for <strong>one invitation each before October</strong>.</p>
+                  <div class="hc-actions">
+                    <button type="button" class="hc-btn" onclick="showTab('classes')">Who's in Which ABF</button>
+                    <a class="hc-btn ghost" href="facility-map.pdf" target="_blank" rel="noopener">Find Your Room</a>
+                  </div>
+                </div>
+                <div class="hc-steps">
+                  <div class="hd">Try this Sunday</div>
+                  <ul class="hc-points">
+                    <li>Introduce yourself to one person you don't know yet.</li>
+                    <li>Learn a name &mdash; then use it next week.</li>
+                    <li>Walk a guest to the coffee, not just to a seat.</li>
+                    <li>Save the seat beside you for whoever shows up.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 · New spaces -->
+            <div class="hc-slide olive" role="group" aria-roledescription="slide" aria-label="4 of 4: The new D-wing is open">
+              <div class="hc-inner">
+                <div class="hc-copy">
+                  <span class="hc-eyebrow">Our New Spaces</span>
+                  <h2>The D&#8209;Wing Is <em>Open.</em></h2>
+                  <p>Fresh paint, new carpet, and a lower atrium built for lingering after class. <strong>Mosaic</strong> settles into <strong>D6</strong> and <strong>Branches</strong> into <strong>D7</strong> this fall &mdash; check the map so you can point guests the right way.</p>
+                  <div class="hc-actions">
+                    <a class="hc-btn" href="facility-map.pdf" target="_blank" rel="noopener">View the Facility Map (PDF)</a>
+                  </div>
+                </div>
+                <div class="hc-thumbs">
+                  <figure class="wide">
+                    <img src="photos/construction/lower-atrium.jpg" alt="The new lower atrium" onerror="this.parentElement.style.display='none'" />
+                    <figcaption>The new lower atrium</figcaption>
+                  </figure>
+                  <figure>
+                    <img src="photos/construction/d6.jpg" alt="Room D6" onerror="this.parentElement.style.display='none'" />
+                    <figcaption>D6 &mdash; Mosaic</figcaption>
+                  </figure>
+                  <figure>
+                    <img src="photos/construction/d7.jpg" alt="Room D7" onerror="this.parentElement.style.display='none'" />
+                    <figcaption>D7 &mdash; Branches</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
+        <div class="hc-controls">
+          <button type="button" class="hc-arrow prev" id="hc-prev" aria-label="Previous announcement">&#10094;</button>
+          <div class="hc-dots" id="hc-dots" role="tablist" aria-label="Choose announcement"></div>
+          <button type="button" class="hc-arrow next" id="hc-next" aria-label="Next announcement">&#10095;</button>
+        </div>
+      </section>
+
+      <div class="announcements-section">
         <a class="map-card" href="facility-map.pdf" target="_blank" rel="noopener">
           <div class="map-card-thumb">
             <img src="photos/facility-map-thumb.jpg" alt="LEFC facility map — first floor plan" loading="lazy" />
@@ -3120,6 +3476,15 @@
 
       <div class="section-title">Quick Access</div>
       <div class="home-nav-grid">
+        <div class="home-nav-card steel no-click">
+          <div class="icon">✅</div>
+          <h3>Take Attendance</h3>
+          <p>Step-by-step instructions for the LEFC mobile app and the Volunteer Portal &mdash; plus a direct link to sign in.</p>
+          <div class="hnc-actions">
+            <a class="hnc-btn" href="ABF-Attendance-Instructions.pdf" target="_blank" rel="noopener">Instructions (PDF)</a>
+            <a class="hnc-btn ghost" href="https://rock.lefc.net/volunteerportal" target="_blank" rel="noopener">Volunteer Portal &rarr;</a>
+          </div>
+        </div>
         <div class="home-nav-card" onclick="showTab('classes')">
           <div class="icon">👥</div>
           <h3>ABF Classes</h3>
@@ -11055,6 +11420,123 @@
   refreshFbTabAffordances();
 
   } // end else (non-public-feedback portal bootstrap)
+</script>
+
+<!-- ════════════════════════════════════════════════════════
+     HOME KEY-ANNOUNCEMENTS CAROUSEL (added 2026-09-03)
+     Standalone on purpose: it must work regardless of the
+     portal bootstrap above (public-feedback mode included).
+     Auto-advances every 7s; pauses on hover, focus, touch,
+     when the tab is hidden, or when the user takes control.
+════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  const root = document.getElementById('home-hero');
+  if (!root) return;
+  const track  = document.getElementById('hc-track');
+  const dotBox = document.getElementById('hc-dots');
+  const slides = Array.from(track.querySelectorAll('.hc-slide'));
+  if (slides.length < 2) { if (dotBox) dotBox.style.display = 'none'; return; }
+
+  const viewport = root.querySelector('.hc-viewport');
+  const DELAY  = 7000;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const narrow = window.matchMedia('(max-width: 860px)');
+  let index = 0, timer = null, held = false;
+
+  /* Desktop: every slide is stretched to the tallest one, so the banner
+     never changes height. Stacked (narrow) layouts vary too much for
+     that — there the viewport is sized to the slide on screen. */
+  function fit() {
+    if (narrow.matches) {
+      track.style.alignItems = 'flex-start';
+      viewport.style.height = slides[index].offsetHeight + 'px';
+    } else {
+      track.style.alignItems = '';
+      viewport.style.height = '';
+    }
+  }
+
+  // Build the dots
+  const dots = slides.map((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'hc-dot';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-label', 'Announcement ' + (i + 1) + ' of ' + slides.length);
+    b.addEventListener('click', () => { go(i); hold(); });
+    dotBox.appendChild(b);
+    return b;
+  });
+
+  function go(n) {
+    index = (n + slides.length) % slides.length;
+    track.style.transform = 'translateX(' + (-index * 100) + '%)';
+    slides.forEach((s, i) => {
+      const on = i === index;
+      s.setAttribute('aria-hidden', on ? 'false' : 'true');
+      // keep off-screen controls out of the tab order
+      s.querySelectorAll('a, button').forEach(el => { el.tabIndex = on ? 0 : -1; });
+    });
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i === index);
+      d.setAttribute('aria-selected', i === index ? 'true' : 'false');
+    });
+    fit();
+  }
+
+  let fitTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fit, 120);
+  });
+  if (narrow.addEventListener) narrow.addEventListener('change', fit);
+  // Images settling can change a stacked slide's height
+  window.addEventListener('load', fit);
+
+  function start() {
+    stop();
+    if (held || reduce.matches || document.hidden) return;
+    timer = setInterval(() => go(index + 1), DELAY);
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  /* The visitor took the wheel — stop auto-advancing for this page view. */
+  function hold() { held = true; stop(); }
+
+  document.getElementById('hc-next').addEventListener('click', () => { go(index + 1); hold(); });
+  document.getElementById('hc-prev').addEventListener('click', () => { go(index - 1); hold(); });
+
+  root.addEventListener('mouseenter', stop);
+  root.addEventListener('mouseleave', start);
+  root.addEventListener('focusin',  stop);
+  root.addEventListener('focusout', start);
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); hold(); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); go(index - 1); hold(); }
+  });
+
+  // Swipe / drag, left-to-right
+  let x0 = null, y0 = null;
+  root.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    x0 = e.clientX; y0 = e.clientY;
+  });
+  root.addEventListener('pointerup', e => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+      go(index + (dx < 0 ? 1 : -1));
+      hold();
+    }
+  });
+  root.addEventListener('pointercancel', () => { x0 = y0 = null; });
+
+  go(0);
+  start();
+})();
 </script>
 
 </body>

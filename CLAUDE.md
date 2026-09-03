@@ -86,6 +86,24 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ---
 
+## Recent changes (September 2026)
+
+**2026-09-03 — Home page rebuilt around a rotating Key Announcements banner.** The old `.welcome-banner` + stacked construction/map cards were replaced by a single hero carousel (`#home-hero`, `.hero-carousel`) with **four slides**, left-to-right:
+
+1. **Fall kickoff** (gold) — "ABFs Are Back. September 13." with a SEP 13 date medallion; CTAs → ABF Classes, Key Dates.
+2. **Attendance** (steel) — the new push. Marketing framing of *why* (notice people slipping away, see where people are connected, know which ABFs are growing / where to multiply, growth as a read on inviting) plus a 3-step "on your phone" card. CTAs → `ABF-Attendance-Instructions.pdf` and `https://rock.lefc.net/volunteerportal`.
+3. **Be invitational** (terra) — "Leave an Empty Chair. Then Go Fill It." with a "Try this Sunday" checklist.
+4. **New spaces** (olive) — the July construction card folded in as a celebration slide ("The D-Wing Is Open."), reusing `photos/construction/*` as a thumb collage. Tom's call: fold in rather than retire.
+
+Mechanics worth knowing before editing:
+- Markup lives at the top of `#tab-home`; CSS is the `/* ─── Home hero carousel ─── */` block; JS is a **standalone `<script>` just before `</body>`**, deliberately *outside* the main portal bootstrap (that whole block sits inside an `else` for non-public-feedback mode) so the banner can't be broken by portal init.
+- **Auto-advance 7s**, and it stops permanently for that page view once the visitor touches a control (`hold()`), plus pauses on hover / focus / hidden tab, and honors `prefers-reduced-motion`. Arrows + dots + swipe + ←/→ keys.
+- Slide accent colors come from per-slide `--accent` / `--accent-lt` custom properties (`.terra`, `.steel`, `.olive`; gold is the default). Slide 1 also carries `.gold-btn-dark` because white-on-gold buttons fail contrast.
+- **Height strategy is deliberate:** on desktop the flex track stretches every slide to the tallest one so the banner never jumps; below 860px the slides stack and vary too much, so `fit()` measures the active slide and sets `.hc-viewport` height (with a CSS transition). If you add a slide, keep its desktop height in the same ballpark or slide 1 grows a dead-space gap.
+- `.hc-steps ol li` rules are scoped to `ol` on purpose — slide 3 puts a `<ul class="hc-points">` in the same box, and unscoped `.hc-steps li::before` would overwrite the bullets with counters.
+- **Attendance PDF** is `ABF-Attendance-Instructions.pdf` at the repo root (source: Tom's `ABF_Attendance_Instructions.pdf`, Rock mobile app + Volunteer Portal walkthrough). Linked from the carousel slide *and* a new **Take Attendance** Quick Access card (`.home-nav-card.no-click` + `.hnc-btn`), which also deep-links the Volunteer Portal.
+- The `.construction-card` / `.construction-gallery` and `.welcome-banner` CSS is now unused but left in place.
+
 ## Recent changes (August 2026)
 
 **2026-08-10 (later) — Philippians ↔ Faith Builders.** Philippians A3 → **A6**, Faith Builders A6 → **A3**; Agape stays in A3 (Tom's call — a 2nd-service class doesn't have to follow the 1st-service class out of a room). Reason: Faith Builders needed the larger room. **Measured room areas** (net, from the facility map): A3 636, A4 634, A5 637, A6 617, D6 573, D7 600 SF — so A3/A4/A5 are effectively identical and A6 is the only smaller one in that wing, by ~20 SF. Method and the pt-per-foot constants are in the `reference_facility_map_scale` project memory; the short version is that **the two plan sheets are placed at different scales** (page 1 = 1.8790 pt/ft, page 2 = 1.8364 pt/ft, ratio 1291.5/1262.25 read straight off the `cm` transforms in the PDF content stream) and the small storage closets' printed SF are gross, not net, so they're bad calibration targets.
