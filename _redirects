@@ -1,4 +1,7 @@
-# Cloudflare Pages routing for the tab URLs (added 2026-08-05).
+# Routing for the tab URLs (added 2026-08-05). NOTE: this site is a Cloudflare
+# WORKER with static assets, not Cloudflare Pages — Workers Assets supports
+# _redirects and _headers the same way. A git push does NOT deploy; deploying is
+# a separate manual `wrangler deploy` step.
 # 200 = rewrite: the URL stays in the address bar and index.html is served;
 # the in-page router (see "URL Routing" section of index.html) opens the
 # matching tab. Anything NOT listed here still falls through to 404.html,
@@ -8,7 +11,8 @@
 /classes/     /classes     301
 /abfs/        /abfs        301
 /key-dates/   /key-dates   301
-/videos/      /videos      301
+/lefcu/       /lefcu       301
+/videos/      /lefcu       301
 /teachers/    /teachers    301
 /courses/     /courses     301
 /special-visits/ /special-visits 301
@@ -26,8 +30,9 @@
 /dates/       /key-dates   301
 /leaders      /abfs        301
 /leaders/     /abfs        301
-/resources    /videos      301
-/resources/   /videos      301
+/resources    /lefcu       301
+/resources/   /lefcu       301
+/videos       /lefcu       301
 /mobilization  /special-visits  301
 /mobilization/ /special-visits  301
 
@@ -35,7 +40,7 @@
 /classes      /            200
 /abfs         /            200
 /key-dates    /            200
-/videos       /            200
+/lefcu        /            200
 /teachers     /            200
 /courses      /            200
 /special-visits /          200

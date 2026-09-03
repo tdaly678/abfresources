@@ -11292,9 +11292,9 @@
     classes:    '/classes',
     leaders:    '/abfs',      // tab renamed "ABFs" 2026-08-05; /leaders 301s here
     dates:      '/key-dates',
-    courses:    '/videos',      // tab id 'courses' is the Video Resources tab; /resources 301s here
+    courses:    '/lefcu',       // tab id 'courses' is the LEFC|U tab; /videos + /resources 301 here
     teachers:   '/teachers',
-    catalog:    '/courses',     // tab id 'catalog' is the Courses catalog
+    catalog:    '/courses',     // tab id 'catalog' is the Courses catalog teachers offer from
     mobilization: '/special-visits', // tab id 'mobilization'; /mobilization 301s here
     scheduling: '/scheduling',
     feedback:   '/feedback'
@@ -11308,7 +11308,11 @@
   const PATH_TO_TAB = {};
   Object.keys(TAB_ROUTES).forEach(t => { PATH_TO_TAB[TAB_ROUTES[t]] = t; });
   // Old paths that should still open the right tab if someone kept a link.
+  // Cloudflare 301s these before the page loads, so these entries are only a
+  // backstop (a missing _redirects rule, or opening index.html directly).
   PATH_TO_TAB['/mobilization'] = 'mobilization';
+  PATH_TO_TAB['/videos']       = 'courses';   // LEFC|U tab's route until 2026-09-03
+  PATH_TO_TAB['/resources']    = 'courses';
 
   function currentRoutePath() {
     const p = location.pathname.replace(/\/+$/, '');
