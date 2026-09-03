@@ -13,6 +13,9 @@
 /key-dates/   /key-dates   301
 /lefcu/       /lefcu       301
 /videos/      /lefcu       301
+/lefcu/joshua/      /lefcu/joshua       301
+/lefcu/corebeliefs/ /lefcu/corebeliefs  301
+/lefcu/tutorials/   /lefcu/tutorials    301
 /teachers/    /teachers    301
 /courses/     /courses     301
 /special-visits/ /special-visits 301
@@ -33,6 +36,16 @@
 /resources    /lefcu       301
 /resources/   /lefcu       301
 /videos       /lefcu       301
+
+# Short, emailable aliases for a single LEFC|U course. These are the links to
+# paste into an email; they 301 to the canonical /lefcu/<course> URL.
+/joshua        /lefcu/joshua       301
+/joshua/       /lefcu/joshua       301
+/corebeliefs   /lefcu/corebeliefs  301
+/corebeliefs/  /lefcu/corebeliefs  301
+/tutorials     /lefcu/tutorials    301
+/tutorials/    /lefcu/tutorials    301
+
 /mobilization  /special-visits  301
 /mobilization/ /special-visits  301
 
@@ -41,6 +54,9 @@
 /abfs         /            200
 /key-dates    /            200
 /lefcu        /            200
+/lefcu/joshua      /       200
+/lefcu/corebeliefs /       200
+/lefcu/tutorials   /       200
 /teachers     /            200
 /courses      /            200
 /special-visits /          200

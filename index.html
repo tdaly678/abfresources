@@ -643,20 +643,46 @@
       overflow: hidden;
       text-align: center;
     }
+    /* Stylized initials panel (2026-09-03). Each card sets --stage to its
+       teacher-stage colour; everything below derives from that one value, so
+       a new stage colour needs no extra CSS. Fallbacks keep the panel sane if
+       --stage is ever missing. */
     .teacher-photo {
-      background: var(--light-gray);
+      position: relative;
+      overflow: hidden;
+      background-color: var(--stage, var(--light-gray));
       height: 110px;
       display: flex; align-items: center; justify-content: center;
-      border-bottom: 3px solid var(--gold);
+      border-bottom: 3px solid var(--stage, var(--gold));
+    }
+    /* White veil, so --stage reads as a soft tint instead of a solid block */
+    .teacher-photo::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(150deg,
+        rgba(255,255,255,.93) 0%, rgba(255,255,255,.82) 55%, rgba(255,255,255,.74) 100%);
+    }
+    /* Oversized ghosted initials, cropped off the bottom-left corner.
+       Decorative only — it repeats the avatar, so it is aria-hidden. */
+    .teacher-mono {
+      position: absolute; z-index: 1;
+      left: .6rem; bottom: -.16em;
+      font-size: 3rem; font-weight: 800; letter-spacing: -.03em;
+      line-height: .82;
+      color: var(--stage, var(--dark-brown));
+      opacity: .16;
+      pointer-events: none; user-select: none;
     }
     .teacher-avatar {
+      position: relative; z-index: 2;
       width: 64px; height: 64px;
       border-radius: 50%;
-      background: var(--dark-brown);
+      background: var(--stage, var(--dark-brown));
       display: flex; align-items: center; justify-content: center;
-      color: var(--gold);
+      color: var(--cream);          /* was --gold: 2.65:1 on terra cotta failed AA */
       font-size: 1.4rem;
       font-weight: 800;
+      box-shadow: 0 0 0 4px rgba(255,255,255,.92), 0 3px 10px rgba(52,45,37,.22);
     }
     .teacher-body { padding: 1rem 1.1rem; }
     .teacher-body h3 {
@@ -3904,8 +3930,9 @@
         <div class="teachers-grid">
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--olive);">
-              <div class="teacher-avatar" style="background:var(--olive);">ES</div>
+            <div class="teacher-photo" style="--stage:var(--olive);">
+              <span class="teacher-mono" aria-hidden="true">ES</span>
+              <div class="teacher-avatar">ES</div>
             </div>
             <div class="teacher-body">
               <h3>Ed Scheuerman</h3>
@@ -3918,8 +3945,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--olive);">
-              <div class="teacher-avatar" style="background:var(--olive);">DC</div>
+            <div class="teacher-photo" style="--stage:var(--olive);">
+              <span class="teacher-mono" aria-hidden="true">DC</span>
+              <div class="teacher-avatar">DC</div>
             </div>
             <div class="teacher-body">
               <h3>Dave Cox</h3>
@@ -3932,8 +3960,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--olive);">
-              <div class="teacher-avatar" style="background:var(--olive);">CM</div>
+            <div class="teacher-photo" style="--stage:var(--olive);">
+              <span class="teacher-mono" aria-hidden="true">CM</span>
+              <div class="teacher-avatar">CM</div>
             </div>
             <div class="teacher-body">
               <h3>Corey Mitchell</h3>
@@ -3957,7 +3986,8 @@
         <div class="teachers-grid">
 
           <div class="teacher-card">
-            <div class="teacher-photo">
+            <div class="teacher-photo" style="--stage:var(--terra);">
+              <span class="teacher-mono" aria-hidden="true">JB</span>
               <div class="teacher-avatar">JB</div>
             </div>
             <div class="teacher-body">
@@ -3971,7 +4001,8 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo">
+            <div class="teacher-photo" style="--stage:var(--terra);">
+              <span class="teacher-mono" aria-hidden="true">SW</span>
               <div class="teacher-avatar">SW</div>
             </div>
             <div class="teacher-body">
@@ -3985,7 +4016,8 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo">
+            <div class="teacher-photo" style="--stage:var(--terra);">
+              <span class="teacher-mono" aria-hidden="true">KZ</span>
               <div class="teacher-avatar">KZ</div>
             </div>
             <div class="teacher-body">
@@ -4010,8 +4042,9 @@
         <div class="teachers-grid">
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">ZW</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">ZW</span>
+              <div class="teacher-avatar">ZW</div>
             </div>
             <div class="teacher-body">
               <h3>Zach Wilkerson</h3>
@@ -4024,8 +4057,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">AD</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">AD</span>
+              <div class="teacher-avatar">AD</div>
             </div>
             <div class="teacher-body">
               <h3>Alex Dennis</h3>
@@ -4038,8 +4072,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">JB</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">JB</span>
+              <div class="teacher-avatar">JB</div>
             </div>
             <div class="teacher-body">
               <h3>Jesse Buckwalter</h3>
@@ -4052,8 +4087,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">AT</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">AT</span>
+              <div class="teacher-avatar">AT</div>
             </div>
             <div class="teacher-body">
               <h3>Adam Timmins</h3>
@@ -4066,8 +4102,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">BN</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">BN</span>
+              <div class="teacher-avatar">BN</div>
             </div>
             <div class="teacher-body">
               <h3>Brett Nolt</h3>
@@ -4080,8 +4117,9 @@
           </div>
 
           <div class="teacher-card">
-            <div class="teacher-photo" style="border-bottom-color:var(--steel-blue);">
-              <div class="teacher-avatar" style="background:var(--steel-blue);">JH</div>
+            <div class="teacher-photo" style="--stage:var(--steel-blue);">
+              <span class="teacher-mono" aria-hidden="true">JH</span>
+              <div class="teacher-avatar">JH</div>
             </div>
             <div class="teacher-body">
               <h3>JJ Huber</h3>
@@ -7878,8 +7916,9 @@
           ? '<span class="teacher-topic ' + meta.topicClass + '">' + escapeHtml(meta.subLabel) + '</span>'
           : '<span class="teacher-topic ' + meta.topicClass + '"' + (meta.topicStyle ? ' style="' + meta.topicStyle + '"' : '') + '>' + escapeHtml(label) + '</span>';
         card.innerHTML =
-          '<div class="teacher-photo" style="border-bottom-color:' + colorVar + ';">' +
-            '<div class="teacher-avatar" style="background:' + colorVar + ';">' + escapeHtml(initials) + '</div>' +
+          '<div class="teacher-photo" style="--stage:' + colorVar + ';">' +
+            '<span class="teacher-mono" aria-hidden="true">' + escapeHtml(initials) + '</span>' +
+            '<div class="teacher-avatar">' + escapeHtml(initials) + '</div>' +
           '</div>' +
           '<div class="teacher-body">' +
             '<h3>' + escapeHtml(teacher.name) + '</h3>' +
@@ -11314,6 +11353,22 @@
   PATH_TO_TAB['/videos']       = 'courses';   // LEFC|U tab's route until 2026-09-03
   PATH_TO_TAB['/resources']    = 'courses';
 
+  // ─── Course detail routes (added 2026-09-03) ──────────────
+  // Each LEFC|U course gets its own shareable URL so a single course can be
+  // emailed as a link. Short root aliases (/corebeliefs, /joshua, /tutorials)
+  // 301 to these in _redirects. ADDING A COURSE: add it here AND add three
+  // lines to _redirects (trailing-slash 301, alias 301, and the 200 rewrite).
+  const COURSE_ROUTES = {
+    joshua:      '/lefcu/joshua',
+    corebeliefs: '/lefcu/corebeliefs',
+    tutorials:   '/lefcu/tutorials'
+  };
+  const COURSE_TITLES = {
+    joshua: 'Joshua', corebeliefs: 'Core Beliefs', tutorials: 'Tutorials'
+  };
+  const PATH_TO_COURSE = {};
+  Object.keys(COURSE_ROUTES).forEach(c => { PATH_TO_COURSE[COURSE_ROUTES[c]] = c; });
+
   function currentRoutePath() {
     const p = location.pathname.replace(/\/+$/, '');
     return p === '' ? '/' : p;
@@ -11337,18 +11392,37 @@
     }
   };
 
+  // Routing layer on top of showCourse: a course detail view gets its own
+  // URL and title, so it can be linked to directly.
+  const preRouteShowCourse = window.showCourse;
+  window.showCourse = function(id, pushUrl = true) {
+    preRouteShowCourse(id);
+    if (COURSE_TITLES[id]) document.title = COURSE_TITLES[id] + ' | ABF Resources';
+    const route = COURSE_ROUTES[id];
+    if (pushUrl && route && window.history && history.pushState &&
+        (location.pathname + location.search) !== route) {
+      history.pushState({ course: id }, '', route);
+    }
+  };
+
   window.addEventListener('popstate', () => {
-    window.showTab(PATH_TO_TAB[currentRoutePath()] || 'home', false);
+    const p = currentRoutePath();
+    if (PATH_TO_COURSE[p]) { window.showCourse(PATH_TO_COURSE[p], false); return; }
+    window.showTab(PATH_TO_TAB[p] || 'home', false);
   });
 
   // Deep link: if the page was loaded at /leaders, /scheduling, etc.,
   // open that tab. (In public-feedback mode this code never runs.)
-  const initialRouteTab = PATH_TO_TAB[currentRoutePath()];
+  const initialRouteTab    = PATH_TO_TAB[currentRoutePath()];
+  const initialRouteCourse = PATH_TO_COURSE[currentRoutePath()];
   if (history.replaceState) {
-    history.replaceState({ tab: initialRouteTab || 'home' }, '',
-      location.pathname + location.search + location.hash);
+    history.replaceState(
+      initialRouteCourse ? { course: initialRouteCourse } : { tab: initialRouteTab || 'home' },
+      '', location.pathname + location.search + location.hash);
   }
-  if (initialRouteTab && initialRouteTab !== 'home') {
+  if (initialRouteCourse) {
+    window.showCourse(initialRouteCourse, false);
+  } else if (initialRouteTab && initialRouteTab !== 'home') {
     window.showTab(initialRouteTab, false);
   }
 
