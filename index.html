@@ -3149,6 +3149,29 @@
       color: rgba(255,255,255,.55);
     }
 
+    /* Slide 1 visit list (replaced the SEP 13 date medallion 2026-10-15).
+       Lives inside a .hc-steps card, so only the list itself is styled here. */
+    .hc-visitlist { list-style: none; margin: 0; padding: 0; }
+    .hc-visitlist li + li {
+      margin-top: .85rem; padding-top: .85rem;
+      border-top: 1px solid rgba(255,255,255,.16);
+    }
+    .hc-visitlist .vt {
+      display: block;
+      font-size: .82rem; font-weight: 800; color: #fff;
+      letter-spacing: -.01em;
+    }
+    .hc-visitlist .vd {
+      display: block; margin-top: .2rem;
+      font-size: .76rem; line-height: 1.45; color: rgba(255,255,255,.82);
+    }
+    .hc-visitlist .vc {
+      display: block; margin-top: .3rem;
+      font-size: .7rem; font-weight: 700; color: rgba(255,255,255,.6);
+    }
+    .hc-visitlist .vc a { color: var(--accent-lt); text-decoration: none; }
+    .hc-visitlist .vc a:hover { text-decoration: underline; }
+
     /* Media column: stacked device/photo cards */
     .hc-thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
     .hc-thumbs figure {
@@ -3413,23 +3436,32 @@
         <div class="hc-viewport">
           <div class="hc-track" id="hc-track">
 
-            <!-- 1 · Fall kickoff -->
-            <div class="hc-slide gold-btn-dark" role="group" aria-roledescription="slide" aria-label="1 of 4: ABFs resume September 13">
+            <!-- 1 · Special Visits (replaced the Sept 13 kickoff slide 2026-10-15) -->
+            <div class="hc-slide gold-btn-dark" role="group" aria-roledescription="slide" aria-label="1 of 4: Schedule an elder or global partner visit">
               <div class="hc-inner">
                 <div class="hc-copy">
-                  <span class="hc-eyebrow">Welcome back to ABFs</span>
-                  <h2>ABFs Are Back. <em>September&nbsp;13.</em></h2>
-                  <p>A new year of Scripture, community, and care starts <strong>Sunday, September&nbsp;13</strong>. Eight ABFs, two services &mdash; and room at every table.</p>
+                  <span class="hc-eyebrow">Now Booking &mdash; Open Sundays This Year</span>
+                  <h2>Host an Elder or <em>Global Partner.</em></h2>
+                  <p>Two kinds of guests are available to your class this year, and both are scheduled right here. Pick a Sunday that works, send the request, and the coordinator takes it from there.</p>
                   <div class="hc-actions">
-                    <button type="button" class="hc-btn" onclick="showTab('classes')">See the 8 ABFs</button>
-                    <button type="button" class="hc-btn ghost" onclick="showTab('dates')">Key Dates &rarr;</button>
+                    <button type="button" class="hc-btn" onclick="showTab('mobilization')">See Available Visits</button>
+                    <button type="button" class="hc-btn ghost" onclick="showTab('scheduling')">Send a Request &rarr;</button>
                   </div>
                 </div>
-                <div class="hc-medallion">
-                  <span class="kicker">Kickoff Sunday</span>
-                  <span class="mon">Sep</span>
-                  <span class="day">13</span>
-                  <span class="yr">2026</span>
+                <div class="hc-steps">
+                  <div class="hd">Who you can host</div>
+                  <ul class="hc-visitlist">
+                    <li>
+                      <span class="vt">Global Partner Visits</span>
+                      <span class="vd">Partners home from the field, ready to share about their work and how your class can pray.</span>
+                      <span class="vc">Allison Garver &middot; <a href="mailto:a.garver@lefc.net">a.garver@lefc.net</a></span>
+                    </li>
+                    <li>
+                      <span class="vt">Elder Visits</span>
+                      <span class="vd">Two elders visit your class to connect, answer questions, and cast vision for what&rsquo;s ahead.</span>
+                      <span class="vc">Tyler Ranck &middot; <a href="mailto:elders@lefc.net">elders@lefc.net</a></span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -3464,13 +3496,13 @@
               </div>
             </div>
 
-            <!-- 3 · Be invitational -->
-            <div class="hc-slide terra" role="group" aria-roledescription="slide" aria-label="3 of 4: September outreach challenge">
+            <!-- 3 · Be invitational (widened from September to all fall 2026-10-15) -->
+            <div class="hc-slide terra" role="group" aria-roledescription="slide" aria-label="3 of 4: Fall invite challenge">
               <div class="hc-inner">
                 <div class="hc-copy">
-                  <span class="hc-eyebrow">First Few Weeks of Fall</span>
-                  <h2>September <em>Outreach Challenge.</em></h2>
-                  <p>Fall is a critical transition time in the life of our church body. New folks have been checking us out over the summer and are ready for a next step, and it's easier if they receive an invite. Mid-size groups are where people get to experience the joy of knowing and being known. Would you extend this challenge to your class?</p>
+                  <span class="hc-eyebrow">All Fall Long</span>
+                  <h2>The Fall <em>Invite Challenge.</em></h2>
+                  <p>Fall is a critical transition time in the life of our church body. New folks have been checking us out and are ready for a next step, and it's easier if they receive an invite. Mid-size groups are where people get to experience the joy of knowing and being known. This isn't a one-Sunday push &mdash; carry it through the fall, and keep extending this challenge to your class.</p>
                   <div class="hc-actions">
                     <button type="button" class="hc-btn" onclick="showTab('classes')">Who's in Which ABF</button>
                     <a class="hc-btn ghost" href="facility-map.pdf" target="_blank" rel="noopener">Find Your Room</a>
@@ -3483,6 +3515,7 @@
                     <li>Extend an invitation to join your ABF.</li>
                     <li>Learn their name, then use it next Sunday.</li>
                     <li>Save the seat beside you for whoever shows up.</li>
+                    <li>Keep at it every Sunday through the fall.</li>
                   </ul>
                 </div>
               </div>
@@ -3550,6 +3583,11 @@
             <a class="hnc-btn" href="ABF-Attendance-Instructions.pdf" target="_blank" rel="noopener">Instructions (PDF)</a>
             <a class="hnc-btn ghost" href="https://rock.lefc.net/volunteerportal" target="_blank" rel="noopener">Volunteer Portal &rarr;</a>
           </div>
+        </div>
+        <div class="home-nav-card olive" onclick="showTab('mobilization')">
+          <div class="icon">🤝</div>
+          <h3>Special Visits</h3>
+          <p>Global partners and elders available to visit your ABF. Each card shows the Sundays that visit is open &mdash; sign in and request one straight from the card.</p>
         </div>
         <div class="home-nav-card" onclick="showTab('classes')">
           <div class="icon">👥</div>
