@@ -1941,6 +1941,21 @@
     .btn-success:hover { background: #5a7430; }
     .btn-sm { padding: .4rem .7rem; font-size: .72rem; }
 
+    /* Season (ABF academic year) selector — Scheduling. JS hides the
+       whole row when the data only holds one season, so the control
+       never shows up as a pointless one-option dropdown. */
+    .season-filter {
+      display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+      margin-bottom: .9rem; padding: .65rem .85rem;
+      background: #fff; border-radius: 8px;
+      box-shadow: var(--shadow); border-left: 3px solid var(--gold);
+    }
+    .season-filter label {
+      font-size: .74rem; font-weight: 700; color: var(--dark-brown); margin: 0;
+    }
+    .season-filter select { max-width: 220px; }
+    .season-filter .hint { font-size: .7rem; color: var(--text-muted); }
+
     /* Leader: availability grid (teachers × Sundays) */
     .grid-wrap {
       background: #fff;
@@ -4389,6 +4404,11 @@
             <span class="leg"><span class="dot un"></span> Unavailable</span>
             <span class="leg"><span class="dot bk"></span> Booked</span>
           </div>
+          <div class="season-filter" id="t-avail-season-row">
+            <label for="t-avail-season">Season:</label>
+            <select id="t-avail-season" class="form-select"></select>
+            <span class="hint">Mark one season at a time. The bulk buttons below apply to the season shown here.</span>
+          </div>
           <div class="bulk-set-bar" id="bulk-set-bar">
             <div class="bulk-set-label">Set every Sunday (both services):</div>
             <div class="bulk-set-buttons">
@@ -4424,6 +4444,11 @@
         <div class="sched-pane active" id="sched-l-grid">
           <div class="sched-notice">
             <strong>Reading the grid:</strong> rows are teachers, columns are Sundays. Green = available, gold = tentative, red = unavailable, blue = already booked. Diagonal-stripe columns are no-class Sundays.
+          </div>
+          <div class="season-filter" id="l-grid-season-row">
+            <label for="l-grid-season">Season:</label>
+            <select id="l-grid-season" class="form-select"></select>
+            <span class="hint">The grid covers one ABF year at a time, Labor Day through Memorial Day.</span>
           </div>
           <div class="leader-grid-filter" style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem;padding:.65rem .85rem;background:#fff;border-radius:8px;box-shadow:var(--shadow);border-left:3px solid var(--steel-blue);">
             <label for="l-grid-service" style="font-size:.74rem;font-weight:700;color:var(--dark-brown);margin:0;">Showing:</label>
@@ -7114,13 +7139,96 @@
     return 'Tap to set';
   }
 
+  /* ─── Season (ABF academic year) scoping ──────────────────────────
+     Added 2026-10-15, when the 2027/28 Sundays were loaded and the
+     calendar stopped being a single year.
+
+     LEFC's ABF year is anchored to the federal holidays, not to fixed
+     month boundaries: it opens on the Sunday BEFORE Labor Day (Family
+     Worship, no class — ABFs resume the Sunday after) and closes on the
+     Sunday AFTER Memorial Day, which is the first summer-elective
+     Sunday. A season is named for the calendar year it starts in, so
+     season 2026 runs 2026-09-06 → 2027-06-06.
+
+     Deriving the boundary from Labor Day rather than hardcoding a month
+     is the point: adding a future year is a data-only job. Drop the new
+     Sundays into Airtable and the selector picks them up by itself. */
+  function laborDaySundayIso(y) {
+    const d = new Date(Date.UTC(y, 8, 1));                           // Sept 1
+    while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);    // first Monday
+    d.setUTCDate(d.getUTCDate() - 1);                                // the Sunday before it
+    return d.toISOString().slice(0, 10);
+  }
+  function seasonStartYear(iso) {
+    if (!iso) return null;
+    const y = +iso.slice(0, 4);
+    return iso >= laborDaySundayIso(y) ? y : y - 1;
+  }
+  /* "2026/27" — no dash, so it never reads as a date range minus sign. */
+  function seasonLabel(y) { return y + '/' + String(y + 1).slice(2); }
+
+  let _schedSeason = null;
+
+  function availableSeasons() {
+    const seen = {};
+    DataStore.listSundays().forEach(s => {
+      const y = seasonStartYear(s.date);
+      if (y !== null) seen[y] = true;
+    });
+    return Object.keys(seen).map(Number).sort((a, b) => a - b);
+  }
+  /* The season on screen: the one containing today when the data has it,
+     otherwise the latest on file — so the page is never blank over the
+     summer or after the last loaded year runs out. */
+  function activeSeason() {
+    const seasons = availableSeasons();
+    if (!seasons.length) return null;
+    if (_schedSeason !== null && seasons.indexOf(_schedSeason) !== -1) return _schedSeason;
+    const y = seasonStartYear(new Date().toISOString().slice(0, 10));
+    _schedSeason = seasons.indexOf(y) !== -1 ? y : seasons[seasons.length - 1];
+    return _schedSeason;
+  }
+  function seasonSundays(inSessionOnly) {
+    const y = activeSeason();
+    return DataStore.listSundays().filter(s =>
+      seasonStartYear(s.date) === y && (!inSessionOnly || s.inSession));
+  }
+  /* Pickers are future-only but span EVERY season on file, so a leader
+     can still ask for a Sunday next fall. Before this, they listed every
+     Sunday including ones already past. */
+  function futureSundaysInSession() {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return DataStore.listSundaysInSession().filter(s => s.date && s.date >= todayIso);
+  }
+
+  function renderSeasonSelectors() {
+    const seasons = availableSeasons();
+    const cur = activeSeason();
+    ['t-avail-season', 'l-grid-season'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = seasons.map(y =>
+        '<option value="' + y + '"' + (y === cur ? ' selected' : '') + '>' +
+        seasonLabel(y) + ' season</option>').join('');
+      const row = document.getElementById(id + '-row');
+      if (row) row.style.display = seasons.length > 1 ? '' : 'none';
+    });
+  }
+  function setSchedSeason(y) {
+    _schedSeason = +y;
+    renderSeasonSelectors();
+    renderTeacherAvailability();
+    if (document.getElementById('l-availability-grid')) renderLeaderGrid();
+  }
+
   function renderTeacherAvailability() {
     const t = Identity.asTeacher();
     if (!t) return;
     const wrap = document.getElementById('t-availability-calendar');
     wrap.innerHTML = '';
 
-    const sundays = DataStore.listSundays();
+    renderSeasonSelectors();
+    const sundays = seasonSundays(false);
     const byTerm = {};
     sundays.forEach(s => {
       if (!byTerm[s.term]) byTerm[s.term] = [];
@@ -7227,7 +7335,9 @@
       toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to change availability.');
       return;
     }
-    const sundays = DataStore.listSundaysInSession();
+    // Scoped to the season on screen — otherwise "All Available" would
+    // write every Sunday of every year on file in one go.
+    const sundays = seasonSundays(true);
     if (!sundays.length) return;
 
     const acceptedReqs = DataStore.listRequests({ teacherId: t.id }).filter(r => r.status === 'Accepted');
@@ -8137,13 +8247,14 @@
   function renderLeaderGrid() {
     const wrap = document.getElementById('l-availability-grid');
     wrap.innerHTML = '';
+    renderSeasonSelectors();
 
     // Sync the dropdown to the current selection on every render.
     const sel = document.getElementById('l-grid-service');
     const activeSvc = getLeaderGridService();
     if (sel && sel.value !== activeSvc) sel.value = activeSvc;
 
-    const sundays = DataStore.listSundays();
+    const sundays = seasonSundays(false);
     const teachers = DataStore.listTeachers();
     const allAvail = DataStore.listAvailabilityAll();
     const acceptedReqs = DataStore.listRequests().filter(r => r.status === 'Accepted');
@@ -9303,7 +9414,7 @@
     _selectedSundayIds = [];
     const wrap = document.getElementById('l-req-sundays');
     wrap.innerHTML = '';
-    const sundays = DataStore.listSundaysInSession();
+    const sundays = futureSundaysInSession();
     // Filter the teacher's availability to the leader's class service so
     // unavailable indicators reflect the right service.
     const l = Identity.asLeader();
@@ -9789,8 +9900,11 @@
       (isRevise ? ' — update the Sundays you offered.'
                 : ' — pick the Sundays that do work for you.');
 
-    const sundays = DataStore.listSundaysInSession();
-    const sunMap = {}; sundays.forEach(s => sunMap[s.id] = s);
+    // The picker offers future Sundays only, but the lookup map has to
+    // stay complete — the "what was asked for" pills above it may point
+    // at dates that have since passed.
+    const sundays = futureSundaysInSession();
+    const sunMap = {}; DataStore.listSundays().forEach(s => sunMap[s.id] = s);
     const requested = new Set(r.requestedSundayIds || []);
 
     // Show what was asked for, so the teacher has it in view while picking.
@@ -10119,8 +10233,22 @@
   }
 
   function confirmBulkSet(v) {
-    if (v === 'clear') return confirm('Clear your availability for every Sunday (both services)? This can’t be undone.');
-    return confirm('Set every Sunday (both services) to ' + v + '? You can fine-tune individual Sundays after.');
+    // Name the season explicitly — with more than one year on file, a
+    // bare "every Sunday" is ambiguous and the action is bulk.
+    const y = activeSeason();
+    const scope = y === null ? 'every Sunday' : 'every Sunday of the ' + seasonLabel(y) + ' season';
+    if (v === 'clear') return confirm('Clear your availability for ' + scope + ' (both services)? This can’t be undone.');
+    return confirm('Set ' + scope + ' (both services) to ' + v + '? You can fine-tune individual Sundays after.');
+  }
+
+  /* Wire both season dropdowns to one shared selection, so switching
+     season on My Availability also moves the leader grid and back. */
+  function setupSeasonFilters() {
+    ['t-avail-season', 'l-grid-season'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.addEventListener('change', () => setSchedSeason(sel.value));
+    });
   }
 
   /* Wire the Leader Availability Grid service-filter dropdown. */
@@ -11420,6 +11548,7 @@
   setupLockedTabModal();
   setupBulkSetControls();
   setupLeaderGridFilter();
+  setupSeasonFilters();
   setupCourseForm();
   setupProfileForm();
   setupRegisterForm();
