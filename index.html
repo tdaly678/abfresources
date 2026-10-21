@@ -1278,6 +1278,8 @@
     .sunday-cell-2svc .svc-row.status-unavailable{ background: rgba(176,68,52,.10); }
     .sunday-cell-2svc .svc-row.status-unavailable .svc-dot { background: var(--terra); }
     .sunday-cell-2svc .svc-row.status-booked     { background: rgba(63,87,101,.12); cursor: not-allowed; }
+    /* A save is in flight for this cell (added 2026-10-21). */
+    .sunday-cell-2svc .svc-row.pending { opacity: .5; cursor: progress; pointer-events: none; }
     .sunday-cell-2svc .svc-row.status-booked .svc-dot { background: var(--steel-blue); }
     .sunday-cell-2svc.no-class { background: rgba(52,45,37,.05); }
     .sunday-cell-2svc.no-class .sun-date {
@@ -2183,7 +2185,8 @@
        the leader's request grid), so this needs !important to win. Scoped to
        this picker, so the request grid is left exactly as it was. */
     #course-form-visit .sunday-pick.selected div,
-    #course-form-visit .sunday-pick.booked-lock div { color: rgba(255,255,255,.82) !important; }
+    #course-form-visit .sunday-pick.booked-lock div,
+    #l-req-sundays .sunday-pick.booked-lock div { color: rgba(255,255,255,.82) !important; }
     .pick-legend {
       display: flex; flex-wrap: wrap; gap: .85rem;
       font-size: .7rem; color: var(--text-muted);
@@ -6389,7 +6392,18 @@
     },
     async setAvailability(teacherId, sundayId, service, status, notes) {
       const svc = service || '1st Service';
-      const existing = this.getAvailability(teacherId, sundayId, svc);
+      // Every row for this key. There should be exactly one, but before the
+      // 2026-10-21 click guard a fast double tap could read the cache before
+      // the first POST returned and create a second (or third) row. The
+      // first row is the one we keep; any extras are deleted on the way
+      // through so the data heals itself the next time the cell is touched.
+      const rows = getCache().availability.filter(a =>
+        a.teacherId === teacherId && a.sundayId === sundayId && (a.service || '1st Service') === svc);
+      const existing = rows[0] || null;
+      for (const dup of rows.slice(1)) {
+        try { await Airtable.deleteAvailability(dup.id); }
+        catch (e) { console.warn('[availability] duplicate cleanup failed', dup.id, e); }
+      }
       if (status === null) {
         if (existing) await Airtable.deleteAvailability(existing.id);
         return;
@@ -7296,7 +7310,7 @@
           if (isBooked) return;
           btn.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            cycleAvailability(t.id, s.id, svc);
+            cycleAvailability(t.id, s.id, svc, btn);
           });
         });
 
@@ -7307,20 +7321,43 @@
     });
   }
 
-  async function cycleAvailability(teacherId, sundayId, service) {
+  /* Cells with a save in flight. A second tap on the same cell before the
+     first round trip returns used to read the stale cache and POST a second
+     row (Jeff Travis ended up with three rows per service for 2026-12-13).
+     The Set is the real guard; the .pending class is just the visual. */
+  const _availPending = new Set();
+
+  async function cycleAvailability(teacherId, sundayId, service, btn) {
     if (!Identity.canEditTeacher(teacherId)) {
       toast('error', 'Read-only', 'Sign in as this teacher (or an admin) to change availability.');
       return;
     }
     const svc = service || '1st Service';
+    const key = teacherId + '|' + sundayId + '|' + svc;
+    if (_availPending.has(key) || _availPending.has('bulk')) return;
+    _availPending.add(key);
+    if (btn) btn.classList.add('pending');
     const cur = DataStore.getAvailability(teacherId, sundayId, svc);
     const order = [null, 'Available', 'Tentative', 'Unavailable'];
     const i = order.indexOf(cur ? cur.status : null);
     const next = order[(i + 1) % order.length];
     try {
       await DataStore.setAvailability(teacherId, sundayId, svc, next);
+      _availPending.delete(key);
       renderTeacherAvailability();
     } catch (e) {
+      _availPending.delete(key);
+      if (btn) btn.classList.remove('pending');
+      if (e.status === 401 || e.status === 403) {
+        toast('error', 'Signed out', 'Your sign-in has expired. Sign in again to keep editing.');
+        console.error(e);
+        return;
+      }
+      if (e.status === 429) {
+        toast('error', 'Slow down a little', 'Too many changes at once. Wait a minute and try again.');
+        console.error(e);
+        return;
+      }
       toast('error', 'Couldn\u2019t save', 'Your change wasn\u2019t saved. Try again.');
       console.error(e);
     }
@@ -7339,6 +7376,13 @@
     // write every Sunday of every year on file in one go.
     const sundays = seasonSundays(true);
     if (!sundays.length) return;
+    // Don't start a bulk pass while a single cell is still saving (or a
+    // bulk pass is already running) — the two would race on the cache.
+    if (_availPending.size) {
+      toast('error', 'One moment', 'A change is still saving. Try again in a second.');
+      return;
+    }
+    _availPending.add('bulk');
 
     const acceptedReqs = DataStore.listRequests({ teacherId: t.id }).filter(r => r.status === 'Accepted');
     const bookedSet = new Set();
@@ -7371,6 +7415,7 @@
       console.error(e);
       toast('error', 'Couldn\u2019t finish', 'Some changes didn\u2019t save. Refresh and try again.');
     } finally {
+      _availPending.delete('bulk');
       if (overlay) overlay.style.display = 'none';
     }
   }
@@ -9423,6 +9468,17 @@
     const teacherAvail = teacherId ? DataStore.listAvailabilityForTeacher(teacherId, svc) : [];
     const availMap = {};
     teacherAvail.forEach(a => availMap[a.sundayId] = a.status);
+    // Sundays this teacher is already booked for at this service (an
+    // Accepted request from any class). The grid showed these in blue but
+    // the picker never did, so a leader could request a date the teacher
+    // had already said yes to elsewhere. (Added 2026-10-21.)
+    const bookedSet = new Set();
+    if (teacherId) {
+      DataStore.listRequests({ teacherId }).filter(r => r.status === 'Accepted' &&
+        (r.service || '1st Service') === svc)
+        .forEach(r => (r.requestedSundayIds || []).forEach(sid => bookedSet.add(sid)));
+    }
+    _pickBooked = bookedSet;
 
     // If the course argument wasn't passed, read whatever the course
     // dropdown currently holds — the picker is re-rendered from both.
@@ -9484,9 +9540,14 @@
       const status = availMap[s.id];
       if (status === 'Unavailable') btn.classList.add('unavail');
       const locked = !!rules && !rules.allowed.has(s.id);
+      const booked = bookedSet.has(s.id);
       if (locked) {
         btn.classList.add('locked');
         btn.title = 'Not one of this visit’s dates';
+        btn.setAttribute('aria-disabled', 'true');
+      } else if (booked) {
+        btn.classList.add('booked-lock');
+        btn.title = 'Already booked to teach at ' + svc + ' that Sunday';
         btn.setAttribute('aria-disabled', 'true');
       }
       btn.dataset.sid = s.id;
@@ -9494,6 +9555,10 @@
                       '<div style="font-size:.95rem;font-weight:800;">' + fmtDayNum(s.date) + '</div>';
       btn.addEventListener('click', () => {
         if (locked) return;
+        if (booked) {
+          toast('error', 'Already booked', 'This teacher has already accepted a request for that Sunday at ' + svc + '. Pick another date or another teacher.');
+          return;
+        }
         const wasSelected = btn.classList.contains('selected');
         if (!wasSelected && _selectedSundayIds.length >= limits.max) {
           if (limits.max === 1) {
@@ -9527,6 +9592,7 @@
      with neither stays free-form (1 to unlimited), which is what "no
      specific course" and "Other" get too. */
   let _pickLimits = { min: 1, max: Infinity };
+  let _pickBooked = new Set();
   function sundayPickLimits(courseId, rules) {
     if (rules) return { min: 1, max: 1 };
     const course = courseId && courseId !== '__other__'
@@ -9590,6 +9656,11 @@
 
     if (!teacherId) { toast('error', 'Choose a teacher', 'Pick someone to send this request to.'); return; }
     if (!_selectedSundayIds.length) { toast('error', 'Pick at least one Sunday', 'Select the Sundays you\u2019d like the teacher.'); return; }
+    // The picker locks booked dates; this catches a stale form.
+    if (_selectedSundayIds.some(sid => _pickBooked.has(sid))) {
+      toast('error', 'Already booked', 'One of the Sundays you picked is already booked for this teacher. Unpick it first.');
+      return;
+    }
 
     // Ministry visits are one Sunday, on one of that visit's own dates. The
     // picker already enforces this; re-check here so a stale form can't slip
