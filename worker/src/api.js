@@ -222,18 +222,30 @@ async function at(env, method, table, { recordId, body, query } = {}) {
   let path = '/' + encodeURIComponent(table);
   if (recordId) path += '/' + recordId;
   const qs = query ? '?' + query : '';
-  const res = await fetch('https://api.airtable.com/v0/' + env.AIRTABLE_BASE_ID + path + qs, {
-    method,
-    headers: {
-      'Authorization': 'Bearer ' + env.AIRTABLE_TOKEN,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  // Airtable allows 5 requests/second per base. A 429 means the call was
+  // rejected outright (nothing happened), so retrying it is safe for every
+  // method, POST included. Three tries, short backoff. (Added 2026-10-21.)
+  const waits = [400, 1200, 2500];
+  let res;
+  for (let attempt = 0; ; attempt++) {
+    res = await fetch('https://api.airtable.com/v0/' + env.AIRTABLE_BASE_ID + path + qs, {
+      method,
+      headers: {
+        'Authorization': 'Bearer ' + env.AIRTABLE_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status !== 429 || attempt >= waits.length) break;
+    console.warn('[airtable] 429 on', method, table, '- retry', attempt + 1);
+    await res.text().catch(() => {});
+    await new Promise(r => setTimeout(r, waits[attempt]));
+  }
   if (!res.ok) {
     const txt = await res.text();
     console.error('[airtable]', method, table, res.status, txt);
-    throw httpError(res.status === 404 ? 404 : 502, 'Airtable ' + res.status);
+    throw httpError(res.status === 404 ? 404 : (res.status === 429 ? 429 : 502),
+      res.status === 429 ? 'Airtable is busy, try again in a moment' : 'Airtable ' + res.status);
   }
   return res.status === 204 ? null : res.json();
 }
@@ -370,10 +382,31 @@ function pickFields(rec, allowed, extra = []) {
   return { id: rec.id, fields: out, createdTime: rec.createdTime };
 }
 
+/* Anonymous bootstrap cache (added 2026-10-21). Every page load used to
+   pull ten tables from Airtable (~45 paged calls as availability grows),
+   and a handful of people loading the site at the same moment could trip
+   Airtable's 5 req/s limit. Anonymous callers all get the same sanitized
+   payload, so it is kept in KV for BOOT_CACHE_TTL seconds and dropped on
+   any write through the proxy. Signed-in callers always read live. */
+const BOOT_CACHE_KEY = 'boot:anon:v1';
+const BOOT_CACHE_TTL = 60; // KV minimum
+async function dropBootCache(env) {
+  if (!env.RATE) return;
+  try { await env.RATE.delete(BOOT_CACHE_KEY); } catch { /* non-fatal */ }
+}
+
 async function apiBootstrap(request, env, cors) {
   const s = await sessionFrom(request, env); // null | gate | session | admin
   const signedIn = !!(s && (s.role || s.adm));
   const isAdmin = !!(s && s.adm);
+
+  const cacheable = !s && !!env.RATE;
+  if (cacheable) {
+    try {
+      const hit = await env.RATE.get(BOOT_CACHE_KEY);
+      if (hit) return new Response(hit, { status: 200, headers: { 'content-type': 'application/json', 'x-abf-cache': 'hit', ...cors } });
+    } catch { /* fall through to live */ }
+  }
 
   const [classes, teachers, leaders, courses, sundays, avail, reqs, fbTpls, fbForms, fbResps] =
     await Promise.all([
@@ -413,11 +446,15 @@ async function apiBootstrap(request, env, cors) {
     outResps = fbResps.filter(r => (((r.fields || {}).Form) || []).some(fid => myFormIds.has(fid)));
   }
 
-  return json({
+  const payload = JSON.stringify({
     abfClasses: classes, teachers: outTeachers, abfLeaders: outLeaders,
     courses, sundays, availability: avail, requests: outReqs,
     feedbackTemplates: fbTpls, feedbackForms: fbForms, feedbackResponses: outResps,
-  }, 200, cors);
+  });
+  if (cacheable) {
+    try { await env.RATE.put(BOOT_CACHE_KEY, payload, { expirationTtl: BOOT_CACHE_TTL }); } catch { /* non-fatal */ }
+  }
+  return new Response(payload, { status: 200, headers: { 'content-type': 'application/json', 'x-abf-cache': cacheable ? 'miss' : 'bypass', ...cors } });
 }
 
 /* ─── generic authorized write proxy ────────────────────────────────── */
@@ -453,6 +490,39 @@ function linksTo(body, field, id) {
 async function ownsRecord(env, table, recordId, linkField, id) {
   const rec = await at(env, 'GET', table, { recordId });
   return (((rec.fields || {})[linkField]) || []).includes(id);
+}
+
+/* ── Batch writes (added 2026-10-21) ──
+   Airtable takes up to 10 records per POST/PATCH ({records:[...]}) and per
+   DELETE (?records[]=id&records[]=id). The site's season bulk set used to be
+   one proxy call per cell plus one Change Log row each, ~144 calls against
+   the 240/600s throttle, so two bulk actions ten minutes apart failed
+   partway. With batches it is ~8 calls. */
+const BATCH_MAX = 10;
+const REC_ID_RE = /^rec[A-Za-z0-9]{14,17}$/;
+
+// Returns null when the request is NOT in batch form. Otherwise the record
+// ids involved (empty for a POST, which creates new ones).
+function batchRecordIds(method, body, query) {
+  if (method === 'DELETE') {
+    if (!query) return null;
+    const ids = new URLSearchParams(query).getAll('records[]');
+    return ids.length ? ids : null;
+  }
+  if (body && Array.isArray(body.records)) return body.records.map(r => r && r.id).filter(Boolean);
+  return null;
+}
+
+// Every one of `ids` must exist in `table` and link to `id` via `linkField`.
+// One filtered list call instead of one GET per record.
+async function ownsAll(env, table, ids, linkField, id) {
+  if (!ids.length || ids.length > BATCH_MAX) return false;
+  if (ids.some(x => !REC_ID_RE.test(x))) return false;
+  const formula = 'OR(' + ids.map(x => "RECORD_ID()='" + x + "'").join(',') + ')';
+  const recs = await atListAll(env, table,
+    'filterByFormula=' + encodeURIComponent(formula) + '&fields%5B%5D=' + encodeURIComponent(linkField));
+  if (recs.length !== new Set(ids).size) return false;
+  return recs.every(r => (((r.fields || {})[linkField]) || []).includes(id));
 }
 
 async function apiProxy(request, env, cors) {
@@ -495,8 +565,28 @@ async function apiProxy(request, env, cors) {
       if (method === 'POST' && hasGate) { assertFields(body, FIELDS.leaderCreate); allowed = true; }
       if (method === 'PATCH' && isLeader && recordId === s.id) { assertFields(body, FIELDS.leaderCreate); allowed = true; }
       break;
+    case 'availability': {
+      // Batch form first (see batchRecordIds). A non-batch request falls
+      // through to the shared single-record rules below.
+      const batchIds = batchRecordIds(method, body, query);
+      if (batchIds !== null) {
+        if (!isTeacher) break;
+        if (method === 'POST') {
+          const recs = body.records;
+          if (recs.length && recs.length <= BATCH_MAX && recs.every(r => linksTo(r, 'Teacher', s.id))) allowed = true;
+        } else if (method === 'PATCH' || method === 'DELETE') {
+          if (await ownsAll(env, tableId, batchIds, 'Teacher', s.id)) {
+            // owner may not reassign any record to someone else
+            if (method === 'PATCH' && body.records.some(r =>
+                r && r.fields && 'Teacher' in r.fields && !linksTo(r, 'Teacher', s.id))) break;
+            allowed = true;
+          }
+        }
+        break;
+      }
+    }
+    // falls through
     case 'courses':
-    case 'availability':
     case 'feedbackForms':
       if (method === 'POST' && isTeacher && linksTo(body, 'Teacher', s.id)) allowed = true;
       if ((method === 'PATCH' || method === 'DELETE') && isTeacher &&
@@ -576,6 +666,7 @@ async function apiProxy(request, env, cors) {
   if (!allowed) throw httpError(s ? 403 : 401, s ? 'not allowed' : 'sign in required');
 
   const result = await at(env, method, tableId, { recordId, body, query });
+  if (method !== 'GET') await dropBootCache(env);
 
   // Never let a proxy response leak someone's phone number.
   if (result && result.fields && 'Phone' in result.fields &&

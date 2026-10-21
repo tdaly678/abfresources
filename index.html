@@ -5351,6 +5351,39 @@
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════
+     TEACHER RESPONSE MODAL — added 2026-10-21
+     Accept / Decline used to be a bare prompt() for the optional note, and
+     because the code did prompt(...) || '', hitting Cancel still sent the
+     response. This modal has an explicit Send, a real Cancel, and shows
+     a warning when accepting would overlap a Sunday the teacher has
+     already accepted for another class at the same service.
+════════════════════════════════════════════════════════════ -->
+<div id="tresp-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
+    <button type="button" class="sched-modal-close" id="tresp-close" aria-label="Close">&times;</button>
+    <h3 style="margin-bottom:.2rem;" id="tresp-title">Accept this request</h3>
+    <p class="page-sub" style="margin-bottom:1rem;" id="tresp-sub"></p>
+
+    <div class="form-group">
+      <label class="form-label">Sundays requested</label>
+      <div class="req-sundays" id="tresp-dates"></div>
+    </div>
+
+    <p class="sched-notice" id="tresp-conflict" style="display:none;margin-bottom:.9rem;"></p>
+
+    <div class="form-group">
+      <label class="form-label" for="tresp-note">Note to the leader <span style="color:var(--text-muted);font-weight:600;">(optional)</span></label>
+      <textarea id="tresp-note" class="form-input" rows="3"></textarea>
+    </div>
+
+    <div class="sched-modal-actions" style="justify-content:flex-end;gap:.5rem;flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="tresp-cancel" type="button">Cancel</button>
+      <button class="btn btn-success" id="tresp-send" type="button">Accept</button>
+    </div>
+  </div>
+</div>
+
 <!-- Registration password prompt (added 2026-08-05): anonymous visitors
      enter the registration password before the add-yourself forms open.
      A successful check stores a gate token, which is what the API worker
@@ -6191,6 +6224,45 @@
         this.logChange('Availability', 'delete', id,
           (t ? t.name : '?') + ' / ' + (s ? s.date : '?'),
           (t ? t.name : 'A teacher') + ' cleared their availability for ' + (s ? s.date : 'a Sunday'));
+      }
+    },
+
+    /* ── Availability batches (added 2026-10-21) ──
+       Airtable takes 10 records per call. These do NOT write Change Log
+       rows; bulkSetAvailability logs once for the whole action instead. */
+    async batchCreateAvailability(items) {   // [{teacherId, sundayId, service, status}]
+      const out = [];
+      for (let i = 0; i < items.length; i += 10) {
+        const chunk = items.slice(i, i + 10);
+        const res = await this.api('POST', this.TBL.availability, { body: { records: chunk.map(it => ({ fields: {
+          Teacher: [it.teacherId], Sunday: [it.sundayId], Service: it.service || '1st Service', Status: it.status, Notes: '',
+        } })) } });
+        (res.records || []).forEach(r => { const m = this._mapAvail(r); this._cache.availability.push(m); out.push(m); });
+      }
+      return out;
+    },
+    async batchUpdateAvailability(items) {   // [{id, status}]
+      const out = [];
+      for (let i = 0; i < items.length; i += 10) {
+        const chunk = items.slice(i, i + 10);
+        const res = await this.api('PATCH', this.TBL.availability, { body: { records: chunk.map(it => ({ id: it.id, fields: { Status: it.status } })) } });
+        (res.records || []).forEach(r => {
+          const m = this._mapAvail(r);
+          // Overlay onto the cached row rather than replacing it, so a
+          // response with partial fields can't blank the Teacher/Sunday links.
+          this._cache.availability = this._cache.availability.map(a =>
+            a.id === m.id ? { ...a, status: m.status || a.status, notes: m.notes } : a);
+          out.push(m);
+        });
+      }
+      return out;
+    },
+    async batchDeleteAvailability(ids) {
+      for (let i = 0; i < ids.length; i += 10) {
+        const chunk = ids.slice(i, i + 10);
+        await this.api('DELETE', this.TBL.availability, { query: chunk.map(id => 'records[]=' + encodeURIComponent(id)).join('&') });
+        const gone = new Set(chunk);
+        this._cache.availability = this._cache.availability.filter(a => !gone.has(a.id));
       }
     },
 
@@ -7418,17 +7490,35 @@
       overlay.querySelector('.bulk-progress-text').textContent = 'Saving 0 / ' + total + '…';
     }
 
-    let done = 0;
     try {
+      // Plan every cell first, then write in batches of 10. Duplicate rows
+      // for a key (there should be none now) are swept into the delete list.
+      const creates = [], updates = [], deletes = [];
       for (const s of sundays) {
         for (const svc of SERVICES) {
-          if (!bookedSet.has(s.id + '|' + svc)) {
-            await DataStore.setAvailability(t.id, s.id, svc, status);
-          }
-          done++;
-          if (overlay) overlay.querySelector('.bulk-progress-text').textContent = 'Saving ' + done + ' / ' + total + '…';
+          if (bookedSet.has(s.id + '|' + svc)) continue;
+          const rows = DataStore.listAvailabilityAll().filter(a =>
+            a.teacherId === t.id && a.sundayId === s.id && (a.service || '1st Service') === svc);
+          rows.slice(1).forEach(d => deletes.push(d.id));
+          const existing = rows[0] || null;
+          if (status === null) { if (existing) deletes.push(existing.id); }
+          else if (existing) { if (existing.status !== status) updates.push({ id: existing.id, status }); }
+          else creates.push({ teacherId: t.id, sundayId: s.id, service: svc, status });
         }
       }
+      const planned = creates.length + updates.length + deletes.length;
+      let done = 0;
+      const tick = n => { done += n; if (overlay) overlay.querySelector('.bulk-progress-text').textContent = 'Saving ' + Math.min(done, planned) + ' / ' + planned + '…'; };
+      if (overlay) tick(0);
+      for (let i = 0; i < deletes.length; i += 10) { await Airtable.batchDeleteAvailability(deletes.slice(i, i + 10)); tick(Math.min(10, deletes.length - i)); }
+      for (let i = 0; i < updates.length; i += 10) { await Airtable.batchUpdateAvailability(updates.slice(i, i + 10)); tick(Math.min(10, updates.length - i)); }
+      for (let i = 0; i < creates.length; i += 10) { await Airtable.batchCreateAvailability(creates.slice(i, i + 10)); tick(Math.min(10, creates.length - i)); }
+      // One Change Log row for the whole action instead of one per cell.
+      const y = activeSeason();
+      Airtable.logChange('Availability', 'update', t.id, t.name,
+        t.name + (status ? ' set every Sunday of the ' : ' cleared every Sunday of the ') + (y === null ? 'season' : seasonLabel(y) + ' season') +
+        (status ? ' to ' + status : '') + ' (both services)',
+        creates.length + ' created, ' + updates.length + ' updated, ' + deletes.length + ' deleted');
       toast('success', 'Updated',
         status ? 'Marked all Sundays as ' + status + ' (both services).'
                : 'Cleared availability for all Sundays.');
@@ -10178,6 +10268,102 @@
     return b;
   }
 
+  /* ─── Teacher Accept / Decline ── rebuilt 2026-10-21 ──
+     Counter-propose has had a real modal since August; Accept and Decline
+     still used prompt() for the note, and Cancel on that prompt still
+     submitted. Now all three go through a modal with an explicit Send. */
+  let _trespReq = null;
+  let _trespStatus = null;
+
+  /* Sundays in this request that the teacher has ALREADY accepted for a
+     different class at the same service. Not a hard block (a teacher might
+     teach back to back rooms by arrangement, or the other booking may be
+     stale) but it is shown plainly before they click Accept. */
+  function overlappingAcceptedSundays(r) {
+    const svc = r.service || '1st Service';
+    const mine = new Set(r.requestedSundayIds || []);
+    const hits = [];
+    DataStore.listRequests({ teacherId: r.teacherId })
+      .filter(o => o.id !== r.id && o.status === 'Accepted' && (o.service || '1st Service') === svc)
+      .forEach(o => (o.requestedSundayIds || []).forEach(sid => {
+        if (mine.has(sid)) hits.push({ sundayId: sid, classId: o.abfClassId });
+      }));
+    return hits;
+  }
+
+  function openTeacherRespondModal(r, status) {
+    _trespReq = r; _trespStatus = status;
+    const accepting = status === 'Accepted';
+    const l = DataStore.listABFLeaders().find(x => x.id === r.requestingLeaderId) || null;
+    const cls = DataStore.getABFClass(r.abfClassId);
+    document.getElementById('tresp-title').textContent = accepting ? 'Accept this request' : 'Decline this request';
+    document.getElementById('tresp-sub').textContent =
+      (cls ? cls.name : 'ABF') + (r.service ? ' · ' + r.service : '') + (l && l.name ? ' · from ' + l.name : '');
+
+    const sunMap = {}; DataStore.listSundays().forEach(s => sunMap[s.id] = s);
+    document.getElementById('tresp-dates').innerHTML = (r.requestedSundayIds || [])
+      .map(id => sunMap[id]).filter(Boolean)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(s => '<span class="pill">' + fmtSundayShort(s.date) + '</span>').join('') ||
+      '<span style="font-size:.8rem;color:var(--text-muted);">No Sundays listed</span>';
+
+    const warn = document.getElementById('tresp-conflict');
+    const hits = accepting ? overlappingAcceptedSundays(r) : [];
+    if (hits.length) {
+      const parts = hits.map(h => {
+        const s = sunMap[h.sundayId]; const c = DataStore.getABFClass(h.classId);
+        return (s ? fmtSundayShort(s.date) : 'a Sunday') + (c ? ' (' + c.name + ')' : '');
+      });
+      warn.style.display = '';
+      warn.innerHTML = '<strong>Heads up:</strong> you have already accepted another request for ' +
+        escapeHtml(parts.join(', ')) + ' at ' + escapeHtml(r.service || '1st Service') +
+        '. Accepting this one books you in two rooms at once. Counter-propose other dates if that is not intended.';
+    } else {
+      warn.style.display = 'none'; warn.innerHTML = '';
+    }
+
+    const note = document.getElementById('tresp-note');
+    note.value = '';
+    note.placeholder = accepting
+      ? 'e.g. Happy to teach all 4 weeks!'
+      : 'e.g. Can’t this fall, ask me again in spring.';
+    const send = document.getElementById('tresp-send');
+    send.textContent = accepting ? 'Accept' : 'Decline';
+    send.className = 'btn ' + (accepting ? 'btn-success' : 'btn-danger');
+    send.disabled = false;
+    document.getElementById('tresp-modal').classList.add('visible');
+  }
+
+  function closeTeacherRespondModal() {
+    document.getElementById('tresp-modal').classList.remove('visible');
+    _trespReq = null; _trespStatus = null;
+  }
+
+  async function submitTeacherResponse() {
+    const r = _trespReq, status = _trespStatus;
+    if (!r || !status) return;
+    const response = document.getElementById('tresp-note').value.trim();
+    const send = document.getElementById('tresp-send');
+    send.disabled = true; const old = send.textContent; send.textContent = 'Sending…';
+    try {
+      await DataStore.updateRequestStatus(r.id, status, response, []);
+      closeTeacherRespondModal();
+      toast('success', 'Response sent', 'The ABF leader has been notified that you ' + status.toLowerCase() + ' the request.');
+      renderTeacherRequests();
+      renderTeacherAvailability();
+    } catch (e) {
+      console.error(e);
+      if (e.status === 401 || e.status === 403) {
+        toast('error', 'Not authorized', 'Sign in as the requested teacher (or an admin) to respond.');
+      } else {
+        toast('error', 'Couldn’t respond', 'Your response wasn’t saved. Try again.');
+      }
+      send.disabled = false;
+    } finally {
+      send.textContent = old;
+    }
+  }
+
   async function respondRequest(r, status) {
     const t = Identity.asTeacher();
     if (!t) return;
@@ -10185,32 +10371,8 @@
       toast('error', 'Not your request', 'Only the requested teacher (or an admin) can respond.');
       return;
     }
-
-    let response = '';
-    let counterIds = [];
-    if (status === 'Accepted') {
-      response = prompt('Optional note back to the leader (e.g., \u201CHappy to teach all 4 weeks!\u201D)', '') || '';
-    } else if (status === 'Declined') {
-      response = prompt('Optional note back to the leader (e.g., \u201CCan\u2019t this fall, ask me again in spring.\u201D)', '') || '';
-    } else if (status === 'Counter-Proposed') {
-      // Handled by its own modal so a counter-proposal can never be sent
-      // empty (see openCounterModal). 2026-08-06.
-      openCounterModal(r);
-      return;
-    }
-
-    try {
-      await DataStore.updateRequestStatus(r.id, status, response, counterIds);
-    } catch (e) {
-      toast('error', 'Couldn\u2019t respond', 'Your response wasn\u2019t saved. Try again.');
-      console.error(e);
-      return;
-    }
-
-    // The Airtable Automation will send the real email to the leader once Tom sets it up.
-    toast('success', 'Response sent', 'The ABF leader has been notified that you ' + status.toLowerCase() + ' the request.');
-    renderTeacherRequests();
-    renderTeacherAvailability();
+    if (status === 'Counter-Proposed') { openCounterModal(r); return; }
+    openTeacherRespondModal(r, status);
   }
 
   /* utility */
@@ -11868,6 +12030,9 @@
   document.getElementById('lresp-decline')?.addEventListener('click', () => submitLeaderResponse('Declined'));
   document.getElementById('lresp-cancel')?.addEventListener('click', closeLeaderRespondModal);
   document.getElementById('lresp-close')?.addEventListener('click', closeLeaderRespondModal);
+  document.getElementById('tresp-send')?.addEventListener('click', submitTeacherResponse);
+  document.getElementById('tresp-cancel')?.addEventListener('click', closeTeacherRespondModal);
+  document.getElementById('tresp-close')?.addEventListener('click', closeTeacherRespondModal);
 
   document.getElementById('reg-gate-submit')?.addEventListener('click', submitRegGate);
   document.getElementById('reg-gate-cancel')?.addEventListener('click', closeRegGateModal);
