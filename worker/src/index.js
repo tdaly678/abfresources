@@ -491,14 +491,37 @@ async function processNewFeedbackResponses(cfg) {
 // "Responded At" (when the teacher countered), not from the original
 // request date, so the leader gets a fair 5 days before the first nudge.
 //
-// Nudging stops once every requested Sunday is in the past — a request for
-// dates that have already come and gone is moot, and shouldn't nag forever.
+// Nudging stops, and the request is CLOSED OUT, as soon as either the
+// earliest requested Sunday has passed or REMINDER_MAX nudges have gone
+// unanswered. Both sides get one final email saying so. (2026-09-24)
 //
 // force=true (manual /run) bypasses the 7am gate for testing; the rolling
 // stamp still prevents more than one nudge per day per request.
 
 const REMINDER_EVERY_HOURS = 5 * 24;
 const REMINDER_SEND_HOUR = 7; // 7am America/New_York
+
+// A request nobody answers no longer nags forever (added 2026-09-24). After
+// REMINDER_MAX nudges the worker closes it out and tells both sides, so the
+// leader knows to ask someone else instead of waiting on silence.
+//
+// The count is DERIVED from elapsed time rather than stored in a column: nudge
+// N lands at phaseStart + N * 5 days, so "4 nudges sent" is the same statement
+// as "this phase has been waiting 20 days". That keeps the Airtable schema
+// untouched. Missed cron ticks only ever make the real count LOWER than the
+// derived one, so the error is always toward closing a beat late, never early.
+const REMINDER_MAX = 4;
+
+// Status written when a request is auto closed. 'Declined' is reused on
+// purpose: the API proxy only sends typecast:true on POST, so a PATCH carrying
+// a select option that doesn't exist in Airtable fails outright. If you add an
+// "Expired" option to the Requests.Status field by hand, change this one
+// constant to 'Expired' and nothing else has to move.
+const CLOSE_STATUS = 'Declined';
+
+// Marks the worker's own note so an auto close reads differently from a real
+// decline, both in Airtable and in the portal's My Requests list.
+const AUTO_CLOSE_MARK = '[Auto closed]';
 
 function nyHour(date) {
   return parseInt(new Intl.DateTimeFormat('en-US', {
@@ -535,8 +558,12 @@ async function processPendingReminders(cfg, force) {
       // an earlier phase so the new recipient still gets a full 5 days.
       const stamp = req.fields['Reminder Sent At'] ? new Date(req.fields['Reminder Sent At']) : null;
       const baseline = (stamp && stamp > phaseStart) ? stamp : phaseStart;
-      if (!((now - baseline) / 36e5 > REMINDER_EVERY_HOURS)) continue;
+      const dueForNudge = (now - baseline) / 36e5 > REMINDER_EVERY_HOURS;
 
+      // Deliberately NOT bailing out here when a nudge isn't due. The auto
+      // close checks further down have to run every morning — gating them on
+      // the 5-day cadence would mean a request only gets closed on the days it
+      // would otherwise have been nagged. (changed 2026-09-24)
       const teacherId = (req.fields['Teacher'] || [])[0];
       const leaderId  = (req.fields['Requesting Leader'] || [])[0];
       const classId   = (req.fields['ABF Class'] || [])[0];
@@ -565,11 +592,38 @@ async function processPendingReminders(cfg, force) {
       const sundayDates    = (status === 'Counter-Proposed' && counterDates.length)
         ? counterDates : requestedDates;
 
-      // Stop nagging once every date in question has passed.
-      const today = new Date().toISOString().slice(0, 10);
-      if (sundayDates.length && sundayDates.every(d => String(d).slice(0, 10) < today)) continue;
-
       const daysWaiting = Math.floor((now - phaseStart) / 36e5 / 24);
+
+      // ── Close this out instead of nagging it? Two separate ways in. ──
+      //
+      // 1. The dates ran out. This used to be .every(), which meant a
+      //    three-Sunday ask kept nudging until the LAST date passed. That is
+      //    exactly how REQ-MS7P8SCE nagged Joshua Bailey ~11 times about
+      //    Sept 13 / 20 / 27 when Sept 13 was already weeks gone. Once the
+      //    EARLIEST requested Sunday is past, the request can no longer be
+      //    honoured as written, so it's over. (fixed 2026-09-24)
+      const today = nyToday();
+      const days = sortedDays(sundayDates);
+      const firstIso = days.length ? isoOf(days[0]) : null;
+      const datesPassed = !!firstIso && firstIso < today;
+
+      // 2. Nobody answered. See REMINDER_MAX for why elapsed days stands in
+      //    for a nudge counter.
+      const nudgesSent = Math.floor(daysWaiting / (REMINDER_EVERY_HOURS / 24));
+      const unanswered = nudgesSent >= REMINDER_MAX;
+
+      if (datesPassed || unanswered) {
+        await closeStaleRequest(cfg, req, {
+          reason: datesPassed ? 'dates' : 'unanswered',
+          teacherName, teacherEmail, leaderName, leaderEmail,
+          className, service, room, courseTitle,
+          sundayDates, daysWaiting,
+        });
+        sent++;
+        continue;
+      }
+
+      if (!dueForNudge) continue;
 
       let email, toEmail, toName;
       if (status === 'Counter-Proposed') {
@@ -605,6 +659,65 @@ async function processPendingReminders(cfg, force) {
     }
   }
   return sent;
+}
+
+/* Close out a request nobody is going to answer (added 2026-09-24).
+
+   Writes a terminal status, APPENDS a note behind AUTO_CLOSE_MARK rather than
+   overwriting whatever the teacher may already have typed, and mails teacher
+   and leader together so the leader knows to go ask someone else.
+
+   'Last Status Emailed' is set to the same value as 'Status' on purpose. Flow
+   B fires whenever those two disagree, so without this the leader would ALSO
+   receive a generic "<teacher> Declined your teaching request" a few minutes
+   later — which would read as though the teacher had actually said no. */
+async function closeStaleRequest(cfg, req, p) {
+  const { reason, teacherName, teacherEmail, leaderName, leaderEmail } = p;
+  const nowIso = new Date().toISOString();
+  const label = req.fields['Request ID'] || req.id;
+
+  const note = reason === 'dates'
+    ? `${AUTO_CLOSE_MARK} ${nyToday()} — the requested Sundays passed without a response.`
+    : `${AUTO_CLOSE_MARK} ${nyToday()} — no response after ${REMINDER_MAX} reminders over ${p.daysWaiting} days.`;
+
+  const prior = (req.fields['Teacher Response'] || '').trim();
+  const teacherResponse = prior ? `${prior}\n\n${note}` : note;
+
+  const email = buildRequestClosedEmail({
+    ...p, portalUrl: cfg.portalUrl + '/?tab=scheduling',
+  });
+
+  const recipients = [teacherEmail, leaderEmail].filter(Boolean);
+
+  if (cfg.dryRun) {
+    console.log('DRY_RUN E-close:', JSON.stringify({
+      request: label, reason, daysWaiting: p.daysWaiting,
+      to: recipients, subject: email.subject,
+    }));
+    return;
+  }
+
+  // Status first, mail second. If SendGrid throws, the request is still closed
+  // and tomorrow's tick won't re-nag: a missed notice beats an endless loop.
+  await airtableUpdate(cfg, 'Requests', req.id, {
+    'Status': CLOSE_STATUS,
+    'Teacher Response': teacherResponse,
+    'Responded At': nowIso,
+    'Last Status Emailed': CLOSE_STATUS,
+    'Last Status Email Sent At': nowIso,
+    'Reminder Sent At': nowIso,
+  });
+
+  if (!recipients.length) {
+    console.error(`E close: ${label} has no email on either side; closed silently`);
+    return;
+  }
+
+  await sendgridSendMulti(cfg, {
+    to: recipients,
+    extraBccs: cfg.bccEmail ? [cfg.bccEmail] : [],
+    ...email,
+  });
 }
 
 // ─── Process: F — "You're teaching in a month" heads-up ─────────────────────
@@ -1277,6 +1390,41 @@ ${portalUrl}
   ${detailsHtml(rows)}
   <p>Even if the answer is &ldquo;not this time,&rdquo; a quick decline helps ${escapeHtml(leaderName)} plan and ask someone else &mdash; and you can suggest different Sundays if these don't work.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* The auto-close notice (flow E). Teacher and leader both on the To line, same
+   as the one-month heads-up: the useful next step belongs to the leader, but
+   the teacher should know the ask is off their plate and the nudges have
+   stopped. Names both rather than assuming a single "you". (added 2026-09-24) */
+function buildRequestClosedEmail({ reason, teacherName, leaderName, className, service, room, courseTitle, sundayDates, daysWaiting, portalUrl }) {
+  const compactShort = fmtSundaysCompact(sundayDates, true);
+  const subject = `Closed: ${leaderName}'s teaching request for ${className}${compactShort ? `, ${compactShort}` : ''}`;
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    sundayRow('Requested Sundays', sundayDates),
+  ];
+  const why = reason === 'dates'
+    ? `The Sundays in this request have started to pass without an answer, so it has been closed out.`
+    : `This request went ${daysWaiting} days without an answer, so after ${REMINDER_MAX} reminders it has been closed out automatically.`;
+
+  const plain = `${why}
+
+${detailsPlain(rows)}
+
+Nothing is scheduled and no reply is needed. ${teacherName} won't get any more reminders about it.
+
+${leaderName} — if this class still needs a teacher, the quickest path is a fresh request in the portal: either back to ${teacherName} on dates that work better, or to someone else with open Sundays.
+
+${portalUrl}
+
+— ABF Scheduling`;
+  const html = brandShell(`
+  <p>${escapeHtml(why)}</p>
+  ${detailsHtml(rows)}
+  <p>Nothing is scheduled and no reply is needed. <strong>${escapeHtml(teacherName)}</strong> won't get any more reminders about it.</p>
+  <p><strong>${escapeHtml(leaderName)}</strong> &mdash; if this class still needs a teacher, the quickest path is a fresh request in the portal: either back to ${escapeHtml(teacherName)} on dates that work better, or to someone else with open Sundays.</p>
+  <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
   return { subject, plain, html };
 }
 
