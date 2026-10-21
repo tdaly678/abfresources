@@ -2115,6 +2115,16 @@
       grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
       gap: .4rem;
     }
+    /* Season divider inside a picker (added 2026-10-21). The pickers span
+       every season on file and the tiles carry month and day only, so
+       without this JUN 6 ran straight into SEP 12 of the next year. */
+    .sunday-picker .pick-season {
+      grid-column: 1 / -1;
+      font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--dark-brown); margin-top: .35rem; padding-bottom: .2rem;
+      border-bottom: 2px solid var(--gold);
+    }
+    .sunday-picker .pick-season:first-child { margin-top: 0; }
     .sunday-pick {
       background: #fff;
       border: 1.5px solid var(--light-gray);
@@ -7180,6 +7190,19 @@
   }
   /* "2026/27" — no dash, so it never reads as a date range minus sign. */
   function seasonLabel(y) { return y + '/' + String(y + 1).slice(2); }
+  /* Drop a full-width "2027/28 season" divider into a picker grid each time
+     the season changes. Call once per tile, before appending it. Only
+     shows when the data holds more than one season. */
+  function appendSeasonDivider(wrap, s, state) {
+    if (availableSeasons().length < 2) return;
+    const y = seasonStartYear(s.date);
+    if (y === null || y === state.season) return;
+    state.season = y;
+    const h = document.createElement('div');
+    h.className = 'pick-season';
+    h.textContent = seasonLabel(y) + ' season';
+    wrap.appendChild(h);
+  }
 
   let _schedSeason = null;
 
@@ -7586,7 +7609,9 @@
         .filter(r => r.status === 'Accepted' && r.courseId === course.id)
         .forEach(r => (r.requestedSundayIds || []).forEach(sid => _courseFormVisitLocked.add(sid)));
     }
+    const seasonState = { season: null };
     DataStore.listSundaysInSession().forEach(s => {
+      appendSeasonDivider(wrap, s, seasonState);
       const btn = document.createElement('div');
       btn.className = 'sunday-pick';
       const locked = _courseFormVisitLocked.has(s.id);
@@ -9534,7 +9559,9 @@
       }
     }
 
+    const seasonState = { season: null };
     sundays.forEach(s => {
+      appendSeasonDivider(wrap, s, seasonState);
       const btn = document.createElement('div');
       btn.className = 'sunday-pick';
       const status = availMap[s.id];
@@ -9993,7 +10020,9 @@
 
     const wrap = document.getElementById('counter-sundays');
     wrap.innerHTML = '';
+    const seasonState = { season: null };
     sundays.forEach(s => {
+      appendSeasonDivider(wrap, s, seasonState);
       const btn = document.createElement('div');
       btn.className = 'sunday-pick';
       if (requested.has(s.id)) btn.classList.add('requested');
