@@ -540,6 +540,36 @@
       font-size: .75rem; color: var(--text-muted); line-height: 1.5;
     }
 
+    /* ─── LEFC|U → Class Videos ─────────────────────────────────── */
+    .cv-filter {
+      display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .cv-filter label {
+      font-size: .7rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--terra);
+    }
+    .cv-filter select {
+      font: inherit; font-size: .9rem;
+      padding: .45rem 2rem .45rem .7rem;
+      border: 1px solid rgba(82,73,60,.25); border-radius: 6px;
+      background: var(--white); color: var(--dark-brown);
+      min-width: 13rem; max-width: 100%;
+    }
+    .cv-filter select:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .cv-date {
+      font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--terra);
+      margin-bottom: .2rem;
+    }
+    .cv-empty {
+      background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+      border-left: 4px solid var(--gold);
+      padding: 1.4rem 1.5rem; max-width: 36rem;
+    }
+    .cv-empty h3 { font-size: 1rem; color: var(--dark-brown); margin-bottom: .35rem; }
+    .cv-empty p  { font-size: .85rem; color: var(--text-muted); line-height: 1.55; }
+
     /* ─── ARTICLES ──────────────────────────────────────────────── */
     .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
     .article-card {
@@ -4563,6 +4593,7 @@
           <button class="sched-subnav-btn active" data-lefcu-sub="courses">Online Studies</button>
           <button class="sched-subnav-btn" data-lefcu-sub="training">Training Videos</button>
           <button class="sched-subnav-btn" data-lefcu-sub="articles">Articles</button>
+          <button class="sched-subnav-btn" data-lefcu-sub="class-videos">Class Videos</button>
         </div>
       </div>
 
@@ -4868,6 +4899,20 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Class Videos section (added 2026-10-26). Class-specific recordings,
+           filtered by ABF. Public but quiet: no Home promo, reached via the
+           subnav or a bookmarked deep link (/lefcu/class-videos?abf=branches).
+           The cards are rendered from CLASS_VIDEOS in the script — add a video
+           there, not here. -->
+      <div class="lefcu-section" data-lefcu-section="class-videos" style="display:none;">
+        <p class="page-sub" style="margin-bottom:1rem;">Recordings from individual ABF classes, so members can catch up on a Sunday they missed or go back over one they were there for.</p>
+        <div class="cv-filter">
+          <label for="cv-abf">ABF</label>
+          <select id="cv-abf"></select>
+        </div>
+        <div id="cv-grid" class="video-grid"></div>
       </div>
     </div>
 
@@ -11885,8 +11930,132 @@
     });
   }
   document.querySelectorAll('#tab-courses [data-lefcu-sub]').forEach(btn => {
-    btn.addEventListener('click', () => showLefcuSection(btn.dataset.lefcuSub));
+    btn.addEventListener('click', () => {
+      showLefcuSection(btn.dataset.lefcuSub);
+      // Class Videos is meant to be bookmarked, so it keeps its own URL in
+      // the address bar (replaceState — no extra Back entries). Leaving it
+      // puts the plain LEFC|U route back.
+      if (btn.dataset.lefcuSub === 'class-videos') syncClassVideosUrl();
+      else if (location.pathname.replace(/\/+$/, '') === '/lefcu/class-videos' && history.replaceState) {
+        history.replaceState({ tab: 'courses' }, '', '/lefcu');
+      }
+    });
   });
+
+  // ─── LEFC|U → Class Videos (added 2026-10-26) ─────────────
+  // ADDING A VIDEO: add one line to CLASS_VIDEOS. Newest first is not
+  // required — the grid sorts by date, newest on top. Fields:
+  //   abf   — slug from CLASS_VIDEO_ABFS below (e.g. 'branches')
+  //   title — card heading
+  //   date  — 'YYYY-MM-DD', the Sunday it was taught (optional)
+  //   vimeo — Vimeo video id, e.g. '1188153596'   ┐
+  //   youtube — YouTube video id                   ├ use one
+  //   url   — any other link (opens in a new tab)  ┘
+  //   note  — one-line description (optional)
+  // e.g. { abf: 'branches', title: 'Romans 8 — Life in the Spirit', date: '2026-11-01', vimeo: '1234567890', note: 'Taught by Dan Longo.' },
+  // An ABF with no videos shows greyed out in the dropdown until its first
+  // line goes in. Branches is the only class with videos planned (Oct 2026).
+  const CLASS_VIDEOS = [
+  ];
+  const CLASS_VIDEO_ABFS = [
+    { slug: 'branches',       name: 'Branches' },
+    { slug: 'philippians',    name: 'Philippians' },
+    { slug: 'faith-builders', name: 'Faith Builders' },
+    { slug: 'koinonia',       name: 'Koinonia' },
+    { slug: 'roots',          name: 'Roots' },
+    { slug: 'mosaic',         name: 'Mosaic' },
+    { slug: 'agape',          name: 'Agape' },
+    { slug: 'synago',         name: 'Synago' }
+  ];
+  const CLASS_VIDEO_DEFAULT_ABF = 'branches';
+  // Branches stays selectable even while empty so its bookmark shows the
+  // "coming soon" note instead of a dead dropdown.
+  const cvSelectable = slug =>
+    slug === CLASS_VIDEO_DEFAULT_ABF || CLASS_VIDEOS.some(v => v.abf === slug);
+  let _cvAbf = CLASS_VIDEO_DEFAULT_ABF;
+
+  function cvAbfFromUrl() {
+    try {
+      const a = (new URLSearchParams(location.search).get('abf') || '').trim().toLowerCase();
+      return CLASS_VIDEO_ABFS.some(x => x.slug === a) && cvSelectable(a) ? a : '';
+    } catch { return ''; }
+  }
+  function syncClassVideosUrl() {
+    const url = '/lefcu/class-videos?abf=' + encodeURIComponent(_cvAbf);
+    if (history.replaceState && (location.pathname + location.search) !== url) {
+      history.replaceState({ tab: 'class-videos' }, '', url);
+    }
+  }
+  function cvFormatDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return '';
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);   // local, so no UTC day-shift
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function cvEmbedHtml(v) {
+    const play = '<svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+    if (v.vimeo) {
+      return '<iframe src="https://player.vimeo.com/video/' + encodeURIComponent(v.vimeo) +
+        '?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="' +
+        escapeHtml(v.title) + '"></iframe>';
+    }
+    if (v.youtube) {
+      return '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtube) +
+        '" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="' +
+        escapeHtml(v.title) + '"></iframe>';
+    }
+    if (v.url) {
+      return '<a class="video-placeholder" href="' + escapeHtml(v.url) +
+        '" target="_blank" rel="noopener" style="text-decoration:none;">' + play + '<span>Watch video ↗</span></a>';
+    }
+    return '<div class="video-placeholder">' + play + '<span>Video coming soon</span></div>';
+  }
+  function renderClassVideos() {
+    const sel  = document.getElementById('cv-abf');
+    const grid = document.getElementById('cv-grid');
+    if (!sel || !grid) return;
+    if (!cvSelectable(_cvAbf)) _cvAbf = CLASS_VIDEO_DEFAULT_ABF;
+
+    sel.innerHTML = CLASS_VIDEO_ABFS.map(a => {
+      const ok = cvSelectable(a.slug);
+      return '<option value="' + a.slug + '"' + (ok ? '' : ' disabled') +
+        (a.slug === _cvAbf ? ' selected' : '') + '>' +
+        escapeHtml(a.name) + (ok ? '' : ' — no videos yet') + '</option>';
+    }).join('');
+
+    const abfName = (CLASS_VIDEO_ABFS.find(a => a.slug === _cvAbf) || {}).name || '';
+    const vids = CLASS_VIDEOS
+      .filter(v => v.abf === _cvAbf)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    if (!vids.length) {
+      grid.style.display = 'block';
+      grid.innerHTML = '<div class="cv-empty"><h3>' + escapeHtml(abfName) +
+        ' videos will appear here</h3><p>Once class recordings are posted, the newest will show up at the top of this page. ' +
+        'Bookmark it and check back.</p></div>';
+      return;
+    }
+    grid.style.display = '';
+    grid.innerHTML = vids.map(v => {
+      const date = cvFormatDate(v.date);
+      return '<div class="video-card"><div class="video-embed">' + cvEmbedHtml(v) + '</div>' +
+        '<div class="video-body">' +
+        (date ? '<div class="cv-date">' + escapeHtml(date) + '</div>' : '') +
+        '<h4>' + escapeHtml(v.title || '') + '</h4>' +
+        (v.note ? '<p>' + escapeHtml(v.note) + '</p>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+  (function setupClassVideos() {
+    const sel = document.getElementById('cv-abf');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      _cvAbf = sel.value;
+      renderClassVideos();
+      syncClassVideosUrl();
+    });
+    renderClassVideos();
+  })();
 
   // Re-render scheduling/teacher/feedback tabs whenever they're shown.
   // Also redirect legacy 'articles' / 'training' tab IDs into the merged LEFCU tab.
@@ -11895,6 +12064,13 @@
     if (id === 'articles' || id === 'training') {
       origShowTab('courses');
       showLefcuSection(id);
+      return;
+    }
+    if (id === 'class-videos') {
+      _cvAbf = cvAbfFromUrl() || _cvAbf;
+      origShowTab('courses');
+      showLefcuSection('class-videos');
+      renderClassVideos();
       return;
     }
     if (id === 'courses') {
@@ -11956,6 +12132,8 @@
   // buttons themselves don't push URLs — these are for shared/emailed links.
   PATH_TO_TAB['/lefcu/training'] = 'training';
   PATH_TO_TAB['/lefcu/articles'] = 'articles';
+  // Class Videos (2026-10-26) — the bookmarkable one; ?abf=<slug> picks the class.
+  PATH_TO_TAB['/lefcu/class-videos'] = 'class-videos';
   // Tutorials moved out of Online Studies 2026-09-03; old link -> Training Videos.
   PATH_TO_TAB['/lefcu/tutorials'] = 'training';
 
@@ -11986,7 +12164,7 @@
   window.showTab = function(id, pushUrl = true) {
     preRouteShowTab(id);
     // Legacy ids land on the Resources tab; use its route/title.
-    const canonical = (id === 'articles' || id === 'training') ? 'courses' : id;
+    const canonical = (id === 'articles' || id === 'training' || id === 'class-videos') ? 'courses' : id;
     document.title = TAB_TITLES[canonical]
       ? TAB_TITLES[canonical] + ' | ABF Resources'
       : BASE_TITLE;
@@ -12025,10 +12203,26 @@
       initialRouteCourse ? { course: initialRouteCourse } : { tab: initialRouteTab || 'home' },
       '', location.pathname + location.search + location.hash);
   }
+  // Query-string deep links (2026-10-26): ?tab=<tab id> and, for LEFC|U,
+  // ?lefcu=<section> (e.g. ?tab=courses&lefcu=class-videos&abf=branches).
+  // A path route like /lefcu/class-videos wins if both are present.
+  const initialQs = new URLSearchParams(location.search);
+  const LEFCU_SECTIONS = ['courses', 'training', 'articles', 'class-videos'];
+  let initialQueryTab = '';
+  if (LEFCU_SECTIONS.includes(initialQs.get('lefcu'))) initialQueryTab = initialQs.get('lefcu');
+  else if (TAB_ROUTES[initialQs.get('tab')]) initialQueryTab = initialQs.get('tab');
   if (initialRouteCourse) {
     window.showCourse(initialRouteCourse, false);
   } else if (initialRouteTab && initialRouteTab !== 'home') {
     window.showTab(initialRouteTab, false);
+  } else if (initialQueryTab && initialQueryTab !== 'home') {
+    window.showTab(initialQueryTab, false);
+  }
+  // Class Videos normalises its address to /lefcu/class-videos?abf=<slug>
+  // so whatever the visitor bookmarks is the canonical link.
+  if (initialRouteTab === 'class-videos' ||
+      (!initialRouteCourse && (!initialRouteTab || initialRouteTab === 'home') && initialQueryTab === 'class-videos')) {
+    syncClassVideosUrl();
   }
 
   // ─── Registration password gate (added 2026-08-05) ─────────

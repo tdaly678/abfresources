@@ -17,6 +17,7 @@
 /lefcu/corebeliefs/ /lefcu/corebeliefs  301
 /lefcu/training/    /lefcu/training     301
 /lefcu/articles/    /lefcu/articles     301
+/lefcu/class-videos/ /lefcu/class-videos 301
 /lefcu/tutorials    /lefcu/training     301
 /lefcu/tutorials/   /lefcu/training     301
 /teachers/    /teachers    301
@@ -63,6 +64,7 @@
 /lefcu/corebeliefs /       200
 /lefcu/training    /       200
 /lefcu/articles    /       200
+/lefcu/class-videos /      200
 /teachers     /            200
 /courses      /            200
 /special-visits /          200
