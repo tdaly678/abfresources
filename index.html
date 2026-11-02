@@ -540,44 +540,6 @@
       font-size: .75rem; color: var(--text-muted); line-height: 1.5;
     }
 
-    /* ─── LEFC|U → Class Videos ─────────────────────────────────── */
-    .cv-filter {
-      display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
-      margin-bottom: 1.25rem;
-    }
-    .cv-filter label {
-      font-size: .7rem; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--terra);
-    }
-    .cv-filter select {
-      font: inherit; font-size: .9rem;
-      padding: .45rem 2rem .45rem .7rem;
-      border: 1px solid rgba(82,73,60,.25); border-radius: 6px;
-      background: var(--white); color: var(--dark-brown);
-      min-width: 13rem; max-width: 100%;
-    }
-    .cv-filter select:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
-    .cv-date {
-      font-size: .62rem; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--terra);
-      margin-bottom: .2rem;
-    }
-    .cv-series-head { margin-bottom: 1.1rem; }
-    .cv-series-head h3 {
-      font-size: 1.35rem; font-style: italic; font-weight: 800;
-      color: var(--dark-brown); margin-bottom: .2rem;
-    }
-    .cv-series-sub { font-size: .82rem; color: var(--text-muted); }
-    .cv-series-sub a { color: var(--terra); font-weight: 700; text-decoration: none; }
-    .cv-series-sub a:hover { text-decoration: underline; }
-    .cv-empty {
-      background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
-      border-left: 4px solid var(--gold);
-      padding: 1.4rem 1.5rem; max-width: 36rem;
-    }
-    .cv-empty h3 { font-size: 1rem; color: var(--dark-brown); margin-bottom: .35rem; }
-    .cv-empty p  { font-size: .85rem; color: var(--text-muted); line-height: 1.55; }
-
     /* ─── ARTICLES ──────────────────────────────────────────────── */
     .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
     .article-card {
@@ -4917,27 +4879,23 @@
 
       </div>
 
-      <!-- Class Videos section (added 2026-10-26). Class-specific recordings,
-           filtered by ABF. Public but quiet: no Home promo, reached via the
-           subnav or a bookmarked deep link (/lefcu/class-videos?series=christian-ambition;
+      <!-- Class Videos section (added 2026-10-26; Online Studies look 2026-11-02).
+           One course-card per series; clicking opens the shared course detail
+           pane (#tab-course-detail). Public but quiet: no Home promo, reached via
+           the subnav or a bookmarked deep link (/lefcu/class-videos?series=christian-ambition;
            the older ?abf=branches form still works).
-           The cards are rendered from CLASS_VIDEOS in the script — add a video
-           there, not here. -->
+           Cards and sessions are rendered from CLASS_VIDEO_SERIES / CLASS_VIDEOS
+           in the script. Add a video there, not here. -->
       <div class="lefcu-section" data-lefcu-section="class-videos" style="display:none;">
-        <p class="page-sub" style="margin-bottom:1rem;">Recordings from individual ABF classes, so members can catch up on a Sunday they missed or go back over one they were there for.</p>
-        <div class="cv-filter">
-          <label for="cv-series">Series</label>
-          <select id="cv-series"></select>
-        </div>
-        <div id="cv-series-head" class="cv-series-head" style="display:none;"></div>
-        <div id="cv-grid" class="video-grid"></div>
+        <p class="page-sub" style="margin-bottom:1rem;">Recordings from individual ABF classes, so members can catch up on a Sunday they missed or go back over one they were there for. Click a series to watch.</p>
+        <div id="cv-grid" class="course-grid"></div>
       </div>
     </div>
 
     <!-- ── COURSE DETAIL ──────────────────────────────────── -->
     <div class="tab-pane" id="tab-course-detail">
       <div class="course-detail-top">
-        <button class="back-btn" onclick="showTab('courses')">
+        <button class="back-btn" onclick="courseDetailBack()">
           ← LEFC|U
         </button>
         <div>
@@ -5094,6 +5052,9 @@
         </div>
 
       </div><!-- /#course-videos-joshua -->
+
+      <!-- Class Videos series: filled by showClassSeries() from CLASS_VIDEOS -->
+      <div id="course-videos-class-series" class="course-video-grid" style="display:none;"></div>
 
       <!-- Core Beliefs — LEFC|U Summer 2026 (EFCA Statement of Faith series) -->
       <div id="course-videos-corebeliefs" class="course-video-grid" style="display:none;">
@@ -5866,8 +5827,12 @@
 
     // Update detail header fields
     document.getElementById('course-detail-title').textContent = course.title;
-    document.getElementById('course-detail-ministry').textContent = course.ministry;
-    document.getElementById('course-detail-semester').textContent = course.semester;
+    const ministryTag = document.getElementById('course-detail-ministry');
+    ministryTag.textContent = course.ministry;
+    ministryTag.style.display = course.ministry ? '' : 'none';   // class series have none
+    const semesterTag = document.getElementById('course-detail-semester');
+    semesterTag.textContent = course.semester;
+    semesterTag.style.display = '';
     document.getElementById('course-detail-sessions').textContent = course.sessions;
     const spotifyBadge = document.getElementById('course-detail-spotify');
     if (spotifyBadge) {
@@ -12191,164 +12156,187 @@
     btn.addEventListener('click', () => {
       showLefcuSection(btn.dataset.lefcuSub);
       // Class Videos is meant to be bookmarked, so it keeps its own URL in
-      // the address bar (replaceState — no extra Back entries). Leaving it
+      // the address bar (replaceState, no extra Back entries). Leaving it
       // puts the plain LEFC|U route back.
-      if (btn.dataset.lefcuSub === 'class-videos') syncClassVideosUrl();
-      else if (location.pathname.replace(/\/+$/, '') === '/lefcu/class-videos' && history.replaceState) {
+      if (!history.replaceState) return;
+      const onCv = location.pathname.replace(/\/+$/, '') === '/lefcu/class-videos';
+      if (btn.dataset.lefcuSub === 'class-videos') {
+        if (!onCv || location.search) history.replaceState({ tab: 'class-videos' }, '', '/lefcu/class-videos');
+      } else if (onCv) {
         history.replaceState({ tab: 'courses' }, '', '/lefcu');
       }
     });
   });
 
-  // ─── LEFC|U → Class Videos (added 2026-10-26; series 2026-11-02) ──
-  // Videos are grouped by SERIES, and the series is what visitors pick and
-  // see. The ABF is kept on each series for the subtitle and so the old
-  // ?abf=branches bookmarks still land somewhere sensible.
+  // ─── LEFC|U → Class Videos (added 2026-10-26; Online Studies look 2026-11-02) ──
+  // Videos are grouped by SERIES. Each series shows as a course-card on the
+  // Class Videos subsection (same look as Online Studies) and opens in the
+  // shared course detail pane, one course-video-card per session.
   //
   // ADDING A VIDEO to an existing series: add one line to CLASS_VIDEOS.
-  // Order doesn't matter; the grid sorts newest first. Fields:
-  //   series  — slug from CLASS_VIDEO_SERIES below (e.g. 'christian-ambition')
-  //   title   — card heading
-  //   date    — 'YYYY-MM-DD', the Sunday it was taught (optional)
-  //   vimeo   — Vimeo video id      ┐
-  //   youtube — YouTube video id    ├ use one
-  //   url     — any other link      ┘
-  //   note    — one-line description (optional)
+  // Order doesn't matter; sessions are numbered by date, oldest = Week 1.
+  //   series  - slug from CLASS_VIDEO_SERIES below (e.g. 'christian-ambition')
+  //   date    - 'YYYY-MM-DD', the Sunday it was taught
+  //   title   - lesson title (optional; falls back to "Week N")
+  //   min     - running time in minutes (optional)
+  //   vimeo   - Vimeo video id      ┐
+  //   youtube - YouTube video id    ├ use one
+  //   url     - any other link      ┘
+  //   note    - one-line description (optional)
   // ADDING A SERIES: one line in CLASS_VIDEO_SERIES, then its videos. The
-  // newest series (by its latest video) is the default view.
-  // To list a YouTube playlist's ids: uvx yt-dlp --flat-playlist --print "%(id)s %(title)s" <playlist url>
+  // card's session count comes from CLASS_VIDEOS, so it never goes stale.
+  //   term  - the semester tag ('Fall 2026'); abf is kept for old ?abf= links
+  //   color - card gradient start (CSS colour); end is a fixed dark tone
+  // To list a YouTube playlist: uvx yt-dlp --flat-playlist --print "%(id)s %(title)s %(duration)s" <playlist url>
   const CLASS_VIDEO_SERIES = [
-    { slug: 'christian-ambition', name: 'Christian Ambition', abf: 'branches', year: '2026',
-      playlist: 'https://www.youtube.com/playlist?list=PLYLATG0Q9yvA' },
+    { slug: 'christian-ambition', name: 'Christian Ambition', abf: 'branches', term: 'Fall 2026',
+      color: 'var(--terra)', playlist: 'https://www.youtube.com/playlist?list=PLYLATG0Q9yvA' },
   ];
   const CLASS_VIDEOS = [
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-09-20', youtube: 'zfPbwH3BB2A' },
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-09-27', youtube: '70wFpEYY4vw' },
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-11', youtube: 'mMlobdNiquA' },
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-18', youtube: 'Iq_OqhwhtqY' },
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-25', youtube: '7okACTiG6Xs' },
-    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-11-01', youtube: 't6Bnz7OBEP4' },
+    { series: 'christian-ambition', date: '2026-09-20', youtube: 'zfPbwH3BB2A', min: 57 },
+    { series: 'christian-ambition', date: '2026-09-27', youtube: '70wFpEYY4vw', min: 44 },
+    { series: 'christian-ambition', date: '2026-10-11', youtube: 'mMlobdNiquA', min: 48 },
+    { series: 'christian-ambition', date: '2026-10-18', youtube: 'Iq_OqhwhtqY', min: 50 },
+    { series: 'christian-ambition', date: '2026-10-25', youtube: '7okACTiG6Xs', min: 67 },
+    { series: 'christian-ambition', date: '2026-11-01', youtube: 't6Bnz7OBEP4', min: 56 },
   ];
-  const CLASS_VIDEO_ABFS = {
-    'branches': 'Branches', 'philippians': 'Philippians', 'faith-builders': 'Faith Builders',
-    'koinonia': 'Koinonia', 'roots': 'Roots', 'mosaic': 'Mosaic', 'agape': 'Agape', 'synago': 'Synago'
-  };
+  const cvVideos = slug => CLASS_VIDEOS.filter(v => v.series === slug)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));   // oldest = Week 1
   const cvLatest = slug => CLASS_VIDEOS.filter(v => v.series === slug)
     .reduce((m, v) => (v.date || '') > m ? v.date : m, '');
   // Series that have at least one video, newest first.
   const cvSeriesList = () => CLASS_VIDEO_SERIES
     .filter(x => CLASS_VIDEOS.some(v => v.series === x.slug))
     .sort((a, b) => cvLatest(b.slug).localeCompare(cvLatest(a.slug)));
-  const cvDefaultSeries = () => (cvSeriesList()[0] || CLASS_VIDEO_SERIES[0] || {}).slug || '';
-  let _cvSeries = cvDefaultSeries();
+  const cvSessionsLabel = n => n + (n === 1 ? ' Session' : ' Sessions');
 
+  // The series a URL asks for: ?series=<slug>, or the older ?abf=<class>
+  // (that class's newest series). '' when the URL names no known series.
   function cvSeriesFromUrl() {
     try {
       const q = new URLSearchParams(location.search);
       const want = (q.get('series') || '').trim().toLowerCase();
       const list = cvSeriesList();
       if (want && list.some(x => x.slug === want)) return want;
-      // Older bookmarks: ?abf=<class> opens that class's newest series.
       const abf = (q.get('abf') || '').trim().toLowerCase();
       const byAbf = abf && list.find(x => x.abf === abf);
       return byAbf ? byAbf.slug : '';
     } catch { return ''; }
   }
-  function syncClassVideosUrl() {
-    const url = '/lefcu/class-videos' + (_cvSeries ? '?series=' + encodeURIComponent(_cvSeries) : '');
-    if (history.replaceState && (location.pathname + location.search) !== url) {
-      history.replaceState({ tab: 'class-videos' }, '', url);
-    }
-  }
+  const cvSeriesUrl = slug => '/lefcu/class-videos?series=' + encodeURIComponent(slug);
+
   function cvFormatDate(iso) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
     if (!m) return '';
     const d = new Date(+m[1], +m[2] - 1, +m[3]);   // local, so no UTC day-shift
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
-  function cvEmbedHtml(v) {
+  function cvEmbedHtml(v, label) {
     const play = '<svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
     if (v.vimeo) {
       return '<iframe src="https://player.vimeo.com/video/' + encodeURIComponent(v.vimeo) +
         '?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="' +
-        escapeHtml(v.title) + '"></iframe>';
+        escapeHtml(label) + '"></iframe>';
     }
     if (v.youtube) {
       return '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtube) +
         '" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="' +
-        escapeHtml(v.title) + '"></iframe>';
+        escapeHtml(label) + '"></iframe>';
     }
     if (v.url) {
       return '<a class="video-placeholder" href="' + escapeHtml(v.url) +
-        '" target="_blank" rel="noopener" style="text-decoration:none;">' + play + '<span>Watch video ↗</span></a>';
+        '" target="_blank" rel="noopener" style="height:100%;text-decoration:none;">' + play + '<span>Watch video ↗</span></a>';
     }
-    return '<div class="video-placeholder">' + play + '<span>Video coming soon</span></div>';
+    return '<div class="video-placeholder" style="height:100%;">' + play + '<span>Video coming soon</span></div>';
   }
+
+  // Class Videos subsection: one course-card per series, like Online Studies.
   function renderClassVideos() {
-    const sel  = document.getElementById('cv-series');
-    const head = document.getElementById('cv-series-head');
     const grid = document.getElementById('cv-grid');
-    if (!sel || !grid) return;
+    if (!grid) return;
     const list = cvSeriesList();
-    if (!list.some(x => x.slug === _cvSeries)) _cvSeries = cvDefaultSeries();
-
-    sel.innerHTML = list.map(x =>
-      '<option value="' + escapeHtml(x.slug) + '"' + (x.slug === _cvSeries ? ' selected' : '') + '>' +
-      escapeHtml(x.name) + (x.year ? ' (' + escapeHtml(x.year) + ')' : '') + '</option>').join('');
-    // One series on file: no point in a one-option dropdown.
-    const filter = sel.closest('.cv-filter');
-    if (filter) filter.style.display = list.length > 1 ? '' : 'none';
-
-    const series = list.find(x => x.slug === _cvSeries);
-    const vids = CLASS_VIDEOS
-      .filter(v => v.series === _cvSeries)
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-    if (head) {
-      if (series) {
-        const sub = [CLASS_VIDEO_ABFS[series.abf] ? CLASS_VIDEO_ABFS[series.abf] + ' ABF' : '',
-          series.year, vids.length + (vids.length === 1 ? ' session' : ' sessions')].filter(Boolean).join(' · ');
-        head.innerHTML = '<h3>' + escapeHtml(series.name) + '</h3>' +
-          '<div class="cv-series-sub">' + escapeHtml(sub) +
-          (series.playlist ? ' · <a href="' + escapeHtml(series.playlist) + '" target="_blank" rel="noopener">Full playlist on YouTube ↗</a>' : '') +
-          '</div>';
-        head.style.display = '';
-      } else {
-        head.innerHTML = ''; head.style.display = 'none';
-      }
-    }
-
-    if (!vids.length) {
-      grid.style.display = 'block';
-      grid.innerHTML = '<div class="cv-empty"><h3>Class videos will appear here</h3><p>Once class recordings are posted, the newest will show up at the top of this page. ' +
-        'Bookmark it and check back.</p></div>';
+    if (!list.length) {
+      grid.innerHTML = '<p class="page-sub">Class videos will appear here once recordings are posted.</p>';
       return;
     }
-    grid.style.display = '';
-    const total = vids.length;
-    grid.innerHTML = vids.map((v, i) => {
-      const date = cvFormatDate(v.date);
-      // Every upload in a series tends to share one title, so number them
-      // (oldest = Session 1) to give each card something to tell it apart.
-      const label = 'Session ' + (total - i);
-      return '<div class="video-card"><div class="video-embed">' + cvEmbedHtml(v) + '</div>' +
-        '<div class="video-body">' +
-        '<div class="cv-date">' + escapeHtml(label + (date ? ' · ' + date : '')) + '</div>' +
-        '<h4>' + escapeHtml(v.title || (series ? series.name : '')) + '</h4>' +
-        (v.note ? '<p>' + escapeHtml(v.note) + '</p>' : '') +
+    const play = '<div class="course-play-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>';
+    grid.innerHTML = list.map(x => {
+      const n = cvVideos(x.slug).length;
+      return '<div class="course-card" role="link" tabindex="0" data-cv-series="' + escapeHtml(x.slug) + '">' +
+        '<div class="course-thumb" style="background: linear-gradient(135deg, ' + (x.color || 'var(--steel-blue)') + ' 0%, #2a1f17 100%);">' +
+          '<span class="course-thumb-title">' + escapeHtml(x.name) + '</span>' + play +
+        '</div>' +
+        '<div class="course-body">' +
+          '<h3>' + escapeHtml(x.name) + '</h3>' +
+          '<div class="course-meta">' +
+            (x.term ? '<span class="course-tag semester">' + escapeHtml(x.term) + '</span>' : '') +
+            '<span class="course-tag">' + cvSessionsLabel(n) + '</span>' +
+          '</div>' +
         '</div></div>';
     }).join('');
   }
   (function setupClassVideos() {
-    const sel = document.getElementById('cv-series');
-    if (!sel) return;
-    sel.addEventListener('change', () => {
-      _cvSeries = sel.value;
-      renderClassVideos();
-      syncClassVideosUrl();
-    });
+    const grid = document.getElementById('cv-grid');
+    if (!grid) return;
+    const open = e => {
+      const card = e.target.closest('[data-cv-series]');
+      if (card) showClassSeries(card.dataset.cvSeries);
+    };
+    grid.addEventListener('click', open);
+    grid.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
     renderClassVideos();
   })();
+
+  // Which list the detail pane's Back button returns to.
+  let _courseDetailFrom = 'courses';
+  function courseDetailBack() {
+    showTab(_courseDetailFrom === 'class-videos' ? 'class-videos' : 'courses');
+  }
+
+  // Open one class series in the shared course detail pane.
+  function showClassSeries(slug, pushUrl = true) {
+    const series = CLASS_VIDEO_SERIES.find(x => x.slug === slug);
+    if (!series) return;
+    const vids = cvVideos(slug);
+    _courseDetailFrom = 'class-videos';
+
+    document.getElementById('course-detail-title').textContent = series.name;
+    document.getElementById('course-detail-ministry').style.display = 'none';
+    const sem = document.getElementById('course-detail-semester');
+    sem.textContent = series.term || '';
+    sem.style.display = series.term ? '' : 'none';
+    document.getElementById('course-detail-sessions').textContent = cvSessionsLabel(vids.length);
+    const spotify = document.getElementById('course-detail-spotify');
+    if (spotify) spotify.style.display = 'none';
+
+    const grid = document.getElementById('course-videos-class-series');
+    grid.innerHTML = vids.map((v, i) => {
+      const label = v.title || ('Week ' + (i + 1));
+      const date = cvFormatDate(v.date);
+      const sub = [v.min ? v.min + ' min' : '', date].filter(Boolean).join(' · ');
+      return '<div class="course-video-card">' +
+        '<div class="course-video-embed">' + cvEmbedHtml(v, series.name + ', ' + label) + '</div>' +
+        '<div class="course-video-body">' +
+          '<h4>' + escapeHtml(label) + '</h4>' +
+          (sub ? '<span class="vid-duration">' + escapeHtml(sub) + '</span>' : '') +
+          (v.note ? '<p class="vid-desc">' + escapeHtml(v.note) + '</p>' : '') +
+        '</div></div>';
+    }).join('');
+
+    document.querySelectorAll('[id^="course-videos-"]').forEach(el => el.style.display = 'none');
+    grid.style.display = 'grid';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-course-detail').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    document.title = series.name + ' | ABF Resources';
+    const url = cvSeriesUrl(slug);
+    if (window.history && (location.pathname + location.search) !== url) {
+      if (pushUrl && history.pushState) history.pushState({ series: slug }, '', url);
+      else if (history.replaceState) history.replaceState({ series: slug }, '', url);
+    }
+  }
 
   // Re-render scheduling/teacher/feedback tabs whenever they're shown.
   // Also redirect legacy 'articles' / 'training' tab IDs into the merged LEFCU tab.
@@ -12360,7 +12348,6 @@
       return;
     }
     if (id === 'class-videos') {
-      _cvSeries = cvSeriesFromUrl() || _cvSeries;
       origShowTab('courses');
       showLefcuSection('class-videos');
       renderClassVideos();
@@ -12462,10 +12449,10 @@
     document.title = TAB_TITLES[canonical]
       ? TAB_TITLES[canonical] + ' | ABF Resources'
       : BASE_TITLE;
-    const route = TAB_ROUTES[canonical];
+    const route = id === 'class-videos' ? '/lefcu/class-videos' : TAB_ROUTES[canonical];
     if (pushUrl && route && window.history && history.pushState &&
         (location.pathname + location.search) !== route) {
-      history.pushState({ tab: canonical }, '', route);
+      history.pushState({ tab: id === 'class-videos' ? id : canonical }, '', route);
     }
   };
 
@@ -12473,6 +12460,7 @@
   // URL and title, so it can be linked to directly.
   const preRouteShowCourse = window.showCourse;
   window.showCourse = function(id, pushUrl = true) {
+    _courseDetailFrom = 'courses';
     preRouteShowCourse(id);
     if (COURSE_TITLES[id]) document.title = COURSE_TITLES[id] + ' | ABF Resources';
     const route = COURSE_ROUTES[id];
@@ -12485,6 +12473,7 @@
   window.addEventListener('popstate', () => {
     const p = currentRoutePath();
     if (PATH_TO_COURSE[p]) { window.showCourse(PATH_TO_COURSE[p], false); return; }
+    if (p === '/lefcu/class-videos' && cvSeriesFromUrl()) { showClassSeries(cvSeriesFromUrl(), false); return; }
     window.showTab(PATH_TO_TAB[p] || 'home', false);
   });
 
@@ -12505,18 +12494,24 @@
   let initialQueryTab = '';
   if (LEFCU_SECTIONS.includes(initialQs.get('lefcu'))) initialQueryTab = initialQs.get('lefcu');
   else if (TAB_ROUTES[initialQs.get('tab')]) initialQueryTab = initialQs.get('tab');
+  // Class Videos: a URL naming a series (?series=<slug>, or the older
+  // ?abf=<class>) opens that series' detail view and normalises the address
+  // to /lefcu/class-videos?series=<slug>, so a bookmark is the canonical link.
+  const initialCv = initialRouteTab === 'class-videos' ||
+    (!initialRouteCourse && (!initialRouteTab || initialRouteTab === 'home') && initialQueryTab === 'class-videos');
+  const initialCvSeries = initialCv ? cvSeriesFromUrl() : '';
   if (initialRouteCourse) {
     window.showCourse(initialRouteCourse, false);
+  } else if (initialCvSeries) {
+    showClassSeries(initialCvSeries, false);
   } else if (initialRouteTab && initialRouteTab !== 'home') {
     window.showTab(initialRouteTab, false);
   } else if (initialQueryTab && initialQueryTab !== 'home') {
     window.showTab(initialQueryTab, false);
   }
-  // Class Videos normalises its address to /lefcu/class-videos?series=<slug>
-  // so whatever the visitor bookmarks is the canonical link.
-  if (initialRouteTab === 'class-videos' ||
-      (!initialRouteCourse && (!initialRouteTab || initialRouteTab === 'home') && initialQueryTab === 'class-videos')) {
-    syncClassVideosUrl();
+  if (initialCv && !initialCvSeries && history.replaceState &&
+      (location.pathname + location.search) !== '/lefcu/class-videos') {
+    history.replaceState({ tab: 'class-videos' }, '', '/lefcu/class-videos');
   }
 
   // ─── Registration password gate (added 2026-08-05) ─────────
