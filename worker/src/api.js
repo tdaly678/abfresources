@@ -601,14 +601,34 @@ async function apiProxy(request, env, cors) {
       if (method === 'POST' && isLeader && linksTo(body, 'Requesting Leader', s.id)) {
         assertFields(body, FIELDS.requestByLeader); allowed = true;
       }
-      if (method === 'PATCH' && isTeacher &&
-          await ownsRecord(env, tableId, recordId, 'Teacher', s.id)) {
-        assertFields(body, FIELDS.requestByTeacher); allowed = true;
-      }
-      if ((method === 'PATCH' || method === 'DELETE') && isLeader &&
-          await ownsRecord(env, tableId, recordId, 'Requesting Leader', s.id)) {
-        if (method === 'PATCH') assertFields(body, FIELDS.requestByLeader);
-        allowed = true;
+      if ((method === 'PATCH' && isTeacher) || ((method === 'PATCH' || method === 'DELETE') && isLeader)) {
+        const cur = await at(env, 'GET', tableId, { recordId });
+        const cf = (cur && cur.fields) || {};
+        const curStatus = cf['Status'] || 'Pending';
+        const newStatus = ((body && body.fields) || {})['Status'];
+        if (isTeacher && (cf['Teacher'] || []).includes(s.id)) {
+          assertFields(body, FIELDS.requestByTeacher);
+          // Stale page guard (2026-11-02): once the leader has withdrawn a
+          // request, an Accept/Decline/Counter from a page loaded earlier
+          // must not reopen it.
+          if (curStatus === 'Withdrawn') {
+            throw httpError(409, 'The leader withdrew this request, so there is nothing left to answer.');
+          }
+          allowed = true;
+        }
+        if (isLeader && (cf['Requesting Leader'] || []).includes(s.id)) {
+          if (method === 'PATCH') {
+            assertFields(body, FIELDS.requestByLeader);
+            // Only an unanswered request can be withdrawn. Cancelling an
+            // Accepted booking is a different conversation, not this button.
+            if (newStatus === 'Withdrawn' && curStatus !== 'Pending') {
+              throw httpError(409, curStatus === 'Withdrawn'
+                ? 'This request was already withdrawn.'
+                : 'The teacher already responded (' + curStatus + '), so it can no longer be withdrawn.');
+            }
+          }
+          allowed = true;
+        }
       }
       break;
     case 'changeLog':

@@ -562,6 +562,14 @@
       text-transform: uppercase; color: var(--terra);
       margin-bottom: .2rem;
     }
+    .cv-series-head { margin-bottom: 1.1rem; }
+    .cv-series-head h3 {
+      font-size: 1.35rem; font-style: italic; font-weight: 800;
+      color: var(--dark-brown); margin-bottom: .2rem;
+    }
+    .cv-series-sub { font-size: .82rem; color: var(--text-muted); }
+    .cv-series-sub a { color: var(--terra); font-weight: 700; text-decoration: none; }
+    .cv-series-sub a:hover { text-decoration: underline; }
     .cv-empty {
       background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
       border-left: 4px solid var(--gold);
@@ -2059,6 +2067,11 @@
       color: var(--steel-blue);
       font-weight: 700;
     }
+    table.avail-grid td.cell-requestable { cursor: pointer; }
+    table.avail-grid td.cell-requestable:hover {
+      outline: 2px solid var(--terra);
+      outline-offset: -2px;
+    }
     table.avail-grid td.cell-no {
       background: rgba(52,45,37,.05);
       color: var(--text-muted);
@@ -2086,6 +2099,7 @@
     .req-card.status-accepted { border-left-color: #6e8d3a; }
     .req-card.status-declined { border-left-color: var(--terra); }
     .req-card.status-counter { border-left-color: var(--steel-blue); }
+    .req-card.status-withdrawn { border-left-color: var(--text-muted); }
     .req-card-head {
       display: flex; align-items: center; justify-content: space-between;
       gap: .6rem;
@@ -2109,6 +2123,7 @@
     .req-status-badge.accepted { background: rgba(110,141,58,.18); color: #4a6228; }
     .req-status-badge.declined { background: rgba(170,59,36,.12); color: var(--terra); }
     .req-status-badge.counter { background: rgba(63,87,101,.14); color: var(--steel-blue); }
+    .req-status-badge.withdrawn { background: rgba(52,45,37,.08); color: var(--text-muted); }
     .req-meta {
       font-size: .76rem;
       color: var(--text-muted);
@@ -3952,7 +3967,7 @@
           <div class="date-content">
             <div class="date-type-badge training">LEFC|U Electives</div>
             <h3>LEFC|U Electives Begin</h3>
-            <p><strong>LEFC|U Electives begin Sunday, June 6, 2027</strong> — the first Sunday in June. Regular ABF classes give way to the summer elective format for the season.</p>
+            <p><strong>LEFC|U Electives begin Sunday, June 6, 2027</strong>, the first Sunday in June. Regular ABF classes give way to the summer elective format for the season, so don’t book regular ABF teaching that day. It’s closed in the scheduling calendar.</p>
           </div>
         </div>
 
@@ -4488,7 +4503,8 @@
         <!-- Leader: Availability Grid -->
         <div class="sched-pane active" id="sched-l-grid">
           <div class="sched-notice">
-            <strong>Reading the grid:</strong> rows are teachers, columns are Sundays. Green = available, gold = tentative, red = unavailable, blue = already booked. Diagonal-stripe columns are no-class Sundays.
+            <strong>Reading the grid:</strong> rows are teachers, columns are Sundays. Green = available, gold = tentative, red = unavailable, blue = already booked. Diagonal-stripe columns are no-class Sundays, including the first Sunday in June, when LEFC|U summer electives begin.
+            <span id="l-grid-click-hint">Signed-in leaders: click an upcoming Sunday in a teacher’s row to start a request with that teacher and date filled in.</span>
           </div>
           <div class="season-filter" id="l-grid-season-row">
             <label for="l-grid-season">Season:</label>
@@ -4903,15 +4919,17 @@
 
       <!-- Class Videos section (added 2026-10-26). Class-specific recordings,
            filtered by ABF. Public but quiet: no Home promo, reached via the
-           subnav or a bookmarked deep link (/lefcu/class-videos?abf=branches).
+           subnav or a bookmarked deep link (/lefcu/class-videos?series=christian-ambition;
+           the older ?abf=branches form still works).
            The cards are rendered from CLASS_VIDEOS in the script — add a video
            there, not here. -->
       <div class="lefcu-section" data-lefcu-section="class-videos" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Recordings from individual ABF classes, so members can catch up on a Sunday they missed or go back over one they were there for.</p>
         <div class="cv-filter">
-          <label for="cv-abf">ABF</label>
-          <select id="cv-abf"></select>
+          <label for="cv-series">Series</label>
+          <select id="cv-series"></select>
         </div>
+        <div id="cv-series-head" class="cv-series-head" style="display:none;"></div>
         <div id="cv-grid" class="video-grid"></div>
       </div>
     </div>
@@ -5431,6 +5449,36 @@
   </div>
 </div>
 
+<!-- ═══ Leader withdraw (2026-11-02, from Ben Spead) ═══
+     A leader can pull back a request the teacher hasn't answered yet.
+     Status becomes Withdrawn (not Declined, which is the teacher's word);
+     the worker emails the teacher. Accepted requests can't be withdrawn
+     here. -->
+<div id="lwd-modal" class="sched-modal">
+  <div class="sched-modal-inner" style="padding:1.5rem 1.6rem;">
+    <button type="button" class="sched-modal-close" id="lwd-close" aria-label="Close">&times;</button>
+    <h3 style="margin-bottom:.2rem;">Withdraw this request?</h3>
+    <p class="page-sub" style="margin-bottom:1rem;" id="lwd-sub"></p>
+
+    <div class="form-group">
+      <label class="form-label">Sundays requested</label>
+      <div class="req-sundays" id="lwd-dates"></div>
+    </div>
+
+    <p class="sched-notice" style="margin-bottom:.9rem;">The request closes and the teacher gets an email saying you withdrew it. This can’t be undone, but you can always send a new request.</p>
+
+    <div class="form-group">
+      <label class="form-label" for="lwd-note">Note to the teacher <span style="color:var(--text-muted);font-weight:600;">(optional)</span></label>
+      <textarea id="lwd-note" class="form-input" rows="3" placeholder="e.g. Our plans changed, thanks for considering it!"></textarea>
+    </div>
+
+    <div class="sched-modal-actions" style="justify-content:flex-end;gap:.5rem;flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="lwd-cancel" type="button">Keep request</button>
+      <button class="btn btn-danger" id="lwd-send" type="button">Withdraw request</button>
+    </div>
+  </div>
+</div>
+
 <!-- Registration password prompt (added 2026-08-05): anonymous visitors
      enter the registration password before the add-yourself forms open.
      A successful check stores a gate token, which is what the API worker
@@ -5856,6 +5904,27 @@
      These let us round-trip it back out for display. (2026-08-06) */
   const LEADER_REPLY_MARK = '\n\n[Leader reply] ';
   const LEADER_REPLY_RE   = /\n\n\[Leader reply\][\s\S]*$/;
+  /* Same trick for the optional note a leader adds when withdrawing a
+     Pending request (2026-11-02). Keep in sync with extractWithdrawNote()
+     in worker/src/index.js. */
+  const WITHDRAW_NOTE_MARK = '\n\n[Withdrawn] ';
+  const WITHDRAW_NOTE_RE   = /\n\n\[Withdrawn\]\s*([\s\S]*)$/;
+
+  /* The ABF year closes on the Sunday after Memorial Day: that Sunday is
+     the first LEFC|U summer elective, so no regular ABF teaching gets
+     booked on it (2027-06-06, 2028-06-04, ...). The Sundays table may
+     still have it flagged In Session, so the mapper treats it as a
+     no-class Sunday regardless. (Added 2026-11-02, from Ben Spead.) */
+  const ELECTIVES_NOTE = 'LEFC|U summer electives begin. No regular ABF teaching.';
+  function electivesStartSundayIso(y) {
+    const d = new Date(Date.UTC(y, 4, 31));                          // May 31
+    while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() - 1);    // last Monday of May
+    d.setUTCDate(d.getUTCDate() + 6);                                // the Sunday after it
+    return d.toISOString().slice(0, 10);
+  }
+  function isElectivesStartSunday(iso) {
+    return !!iso && iso === electivesStartSundayIso(+iso.slice(0, 4));
+  }
 
   const STORE_KEY = 'abf_sched_v1';
   const IDENTITY_KEY = 'abf_sched_identity';
@@ -6064,7 +6133,15 @@
        can't say which Sunday belongs to which partner — this field
        can. Blank on every ordinary course. */
     _mapCourse(r) { const f = r.fields || {}; return { id: r.id, title: f.Title || '', teacherId: (f.Teacher || [])[0] || '', description: f.Description || '', minWeeks: f['Min Weeks'] || null, maxWeeks: f['Max Weeks'] || null, tags: Array.isArray(f.Tags) ? f.Tags.slice() : [], available: !!f.Available, visitSundayIds: Array.isArray(f['Visit Sundays']) ? f['Visit Sundays'].slice() : [], services: Array.isArray(f.Services) ? f.Services.slice() : [] }; },
-    _mapSunday(r) { const f = r.fields || {}; return { id: r.id, date: f.Date || '', inSession: !!f['In Session'], notes: f.Notes || '', term: f.Term || '' }; },
+    _mapSunday(r) {
+      const f = r.fields || {};
+      const date = f.Date || '';
+      const electives = isElectivesStartSunday(date);
+      return { id: r.id, date,
+        inSession: !!f['In Session'] && !electives,
+        notes: f.Notes || (electives ? ELECTIVES_NOTE : ''),
+        term: f.Term || '' };
+    },
     _mapAvail(r)  { const f = r.fields || {}; return { id: r.id, teacherId: (f.Teacher || [])[0] || '', sundayId: (f.Sunday || [])[0] || '', service: f.Service || '1st Service', status: f.Status || '', notes: f.Notes || '' }; },
     _mapRequest(r){ const f = r.fields || {}; return { id: r.id, status: f.Status || 'Pending', requestingLeaderId: (f['Requesting Leader'] || [])[0] || '', abfClassId: (f['ABF Class'] || [])[0] || '', service: f.Service || '', teacherId: (f.Teacher || [])[0] || '', courseId: (f.Course || [])[0] || '', requestedSundayIds: f['Requested Sundays'] || [], leaderMessage: f['Leader Message'] || '', teacherResponse: f['Teacher Response'] || '', counterSundayIds: f['Counter Sundays'] || [], createdAt: f['Created At'] || '', respondedAt: f['Responded At'] || null }; },
     _mapFeedbackTemplate(r) {
@@ -6398,6 +6475,15 @@
     };
   }
 
+  function compareTeacherNames(a, b) {
+    const parts = t => (t.name || '').trim().split(/\s+/);
+    const pa = parts(a), pb = parts(b);
+    const opt = { sensitivity: 'base' };
+    return (pa[0] || '').localeCompare(pb[0] || '', undefined, opt) ||
+      (pa.slice(1).join(' ')).localeCompare(pb.slice(1).join(' '), undefined, opt) ||
+      (a.name || '').localeCompare(b.name || '');
+  }
+
   /* DataStore: synchronous read API + async write API. Reads pull
      from the in-memory cache populated by Airtable.ensureLoaded(). */
   const DataStore = {
@@ -6405,6 +6491,9 @@
     getABFClass(id)  { return getCache().abfClasses.find(x => x.id === id); },
 
     listTeachers() { return getCache().teachers.filter(x => x.active); },
+    // A to Z by first name, then last name. Airtable hands records back in
+    // create order, which reads as random to a leader scanning for a name.
+    listTeachersSorted() { return this.listTeachers().slice().sort(compareTeacherNames); },
     getTeacher(id) { return getCache().teachers.find(x => x.id === id); },
     async upsertTeacher(teacher) {
       // teacher: { id?, name, email, phone, status, homeClassId, bio,
@@ -6581,6 +6670,19 @@
       if (reply && reply.trim()) {
         const base = (existingLeaderMessage || '').replace(LEADER_REPLY_RE, '');
         fields['Leader Message'] = (base ? base.trimEnd() : '') + LEADER_REPLY_MARK + reply.trim();
+      }
+      return Airtable.updateRequest(id, fields);
+    },
+
+    /* The requesting leader withdraws a Pending request (2026-11-02).
+       'Responded At' is left alone: it means the teacher answered, and
+       the reminder flow measures from it. The optional note rides on
+       Leader Message behind WITHDRAW_NOTE_MARK, like a counter reply. */
+    async leaderWithdrawRequest(id, note, existingLeaderMessage) {
+      const fields = { Status: 'Withdrawn' };
+      if (note && note.trim()) {
+        const base = (existingLeaderMessage || '').replace(WITHDRAW_NOTE_RE, '');
+        fields['Leader Message'] = (base ? base.trimEnd() : '') + WITHDRAW_NOTE_MARK + note.trim();
       }
       return Airtable.updateRequest(id, fields);
     },
@@ -8462,7 +8564,7 @@
     if (sel && sel.value !== activeSvc) sel.value = activeSvc;
 
     const sundays = seasonSundays(false);
-    const teachers = DataStore.listTeachers();
+    const teachers = DataStore.listTeachersSorted();
     const allAvail = DataStore.listAvailabilityAll();
     const acceptedReqs = DataStore.listRequests().filter(r => r.status === 'Accepted');
 
@@ -8509,6 +8611,14 @@
       return 'cell-no';
     }
 
+    // Signed-in leaders can click an upcoming, unbooked cell to start a
+    // request (see requestFromGridCell). Teachers and anonymous visitors
+    // get the same read-only grid as before.
+    const gridLeader = Identity.asLeader();
+    const gridTodayIso = new Date().toISOString().slice(0, 10);
+    const clickHint = document.getElementById('l-grid-click-hint');
+    if (clickHint) clickHint.style.display = gridLeader ? '' : 'none';
+
     // body
     const tbody = document.createElement('tbody');
     teachers.forEach(t => {
@@ -8530,6 +8640,11 @@
           td.textContent = cellChar(status, booked);
           td.title = booked ? 'Booked (' + activeSvc + ')'
                     : (status ? status + ' (' + activeSvc + ')' : 'No answer (' + activeSvc + ')');
+          if (gridLeader && !booked && s.date >= gridTodayIso) {
+            td.classList.add('cell-requestable');
+            td.title += '. Click to request ' + t.name + ' for ' + fmtSundayShort(s.date) + '.';
+            td.addEventListener('click', () => requestFromGridCell(t.id, s.id, activeSvc));
+          }
         }
         tr.appendChild(td);
       });
@@ -8766,27 +8881,77 @@
   function requestCourseFromCatalog(courseId) {
     const c = DataStore.listCourses().find(x => x.id === courseId);
     if (!c) return;
+    // A ministry visit is a single Sunday: pre-tick it only when the visit
+    // offers exactly one open date. With several on offer the leader has a
+    // real choice to make, so we scroll to the picker and leave it to them.
+    const visits = courseVisitSundays(c).filter(v => !v.booked);
+    prefillNewRequest({
+      teacherId: c.teacherId || '',
+      courseId: c.id,
+      sundayIds: visits.length === 1 ? [visits[0].sunday.id] : [],
+      scrollToPicker: visits.length > 0,
+    });
+  }
+
+  /* Open Scheduling -> New Request with the teacher, course and Sundays
+     pre-filled. Shared by the course catalog ("Request this course") and
+     the leader Availability grid (click a cell). Waits for the teacher
+     dropdown to actually hold the teacher instead of guessing a delay.
+     Returns a promise resolving to true once the form was filled. */
+  function prefillNewRequest(opts) {
+    const o = opts || {};
     window.showTab('scheduling');
     const btn = document.querySelector('#tab-scheduling .sched-subnav-btn[data-sub="l-new"]');
     if (btn) btn.click();
-    setTimeout(() => {
+    const ready = () => {
       const tSel = document.getElementById('l-req-teacher');
-      if (tSel) { tSel.value = c.teacherId || ''; if (tSel.onchange) tSel.onchange(); }
-      const cSel = document.getElementById('l-req-course');
-      if (cSel) { cSel.value = c.id; if (cSel.onchange) cSel.onchange(); }
-      // A ministry visit is a single Sunday: pre-tick it only when the visit
-      // offers exactly one open date. With several on offer the leader has a
-      // real choice to make, so we scroll to the picker and leave it to them.
-      const visits = courseVisitSundays(c).filter(v => !v.booked);
-      if (visits.length === 1) {
-        const pick = document.querySelector('#l-req-sundays .sunday-pick[data-sid="' + visits[0].sunday.id + '"]');
-        if (pick && !pick.classList.contains('selected')) pick.click();
-      }
-      if (visits.length) {
-        const wrap = document.getElementById('l-req-sundays');
-        if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 80);
+      return !!tSel && (!o.teacherId || !!tSel.querySelector('option[value="' + o.teacherId + '"]'));
+    };
+    return new Promise(resolve => {
+      const started = Date.now();
+      (function tick() {
+        if (!ready()) {
+          if (Date.now() - started > 3000) { resolve(false); return; }
+          requestAnimationFrame(tick);
+          return;
+        }
+        const tSel = document.getElementById('l-req-teacher');
+        tSel.value = o.teacherId || '';
+        if (tSel.onchange) tSel.onchange();
+        if (o.courseId) {
+          const cSel = document.getElementById('l-req-course');
+          if (cSel) { cSel.value = o.courseId; if (cSel.onchange) cSel.onchange(); }
+        }
+        (o.sundayIds || []).forEach(sid => {
+          const pick = document.querySelector('#l-req-sundays .sunday-pick[data-sid="' + sid + '"]');
+          if (pick && !pick.classList.contains('selected')) pick.click();
+        });
+        if (o.scrollToPicker) {
+          const wrap = document.getElementById('l-req-sundays');
+          if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        resolve(true);
+      })();
+    });
+  }
+
+  /* Leader Availability grid -> New Request (2026-11-02, from Ben Spead).
+     The grid already shows who is free; clicking a cell skips re-finding
+     the same teacher and date in the form. Only for an upcoming, unbooked
+     class Sunday, and only on the grid for the leader's own service, since
+     a request always goes out for the class's service. */
+  function requestFromGridCell(teacherId, sundayId, gridSvc) {
+    const l = Identity.asLeader();
+    if (!l) return;
+    const cls = DataStore.getABFClass(l.abfClassId);
+    const mySvc = (cls && cls.service) ? cls.service : '1st Service';
+    if (gridSvc !== mySvc) {
+      toast('error', 'Switch to ' + mySvc,
+        (cls ? cls.name : 'Your class') + ' meets at ' + mySvc +
+        '. Change "Showing" to ' + mySvc + ' to request from this grid.');
+      return;
+    }
+    prefillNewRequest({ teacherId, sundayIds: [sundayId], scrollToPicker: true });
   }
 
   /* ─── Course detail modal + the shared "request this course" entry
@@ -9506,7 +9671,7 @@
     // teacher dropdown
     const teacherSel = document.getElementById('l-req-teacher');
     teacherSel.innerHTML = '<option value="">— Choose a teacher —</option>';
-    DataStore.listTeachers().forEach(t => {
+    DataStore.listTeachersSorted().forEach(t => {
       const o = document.createElement('option');
       o.value = t.id; o.textContent = t.name + ' (' + stageDisplayLabel(t.status) + ')';
       teacherSel.appendChild(o);
@@ -9686,13 +9851,14 @@
 
     const help = document.getElementById('l-req-sundays-help');
     if (help) {
+      const juneNote = ' The first Sunday in June isn’t listed: LEFC|U summer electives begin that day.';
       if (rules) {
         help.textContent = 'One Sunday per visit. Dates that aren’t part of this visit are locked.';
       } else if (limits.max === Infinity && limits.min <= 1) {
-        help.textContent = 'Click multiple. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.';
+        help.textContent = 'Click multiple. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.' + juneNote;
       } else {
         help.textContent = 'This course runs ' + describePickRange(limits) +
-          '. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.';
+          '. We’ll mark dates the teacher has flagged as unavailable, but you can still send the request.' + juneNote;
       }
     }
 
@@ -9996,6 +10162,14 @@
     // A leader's reply to a counter-proposal rides along on Leader Message
     // (see LEADER_REPLY_MARK); split it back out so it renders as its own
     // block instead of being tacked onto the original request message.
+    // Same for the note a leader leaves when withdrawing. It is always the
+    // last thing appended, so peel it off first.
+    let withdrawNote = '';
+    const wdMatch = displayLeaderMessage.match(WITHDRAW_NOTE_RE);
+    if (wdMatch) {
+      withdrawNote = wdMatch[1].trim();
+      displayLeaderMessage = displayLeaderMessage.slice(0, wdMatch.index).trim();
+    }
     let leaderReply = '';
     const replyAt = displayLeaderMessage.indexOf(LEADER_REPLY_MARK);
     if (replyAt >= 0) {
@@ -10052,6 +10226,12 @@
       html += '<div class="req-sundays">' + counterPills + '</div>';
     }
     if (leaderReply) html += '<div class="req-message" style="background:rgba(82,75,48,.06);"><strong>' + (l ? escapeHtml(l.name) : 'Leader') + ' replied:</strong> ' + escapeHtml(leaderReply).replace(/\n/g,'<br>') + '</div>';
+    if (r.status === 'Withdrawn') {
+      const who = role === 'leader' ? 'You' : (l ? escapeHtml(l.name) : 'The leader');
+      html += '<div class="req-message" style="background:rgba(52,45,37,.05);"><strong>' + who + ' withdrew this request.</strong>' +
+        (withdrawNote ? ' ' + escapeHtml(withdrawNote).replace(/\n/g,'<br>') : '') +
+        (role === 'teacher' ? ' Nothing was added to your schedule.' : '') + '</div>';
+    }
 
     // A counter-proposal with no dates AND no note is the old bug: there
     // is literally nothing for the leader to act on. Say so plainly
@@ -10080,7 +10260,7 @@
         : { cls: 'them', text: 'Waiting on ' + (l ? l.name.split(' ')[0] : 'the leader') };
     } else if (r.status === 'Accepted') {
       turn = { cls: 'done', text: 'Confirmed' };
-    } else if (r.status === 'Declined') {
+    } else if (r.status === 'Declined' || r.status === 'Withdrawn') {
       turn = { cls: 'done', text: 'Closed' };
     }
     if (turn) html += '<div><span class="req-turn ' + turn.cls + '">' + escapeHtml(turn.text) + '</span></div>';
@@ -10102,6 +10282,12 @@
     } else if (role === 'leader' && r.status === 'Counter-Proposed') {
       actions.append(
         mkBtn('Respond', 'btn-primary btn-sm', () => openLeaderRespondModal(r)));
+    } else if (role === 'leader' && r.status === 'Pending') {
+      const meta = document.createElement('span');
+      meta.style.cssText = 'font-size:.7rem;color:var(--text-muted);';
+      meta.textContent = 'Sent ' + new Date(r.createdAt).toLocaleDateString();
+      actions.append(
+        mkBtn('Withdraw', 'btn-ghost btn-sm', () => openLeaderWithdrawModal(r)), meta);
     } else {
       const meta = document.createElement('span');
       meta.style.cssText = 'font-size:.7rem;color:var(--text-muted);';
@@ -10217,6 +10403,7 @@
       renderTeacherAvailability();
     } catch (e) {
       console.error(e);
+      if (await handleStaleRequest(e)) { closeCounterModal(); return; }
       toast('error', 'Couldn’t send', 'Your counter-proposal wasn’t saved. Try again.');
       btn.disabled = false;
     } finally {
@@ -10305,6 +10492,76 @@
       }
       accept.disabled = decline.disabled = false;
     }
+  }
+
+  /* ─── Leader withdraw (2026-11-02) ─── */
+  let _lwdReq = null;
+
+  function openLeaderWithdrawModal(r) {
+    _lwdReq = r;
+    const t = DataStore.getTeacher(r.teacherId);
+    const cls = DataStore.getABFClass(r.abfClassId);
+    document.getElementById('lwd-sub').textContent =
+      (t ? t.name : 'The teacher') + ' · ' + (cls ? cls.name : 'ABF');
+    const sunMap = {}; DataStore.listSundays().forEach(s => sunMap[s.id] = s);
+    document.getElementById('lwd-dates').innerHTML = (r.requestedSundayIds || [])
+      .map(id => sunMap[id]).filter(Boolean)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(s => '<span class="pill">' + fmtSundayShort(s.date) + '</span>').join('') ||
+      '<span style="font-size:.8rem;color:var(--text-muted);">No Sundays listed</span>';
+    document.getElementById('lwd-note').value = '';
+    document.getElementById('lwd-send').disabled = false;
+    document.getElementById('lwd-modal').classList.add('visible');
+  }
+
+  function closeLeaderWithdrawModal() {
+    document.getElementById('lwd-modal').classList.remove('visible');
+    _lwdReq = null;
+  }
+
+  async function submitLeaderWithdraw() {
+    const r = _lwdReq;
+    if (!r) return;
+    const note = document.getElementById('lwd-note').value;
+    const send = document.getElementById('lwd-send');
+    send.disabled = true; const old = send.textContent; send.textContent = 'Withdrawing…';
+    try {
+      await DataStore.leaderWithdrawRequest(r.id, note, r.leaderMessage || '');
+      closeLeaderWithdrawModal();
+      const t = DataStore.getTeacher(r.teacherId);
+      toast('success', 'Request withdrawn',
+        (t ? t.name.split(' ')[0] : 'The teacher') + ' will get an email letting them know.');
+      renderLeaderRequests();
+    } catch (e) {
+      console.error(e);
+      if (await handleStaleRequest(e)) { closeLeaderWithdrawModal(); return; }
+      if (e.status === 401 || e.status === 403) {
+        toast('error', 'Not authorized', 'Sign in as the leader who sent this request (or an admin) to withdraw it.');
+      } else if (e.payload && e.payload.error === 'Airtable 422') {
+        // Airtable rejects an unknown select option (the proxy doesn't
+        // typecast on PATCH), which is what happens until the Withdrawn
+        // option exists on Requests.Status.
+        toast('error', 'Couldn’t withdraw yet', 'Withdrawing isn’t switched on in the database yet. Contact Tom (daly@lefc.net).');
+      } else {
+        toast('error', 'Couldn’t withdraw', 'The request wasn’t changed. Try again.');
+      }
+      send.disabled = false;
+    } finally {
+      send.textContent = old;
+    }
+  }
+
+  /* The other side changed the request since this page loaded: the leader
+     withdrew it before the teacher answered, or the teacher answered before
+     the leader withdrew. The worker answers 409; reload so the card shows
+     what actually happened. Returns true when it handled the error. */
+  async function handleStaleRequest(e) {
+    if (!e || e.status !== 409) return false;
+    const msg = (e.payload && e.payload.error) || 'This request changed since you opened the page.';
+    toast('error', 'This request has changed', msg);
+    try { await Airtable.reload(); } catch (err) { console.warn('[requests] reload failed', err); }
+    renderScheduling();
+    return true;
   }
 
   function mkBtn(label, cls, fn) {
@@ -10400,6 +10657,7 @@
       renderTeacherAvailability();
     } catch (e) {
       console.error(e);
+      if (await handleStaleRequest(e)) { closeTeacherRespondModal(); return; }
       if (e.status === 401 || e.status === 403) {
         toast('error', 'Not authorized', 'Sign in as the requested teacher (or an admin) to respond.');
       } else {
@@ -11942,46 +12200,62 @@
     });
   });
 
-  // ─── LEFC|U → Class Videos (added 2026-10-26) ─────────────
-  // ADDING A VIDEO: add one line to CLASS_VIDEOS. Newest first is not
-  // required — the grid sorts by date, newest on top. Fields:
-  //   abf   — slug from CLASS_VIDEO_ABFS below (e.g. 'branches')
-  //   title — card heading
-  //   date  — 'YYYY-MM-DD', the Sunday it was taught (optional)
-  //   vimeo — Vimeo video id, e.g. '1188153596'   ┐
-  //   youtube — YouTube video id                   ├ use one
-  //   url   — any other link (opens in a new tab)  ┘
-  //   note  — one-line description (optional)
-  // e.g. { abf: 'branches', title: 'Romans 8 — Life in the Spirit', date: '2026-11-01', vimeo: '1234567890', note: 'Taught by Dan Longo.' },
-  // An ABF with no videos shows greyed out in the dropdown until its first
-  // line goes in. Branches is the only class with videos planned (Oct 2026).
+  // ─── LEFC|U → Class Videos (added 2026-10-26; series 2026-11-02) ──
+  // Videos are grouped by SERIES, and the series is what visitors pick and
+  // see. The ABF is kept on each series for the subtitle and so the old
+  // ?abf=branches bookmarks still land somewhere sensible.
+  //
+  // ADDING A VIDEO to an existing series: add one line to CLASS_VIDEOS.
+  // Order doesn't matter; the grid sorts newest first. Fields:
+  //   series  — slug from CLASS_VIDEO_SERIES below (e.g. 'christian-ambition')
+  //   title   — card heading
+  //   date    — 'YYYY-MM-DD', the Sunday it was taught (optional)
+  //   vimeo   — Vimeo video id      ┐
+  //   youtube — YouTube video id    ├ use one
+  //   url     — any other link      ┘
+  //   note    — one-line description (optional)
+  // ADDING A SERIES: one line in CLASS_VIDEO_SERIES, then its videos. The
+  // newest series (by its latest video) is the default view.
+  // To list a YouTube playlist's ids: uvx yt-dlp --flat-playlist --print "%(id)s %(title)s" <playlist url>
+  const CLASS_VIDEO_SERIES = [
+    { slug: 'christian-ambition', name: 'Christian Ambition', abf: 'branches', year: '2026',
+      playlist: 'https://www.youtube.com/playlist?list=PLYLATG0Q9yvA' },
+  ];
   const CLASS_VIDEOS = [
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-09-20', youtube: 'zfPbwH3BB2A' },
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-09-27', youtube: '70wFpEYY4vw' },
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-11', youtube: 'mMlobdNiquA' },
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-18', youtube: 'Iq_OqhwhtqY' },
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-10-25', youtube: '7okACTiG6Xs' },
+    { series: 'christian-ambition', title: 'Christian Ambition', date: '2026-11-01', youtube: 't6Bnz7OBEP4' },
   ];
-  const CLASS_VIDEO_ABFS = [
-    { slug: 'branches',       name: 'Branches' },
-    { slug: 'philippians',    name: 'Philippians' },
-    { slug: 'faith-builders', name: 'Faith Builders' },
-    { slug: 'koinonia',       name: 'Koinonia' },
-    { slug: 'roots',          name: 'Roots' },
-    { slug: 'mosaic',         name: 'Mosaic' },
-    { slug: 'agape',          name: 'Agape' },
-    { slug: 'synago',         name: 'Synago' }
-  ];
-  const CLASS_VIDEO_DEFAULT_ABF = 'branches';
-  // Branches stays selectable even while empty so its bookmark shows the
-  // "coming soon" note instead of a dead dropdown.
-  const cvSelectable = slug =>
-    slug === CLASS_VIDEO_DEFAULT_ABF || CLASS_VIDEOS.some(v => v.abf === slug);
-  let _cvAbf = CLASS_VIDEO_DEFAULT_ABF;
+  const CLASS_VIDEO_ABFS = {
+    'branches': 'Branches', 'philippians': 'Philippians', 'faith-builders': 'Faith Builders',
+    'koinonia': 'Koinonia', 'roots': 'Roots', 'mosaic': 'Mosaic', 'agape': 'Agape', 'synago': 'Synago'
+  };
+  const cvLatest = slug => CLASS_VIDEOS.filter(v => v.series === slug)
+    .reduce((m, v) => (v.date || '') > m ? v.date : m, '');
+  // Series that have at least one video, newest first.
+  const cvSeriesList = () => CLASS_VIDEO_SERIES
+    .filter(x => CLASS_VIDEOS.some(v => v.series === x.slug))
+    .sort((a, b) => cvLatest(b.slug).localeCompare(cvLatest(a.slug)));
+  const cvDefaultSeries = () => (cvSeriesList()[0] || CLASS_VIDEO_SERIES[0] || {}).slug || '';
+  let _cvSeries = cvDefaultSeries();
 
-  function cvAbfFromUrl() {
+  function cvSeriesFromUrl() {
     try {
-      const a = (new URLSearchParams(location.search).get('abf') || '').trim().toLowerCase();
-      return CLASS_VIDEO_ABFS.some(x => x.slug === a) && cvSelectable(a) ? a : '';
+      const q = new URLSearchParams(location.search);
+      const want = (q.get('series') || '').trim().toLowerCase();
+      const list = cvSeriesList();
+      if (want && list.some(x => x.slug === want)) return want;
+      // Older bookmarks: ?abf=<class> opens that class's newest series.
+      const abf = (q.get('abf') || '').trim().toLowerCase();
+      const byAbf = abf && list.find(x => x.abf === abf);
+      return byAbf ? byAbf.slug : '';
     } catch { return ''; }
   }
   function syncClassVideosUrl() {
-    const url = '/lefcu/class-videos?abf=' + encodeURIComponent(_cvAbf);
+    const url = '/lefcu/class-videos' + (_cvSeries ? '?series=' + encodeURIComponent(_cvSeries) : '');
     if (history.replaceState && (location.pathname + location.search) !== url) {
       history.replaceState({ tab: 'class-videos' }, '', url);
     }
@@ -12011,46 +12285,65 @@
     return '<div class="video-placeholder">' + play + '<span>Video coming soon</span></div>';
   }
   function renderClassVideos() {
-    const sel  = document.getElementById('cv-abf');
+    const sel  = document.getElementById('cv-series');
+    const head = document.getElementById('cv-series-head');
     const grid = document.getElementById('cv-grid');
     if (!sel || !grid) return;
-    if (!cvSelectable(_cvAbf)) _cvAbf = CLASS_VIDEO_DEFAULT_ABF;
+    const list = cvSeriesList();
+    if (!list.some(x => x.slug === _cvSeries)) _cvSeries = cvDefaultSeries();
 
-    sel.innerHTML = CLASS_VIDEO_ABFS.map(a => {
-      const ok = cvSelectable(a.slug);
-      return '<option value="' + a.slug + '"' + (ok ? '' : ' disabled') +
-        (a.slug === _cvAbf ? ' selected' : '') + '>' +
-        escapeHtml(a.name) + (ok ? '' : ' — no videos yet') + '</option>';
-    }).join('');
+    sel.innerHTML = list.map(x =>
+      '<option value="' + escapeHtml(x.slug) + '"' + (x.slug === _cvSeries ? ' selected' : '') + '>' +
+      escapeHtml(x.name) + (x.year ? ' (' + escapeHtml(x.year) + ')' : '') + '</option>').join('');
+    // One series on file: no point in a one-option dropdown.
+    const filter = sel.closest('.cv-filter');
+    if (filter) filter.style.display = list.length > 1 ? '' : 'none';
 
-    const abfName = (CLASS_VIDEO_ABFS.find(a => a.slug === _cvAbf) || {}).name || '';
+    const series = list.find(x => x.slug === _cvSeries);
     const vids = CLASS_VIDEOS
-      .filter(v => v.abf === _cvAbf)
+      .filter(v => v.series === _cvSeries)
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    if (head) {
+      if (series) {
+        const sub = [CLASS_VIDEO_ABFS[series.abf] ? CLASS_VIDEO_ABFS[series.abf] + ' ABF' : '',
+          series.year, vids.length + (vids.length === 1 ? ' session' : ' sessions')].filter(Boolean).join(' · ');
+        head.innerHTML = '<h3>' + escapeHtml(series.name) + '</h3>' +
+          '<div class="cv-series-sub">' + escapeHtml(sub) +
+          (series.playlist ? ' · <a href="' + escapeHtml(series.playlist) + '" target="_blank" rel="noopener">Full playlist on YouTube ↗</a>' : '') +
+          '</div>';
+        head.style.display = '';
+      } else {
+        head.innerHTML = ''; head.style.display = 'none';
+      }
+    }
 
     if (!vids.length) {
       grid.style.display = 'block';
-      grid.innerHTML = '<div class="cv-empty"><h3>' + escapeHtml(abfName) +
-        ' videos will appear here</h3><p>Once class recordings are posted, the newest will show up at the top of this page. ' +
+      grid.innerHTML = '<div class="cv-empty"><h3>Class videos will appear here</h3><p>Once class recordings are posted, the newest will show up at the top of this page. ' +
         'Bookmark it and check back.</p></div>';
       return;
     }
     grid.style.display = '';
-    grid.innerHTML = vids.map(v => {
+    const total = vids.length;
+    grid.innerHTML = vids.map((v, i) => {
       const date = cvFormatDate(v.date);
+      // Every upload in a series tends to share one title, so number them
+      // (oldest = Session 1) to give each card something to tell it apart.
+      const label = 'Session ' + (total - i);
       return '<div class="video-card"><div class="video-embed">' + cvEmbedHtml(v) + '</div>' +
         '<div class="video-body">' +
-        (date ? '<div class="cv-date">' + escapeHtml(date) + '</div>' : '') +
-        '<h4>' + escapeHtml(v.title || '') + '</h4>' +
+        '<div class="cv-date">' + escapeHtml(label + (date ? ' · ' + date : '')) + '</div>' +
+        '<h4>' + escapeHtml(v.title || (series ? series.name : '')) + '</h4>' +
         (v.note ? '<p>' + escapeHtml(v.note) + '</p>' : '') +
         '</div></div>';
     }).join('');
   }
   (function setupClassVideos() {
-    const sel = document.getElementById('cv-abf');
+    const sel = document.getElementById('cv-series');
     if (!sel) return;
     sel.addEventListener('change', () => {
-      _cvAbf = sel.value;
+      _cvSeries = sel.value;
       renderClassVideos();
       syncClassVideosUrl();
     });
@@ -12067,7 +12360,7 @@
       return;
     }
     if (id === 'class-videos') {
-      _cvAbf = cvAbfFromUrl() || _cvAbf;
+      _cvSeries = cvSeriesFromUrl() || _cvSeries;
       origShowTab('courses');
       showLefcuSection('class-videos');
       renderClassVideos();
@@ -12132,7 +12425,8 @@
   // buttons themselves don't push URLs — these are for shared/emailed links.
   PATH_TO_TAB['/lefcu/training'] = 'training';
   PATH_TO_TAB['/lefcu/articles'] = 'articles';
-  // Class Videos (2026-10-26) — the bookmarkable one; ?abf=<slug> picks the class.
+  // Class Videos (2026-10-26): the bookmarkable one. ?series=<slug> picks the
+  // series; the older ?abf=<slug> opens that class's newest series.
   PATH_TO_TAB['/lefcu/class-videos'] = 'class-videos';
   // Tutorials moved out of Online Studies 2026-09-03; old link -> Training Videos.
   PATH_TO_TAB['/lefcu/tutorials'] = 'training';
@@ -12218,7 +12512,7 @@
   } else if (initialQueryTab && initialQueryTab !== 'home') {
     window.showTab(initialQueryTab, false);
   }
-  // Class Videos normalises its address to /lefcu/class-videos?abf=<slug>
+  // Class Videos normalises its address to /lefcu/class-videos?series=<slug>
   // so whatever the visitor bookmarks is the canonical link.
   if (initialRouteTab === 'class-videos' ||
       (!initialRouteCourse && (!initialRouteTab || initialRouteTab === 'home') && initialQueryTab === 'class-videos')) {
@@ -12282,6 +12576,9 @@
   document.getElementById('tresp-send')?.addEventListener('click', submitTeacherResponse);
   document.getElementById('tresp-cancel')?.addEventListener('click', closeTeacherRespondModal);
   document.getElementById('tresp-close')?.addEventListener('click', closeTeacherRespondModal);
+  document.getElementById('lwd-send')?.addEventListener('click', submitLeaderWithdraw);
+  document.getElementById('lwd-cancel')?.addEventListener('click', closeLeaderWithdrawModal);
+  document.getElementById('lwd-close')?.addEventListener('click', closeLeaderWithdrawModal);
 
   document.getElementById('reg-gate-submit')?.addEventListener('click', submitRegGate);
   document.getElementById('reg-gate-cancel')?.addEventListener('click', closeRegGateModal);

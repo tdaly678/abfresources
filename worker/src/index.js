@@ -7,7 +7,8 @@
  *   A. New teaching request   →  email teacher
  *   B. Teacher responded      →  email leader
  *      ...unless the LEADER was the one who acted (accepting or declining a
- *      counter-proposal), in which case it emails the teacher instead.
+ *      counter-proposal, or withdrawing a Pending request), in which case it
+ *      emails the teacher instead.
  *   D. New feedback response  →  email teacher
  *   E. Unanswered-request reminder → nudge whoever the request is waiting on,
  *      every 5 days (5 × 24h) until it's answered, during the 7am hour
@@ -35,7 +36,7 @@
  *   DRY_RUN            — "true" to log instead of send (for testing)
  */
 
-const STATUSES_TO_EMAIL = ['Accepted', 'Declined', 'Counter-Proposed'];
+const STATUSES_TO_EMAIL = ['Accepted', 'Declined', 'Counter-Proposed', 'Withdrawn'];
 
 // Feedback Forms that are free-text question boxes rather than template
 // surveys. Their `Answers` field is {week, question} instead of a big blob of
@@ -246,7 +247,10 @@ async function rockSubscribers(cfg, ticketId) {
 // ─── Process: A — New requests ──────────────────────────────────────────────
 
 async function processNewRequests(cfg) {
-  const formula = `AND({Created Email Sent At}=BLANK(), {Teacher}!='', {Requesting Leader}!='')`;
+  // A request withdrawn before this flow ever picked it up is never
+  // announced: the teacher would get "you've been asked" and "never mind"
+  // back to back. Flow B also stays quiet for those (2026-11-02).
+  const formula = `AND({Created Email Sent At}=BLANK(), {Teacher}!='', {Requesting Leader}!='', {Status}!='Withdrawn')`;
   const requests = await airtableQuery(cfg, 'Requests', formula);
 
   let sent = 0;
@@ -347,7 +351,30 @@ async function processStatusChanges(cfg) {
                           (status === 'Accepted' || status === 'Declined');
 
       let email, toEmail, toName, classLeaderBccs;
-      if (leaderActed) {
+      if (status === 'Withdrawn') {
+        // The leader withdrew a Pending request (2026-11-02). Tell the
+        // teacher, not the leader who clicked. If the teacher was never told
+        // about the request in the first place (withdrawn inside the 5 minute
+        // cron window), say nothing and just mark it handled.
+        if (!req.fields['Created Email Sent At'] || !teacherEmail) {
+          await airtableUpdate(cfg, 'Requests', req.id, {
+            'Last Status Emailed': status,
+            'Last Status Email Sent At': new Date().toISOString(),
+          });
+          continue;
+        }
+        toEmail = teacherEmail;
+        toName  = teacherName;
+        // Other leaders of the class saw the original request (Flow A BCC),
+        // so they hear about the withdrawal too.
+        classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
+        email = buildWithdrawnEmail({
+          teacherName, leaderName, className, service, room, courseTitle,
+          requestedDates,
+          note: extractWithdrawNote(req.fields['Leader Message']),
+          portalUrl: cfg.portalUrl + '/?tab=scheduling',
+        });
+      } else if (leaderActed) {
         if (!teacherEmail) continue;
         toEmail = teacherEmail;
         toName  = teacherName;
@@ -399,6 +426,13 @@ async function processStatusChanges(cfg) {
    LEADER_REPLY_MARK in index.html. */
 function extractLeaderReply(leaderMessage) {
   const m = /\n\n\[Leader reply\]\s*([\s\S]*)$/.exec(String(leaderMessage || ''));
+  return m ? m[1].trim() : '';
+}
+
+/* The optional note a leader adds when withdrawing (2026-11-02). Keep in
+   sync with WITHDRAW_NOTE_MARK in index.html. */
+function extractWithdrawNote(leaderMessage) {
+  const m = /\n\n\[Withdrawn\]\s*([\s\S]*)$/.exec(String(leaderMessage || ''));
   return m ? m[1].trim() : '';
 }
 
@@ -1291,6 +1325,40 @@ ${portalUrl}
   <p><strong>${escapeHtml(leaderName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">${accepted ? 'accepted' : 'declined'}</span> the Sundays you suggested for <strong>${escapeHtml(className)}</strong>.${accepted ? " You're on the schedule." : ' This request is now closed — nothing has been added to your schedule.'}</p>
   ${detailsHtml(rows, accent)}
   ${replyHtml}
+  <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* The leader withdrew a request the teacher hadn't answered yet. Goes to
+   the teacher. (added 2026-11-02) */
+function buildWithdrawnEmail({ teacherName, leaderName, className, service, room, courseTitle, requestedDates, note, portalUrl }) {
+  const accent = '#6b6050';
+  const subject = `${leaderName} withdrew their teaching request for ${className}`;
+  const rows = [
+    ...requestRows({ className, service, room, courseTitle }),
+    sundayRow('Sundays', requestedDates, { struck: true }),
+  ];
+  const notePlain = note ? `\n${leaderName}'s note:\n${note}\n` : '';
+  const plain = `Hi ${teacherName},
+
+${leaderName} withdrew their request for you to teach in ${className}. There's nothing you need to do, and nothing was added to your schedule.
+
+${detailsPlain(rows)}
+${notePlain}
+Thank you for being willing to serve. Open the portal any time:
+${portalUrl}
+
+ABF Scheduling`;
+  const noteHtml = note
+    ? `<p style="margin-top:18px;"><strong>${escapeHtml(leaderName)}'s note:</strong></p>
+       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+    : '';
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
+  <p><strong>${escapeHtml(leaderName)}</strong> <span style="color:${accent};font-weight:700;text-transform:uppercase;letter-spacing:.04em;">withdrew</span> their request for you to teach in <strong>${escapeHtml(className)}</strong>. There's nothing you need to do, and nothing was added to your schedule.</p>
+  ${detailsHtml(rows, accent)}
+  ${noteHtml}
+  <p style="font-size:13px;color:#6b6050;">Thank you for being willing to serve.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
   return { subject, plain, html };
 }
