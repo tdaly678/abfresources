@@ -12185,11 +12185,12 @@
   //   note    - one-line description (optional)
   // ADDING A SERIES: one line in CLASS_VIDEO_SERIES, then its videos. The
   // card's session count comes from CLASS_VIDEOS, so it never goes stale.
+  //   tag   - the class name shown in the ministry tag slot ('Branches'), like WBF on Joshua
   //   term  - the semester tag ('Fall 2026'); abf is kept for old ?abf= links
   //   color - card gradient start (CSS colour); end is a fixed dark tone
   // To list a YouTube playlist: uvx yt-dlp --flat-playlist --print "%(id)s %(title)s %(duration)s" <playlist url>
   const CLASS_VIDEO_SERIES = [
-    { slug: 'christian-ambition', name: 'Christian Ambition', abf: 'branches', term: 'Fall 2026',
+    { slug: 'christian-ambition', name: 'Christian Ambition', abf: 'branches', tag: 'Branches', term: 'Fall 2026',
       color: 'var(--terra)', playlist: 'https://www.youtube.com/playlist?list=PLYLATG0Q9yvA' },
   ];
   const CLASS_VIDEOS = [
@@ -12269,6 +12270,7 @@
         '<div class="course-body">' +
           '<h3>' + escapeHtml(x.name) + '</h3>' +
           '<div class="course-meta">' +
+            (x.tag ? '<span class="course-tag ministry">' + escapeHtml(x.tag) + '</span>' : '') +
             (x.term ? '<span class="course-tag semester">' + escapeHtml(x.term) + '</span>' : '') +
             '<span class="course-tag">' + cvSessionsLabel(n) + '</span>' +
           '</div>' +
@@ -12301,7 +12303,9 @@
     _courseDetailFrom = 'class-videos';
 
     document.getElementById('course-detail-title').textContent = series.name;
-    document.getElementById('course-detail-ministry').style.display = 'none';
+    const ministryTag = document.getElementById('course-detail-ministry');
+    ministryTag.textContent = series.tag || '';
+    ministryTag.style.display = series.tag ? '' : 'none';
     const sem = document.getElementById('course-detail-semester');
     sem.textContent = series.term || '';
     sem.style.display = series.term ? '' : 'none';
