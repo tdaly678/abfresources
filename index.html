@@ -545,6 +545,112 @@
       text-decoration: none;
     }
     .video-body .video-dl:hover { text-decoration: underline; }
+    /* Training Videos: compact card that opens a session's own page. */
+    .video-thumb-link {
+      background: linear-gradient(135deg, var(--steel-blue) 0%, #22303a 100%);
+      color: #F4EBD8; text-decoration: none;
+      flex-direction: column; gap: .55rem; text-align: center; padding: 1rem;
+    }
+    .video-thumb-link .vtl-eyebrow {
+      font-size: .6rem; font-weight: 700; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .video-thumb-link .vtl-title { font-size: 1.05rem; font-weight: 800; line-height: 1.2; }
+    .video-thumb-link .vtl-play {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(244,235,216,.16); border: 1.5px solid rgba(244,235,216,.5);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .video-thumb-link:hover .vtl-play { background: var(--gold); border-color: var(--gold); }
+
+    /* ─── Equipped Training session page (/lefcu/structure, 2026-11-03) ─── */
+    .eq-page { max-width: 940px; margin: 0 auto; }
+    .eq-back { margin: 0 0 1rem; }
+    .eq-hero {
+      background: linear-gradient(160deg, var(--steel-blue) 0%, #2c3e49 100%);
+      color: #F4EBD8;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .eq-hero-head { padding: 2rem 2.25rem 1.6rem; }
+    .eq-eyebrow {
+      font-size: .68rem; font-weight: 700; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .eq-hero h2 {
+      font-size: 2.1rem; font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.12; margin: .45rem 0 0; color: #fff;
+    }
+    .eq-hero .gold-rule { margin-top: .8rem; }
+    .eq-meta {
+      display: flex; flex-wrap: wrap; gap: .35rem .9rem;
+      margin-top: .9rem; font-size: .8rem; font-weight: 600;
+      color: rgba(244,235,216,.85);
+    }
+    .eq-meta i { font-style: normal; color: var(--gold); margin: 0 .5rem; }
+    .eq-meta span + span::before { content: '·'; margin-right: .9rem; color: var(--gold); }
+    .eq-blurb {
+      margin-top: .9rem; max-width: 62ch;
+      font-size: .92rem; line-height: 1.6; color: rgba(244,235,216,.92);
+    }
+    .eq-video { padding: 0 2.25rem 2.25rem; }
+    .eq-video .video-embed {
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .eq-packet {
+      margin-top: 1.25rem;
+      background: #F4EBD8;
+      border: 1px solid var(--cream-border);
+      border-left: 5px solid var(--gold);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.4rem 1.6rem;
+      display: flex; align-items: center; gap: 1.25rem;
+    }
+    .eq-packet-icon {
+      flex-shrink: 0; width: 54px; height: 66px; border-radius: 6px;
+      background: #fff; border: 1.5px solid var(--cream-border);
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: .45rem; position: relative;
+      font-size: .62rem; font-weight: 800; letter-spacing: .08em; color: var(--terra);
+    }
+    .eq-packet-icon::before {
+      content: ''; position: absolute; top: 12px; left: 10px; right: 10px; height: 22px;
+      background: repeating-linear-gradient(to bottom, var(--cream-border) 0 2px, transparent 2px 6px);
+    }
+    .eq-packet-text { flex: 1; min-width: 0; }
+    .eq-packet-text h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark-brown); }
+    .eq-packet-text p { font-size: .82rem; line-height: 1.55; color: var(--text-muted); margin-top: .25rem; }
+    .eq-packet-btn {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: var(--steel-blue); color: #fff;
+      border-radius: var(--radius);
+      padding: .8rem 1.25rem;
+      font-size: .8rem; font-weight: 700; letter-spacing: .02em;
+      text-decoration: none; white-space: nowrap;
+      transition: background .15s;
+    }
+    .eq-packet-btn:hover { background: var(--dark-brown); }
+    .eq-foot {
+      margin-top: 1.25rem; text-align: center;
+      font-size: .8rem; color: var(--text-muted);
+    }
+    .eq-foot a { color: var(--steel-blue); font-weight: 700; text-decoration: none; }
+    .eq-foot a:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      .eq-hero-head { padding: 1.5rem 1.25rem 1.25rem; }
+      .eq-hero h2 { font-size: 1.6rem; }
+      .eq-meta { flex-direction: column; gap: .2rem; }
+      .eq-meta span + span::before { content: none; }
+      .eq-video { padding: 0 .75rem .75rem; }
+      .eq-packet { flex-direction: column; align-items: flex-start; padding: 1.2rem 1.25rem; }
+      .eq-packet-icon { display: none; }
+      .eq-packet-btn { width: 100%; justify-content: center; }
+    }
 
     /* ─── ARTICLES ──────────────────────────────────────────────── */
     .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
@@ -3488,7 +3594,7 @@
                   <p>Learn to see how a Bible passage is built, so you can follow the author's flow of thought and teach what the text is actually saying. Watch the session, then work through the study packet.</p>
                   <div class="hc-actions">
                     <button type="button" class="hc-btn" onclick="showTab('structure')">Watch the Training</button>
-                    <a class="hc-btn ghost" href="Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download the Study Packet (PDF)</a>
+                    <a class="hc-btn ghost" href="/Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download the Study Packet (PDF)</a>
                   </div>
                 </div>
                 <div class="hc-steps">
@@ -4705,7 +4811,9 @@
       <div class="lefcu-section" data-lefcu-section="training" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Video resources for every stage of ABF leadership.</p>
 
-        <!-- Equipped Training (added 2026-11-03; featured first) -->
+        <!-- Equipped Training (added 2026-11-03; featured first). Each session
+             has its own page (#tab-structure, /lefcu/structure); these cards
+             just point there. -->
         <div class="training-section" id="training-equipped">
           <div class="training-section-header">
             <h3>Equipped Training</h3>
@@ -4713,13 +4821,17 @@
           </div>
           <div class="video-grid">
             <div class="video-card">
-              <div class="video-embed">
-                <iframe src="https://player.vimeo.com/video/1243014222?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-              </div>
+              <a class="video-embed video-thumb-link" href="/lefcu/structure" onclick="showTab('structure'); return false;" aria-label="Open Understanding Structure">
+                <span class="vtl-eyebrow">Equipped Training</span>
+                <span class="vtl-title">Understanding Structure</span>
+                <span class="vtl-play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+              </a>
               <div class="video-body">
                 <h4>Understanding Structure</h4>
-                <p>Before you teach a passage, learn to see how it is built. This session walks through spotting the structure of a Bible text so you can follow the author's flow of thought and teach what the passage is actually saying. Taught by Lincoln Fitch of DiscipleMakers. LEFC|U, November 2, 2026.</p>
-                <a class="video-dl" href="Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download study packet (PDF) &darr;</a>
+                <p>Learn to see how a Bible passage is built so you can teach what it is actually saying. Lincoln Fitch, DiscipleMakers. November 2, 2026.</p>
+                <a class="video-dl" href="/lefcu/structure" onclick="showTab('structure'); return false;">Watch the session &rarr;</a>
+                &nbsp;
+                <a class="video-dl" href="/Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Study packet (PDF) &darr;</a>
               </div>
             </div>
           </div>
@@ -5242,6 +5354,47 @@
         </div>
       </div><!-- /#course-videos-corebeliefs -->
     </div><!-- /#tab-course-detail -->
+
+    <!-- ── EQUIPPED TRAINING › UNDERSTANDING STRUCTURE (2026-11-03) ───────
+         Single-session landing page, the shareable /lefcu/structure link.
+         Opened by showTab('structure'); the LEFC|U nav button stays lit. -->
+    <div class="tab-pane" id="tab-structure">
+      <div class="eq-page">
+        <button class="back-btn eq-back" onclick="showTab('training')">← Training Videos</button>
+
+        <section class="eq-hero" aria-labelledby="eq-structure-title">
+          <div class="eq-hero-head">
+            <div class="eq-eyebrow">Equipped Training &middot; LEFC|U</div>
+            <h2 id="eq-structure-title">Understanding Structure</h2>
+            <div class="gold-rule"></div>
+            <div class="eq-meta">
+              <span>Lincoln Fitch <i aria-hidden="true">&middot;</i> DiscipleMakers</span>
+              <span>November 2, 2026</span>
+            </div>
+            <p class="eq-blurb">Before you teach a passage, learn to see how it is built. This session walks through spotting the structure of a Bible text so you can follow the author's flow of thought and teach what the passage is actually saying.</p>
+          </div>
+          <div class="eq-video">
+            <div class="video-embed">
+              <iframe src="https://player.vimeo.com/video/1243014222?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Equipped Training: Understanding Structure"></iframe>
+            </div>
+          </div>
+        </section>
+
+        <div class="eq-packet">
+          <div class="eq-packet-icon" aria-hidden="true">PDF</div>
+          <div class="eq-packet-text">
+            <h3>Study Packet</h3>
+            <p>The print companion to this session. Print it before you watch and work through the passages alongside Lincoln, or keep it on hand as you prepare your next lesson.</p>
+          </div>
+          <a class="eq-packet-btn" href="/Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download the Study Packet
+          </a>
+        </div>
+
+        <p class="eq-foot">Part of LEFC|U Equipped Training for ABF leaders and teachers. <a href="/lefcu/training" onclick="showTab('training'); return false;">More training videos &rarr;</a></p>
+      </div>
+    </div><!-- /#tab-structure -->
 
     <!-- ── FEEDBACK ───────────────────────────────────────── -->
     <div class="tab-pane" id="tab-feedback">
@@ -12213,8 +12366,7 @@
       const onCv = path === '/lefcu/class-videos';
       if (btn.dataset.lefcuSub === 'class-videos') {
         if (!onCv || location.search) history.replaceState({ tab: 'class-videos' }, '', '/lefcu/class-videos');
-      } else if (onCv || path === '/lefcu/structure') {
-        // Leaving a sub-view that owns its URL (incl. /lefcu/structure).
+      } else if (onCv) {
         history.replaceState({ tab: 'courses' }, '', '/lefcu');
       }
     });
@@ -12394,18 +12546,6 @@
     }
   }
 
-  // Scroll the Equipped Training block into view below the sticky nav. Runs a
-  // frame late so it overrides showTab's scroll-to-top and the section is laid out.
-  function scrollToEquipped() {
-    requestAnimationFrame(() => {
-      const el = document.getElementById('training-equipped');
-      if (!el) return;
-      const nav = document.querySelector('nav');
-      const offset = (nav ? nav.offsetHeight : 0) + 12;
-      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
-    });
-  }
-
   // Re-render scheduling/teacher/feedback tabs whenever they're shown.
   // Also redirect legacy 'articles' / 'training' tab IDs into the merged LEFCU tab.
   const origShowTab = window.showTab;
@@ -12421,13 +12561,13 @@
       renderClassVideos();
       return;
     }
-    // Equipped Training › Understanding Structure (2026-11-03): Training
-    // Videos, scrolled to the #training-equipped block. Shareable as
-    // /lefcu/structure (see the routing layer below).
+    // Equipped Training › Understanding Structure (2026-11-03): its own
+    // session page (#tab-structure), shareable as /lefcu/structure (see the
+    // routing layer below). It lives under LEFC|U, so that nav button stays lit.
     if (id === 'structure') {
-      origShowTab('courses');
-      showLefcuSection('training');
-      scrollToEquipped();
+      origShowTab('structure');
+      const lefcuBtn = document.querySelector('.tab-btn[data-tab="courses"]');
+      if (lefcuBtn) lefcuBtn.classList.add('active');
       return;
     }
     if (id === 'courses') {
@@ -12494,8 +12634,8 @@
   PATH_TO_TAB['/lefcu/class-videos'] = 'class-videos';
   // Tutorials moved out of Online Studies 2026-09-03; old link -> Training Videos.
   PATH_TO_TAB['/lefcu/tutorials'] = 'training';
-  // Equipped Training › Understanding Structure (2026-11-03): Training Videos,
-  // scrolled to #training-equipped. /structure 301s here in _redirects.
+  // Equipped Training › Understanding Structure (2026-11-03): its own page,
+  // #tab-structure. /structure 301s here in _redirects.
   PATH_TO_TAB['/lefcu/structure'] = 'structure';
 
   // ─── Course detail routes (added 2026-09-03) ──────────────
