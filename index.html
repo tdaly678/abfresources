@@ -3487,7 +3487,7 @@
                   <h2>Equipped Training: <em>Understanding Structure.</em></h2>
                   <p>Learn to see how a Bible passage is built, so you can follow the author's flow of thought and teach what the text is actually saying. Watch the session, then work through the study packet.</p>
                   <div class="hc-actions">
-                    <button type="button" class="hc-btn" onclick="showTab('training')">Watch the Training</button>
+                    <button type="button" class="hc-btn" onclick="showTab('structure')">Watch the Training</button>
                     <a class="hc-btn ghost" href="Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download the Study Packet (PDF)</a>
                   </div>
                 </div>
@@ -12209,10 +12209,12 @@
       // the address bar (replaceState, no extra Back entries). Leaving it
       // puts the plain LEFC|U route back.
       if (!history.replaceState) return;
-      const onCv = location.pathname.replace(/\/+$/, '') === '/lefcu/class-videos';
+      const path = location.pathname.replace(/\/+$/, '');
+      const onCv = path === '/lefcu/class-videos';
       if (btn.dataset.lefcuSub === 'class-videos') {
         if (!onCv || location.search) history.replaceState({ tab: 'class-videos' }, '', '/lefcu/class-videos');
-      } else if (onCv) {
+      } else if (onCv || path === '/lefcu/structure') {
+        // Leaving a sub-view that owns its URL (incl. /lefcu/structure).
         history.replaceState({ tab: 'courses' }, '', '/lefcu');
       }
     });
@@ -12392,6 +12394,18 @@
     }
   }
 
+  // Scroll the Equipped Training block into view below the sticky nav. Runs a
+  // frame late so it overrides showTab's scroll-to-top and the section is laid out.
+  function scrollToEquipped() {
+    requestAnimationFrame(() => {
+      const el = document.getElementById('training-equipped');
+      if (!el) return;
+      const nav = document.querySelector('nav');
+      const offset = (nav ? nav.offsetHeight : 0) + 12;
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+    });
+  }
+
   // Re-render scheduling/teacher/feedback tabs whenever they're shown.
   // Also redirect legacy 'articles' / 'training' tab IDs into the merged LEFCU tab.
   const origShowTab = window.showTab;
@@ -12405,6 +12419,15 @@
       origShowTab('courses');
       showLefcuSection('class-videos');
       renderClassVideos();
+      return;
+    }
+    // Equipped Training › Understanding Structure (2026-11-03): Training
+    // Videos, scrolled to the #training-equipped block. Shareable as
+    // /lefcu/structure (see the routing layer below).
+    if (id === 'structure') {
+      origShowTab('courses');
+      showLefcuSection('training');
+      scrollToEquipped();
       return;
     }
     if (id === 'courses') {
@@ -12471,6 +12494,9 @@
   PATH_TO_TAB['/lefcu/class-videos'] = 'class-videos';
   // Tutorials moved out of Online Studies 2026-09-03; old link -> Training Videos.
   PATH_TO_TAB['/lefcu/tutorials'] = 'training';
+  // Equipped Training › Understanding Structure (2026-11-03): Training Videos,
+  // scrolled to #training-equipped. /structure 301s here in _redirects.
+  PATH_TO_TAB['/lefcu/structure'] = 'structure';
 
   // ─── Course detail routes (added 2026-09-03) ──────────────
   // Each LEFC|U course gets its own shareable URL so a single course can be
@@ -12499,14 +12525,16 @@
   window.showTab = function(id, pushUrl = true) {
     preRouteShowTab(id);
     // Legacy ids land on the Resources tab; use its route/title.
-    const canonical = (id === 'articles' || id === 'training' || id === 'class-videos') ? 'courses' : id;
-    document.title = TAB_TITLES[canonical]
-      ? TAB_TITLES[canonical] + ' | ABF Resources'
+    const canonical = (id === 'articles' || id === 'training' || id === 'class-videos' || id === 'structure') ? 'courses' : id;
+    document.title = id === 'structure' ? 'Understanding Structure | ABF Resources'
+      : TAB_TITLES[canonical] ? TAB_TITLES[canonical] + ' | ABF Resources'
       : BASE_TITLE;
-    const route = id === 'class-videos' ? '/lefcu/class-videos' : TAB_ROUTES[canonical];
+    // These sub-views keep their own path so the address bar is shareable.
+    const OWN_ROUTE = { 'class-videos': '/lefcu/class-videos', structure: '/lefcu/structure' };
+    const route = OWN_ROUTE[id] || TAB_ROUTES[canonical];
     if (pushUrl && route && window.history && history.pushState &&
         (location.pathname + location.search) !== route) {
-      history.pushState({ tab: id === 'class-videos' ? id : canonical }, '', route);
+      history.pushState({ tab: OWN_ROUTE[id] ? id : canonical }, '', route);
     }
   };
 

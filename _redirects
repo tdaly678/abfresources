@@ -18,6 +18,7 @@
 /lefcu/training/    /lefcu/training     301
 /lefcu/articles/    /lefcu/articles     301
 /lefcu/class-videos/ /lefcu/class-videos 301
+/lefcu/structure/   /lefcu/structure    301
 /lefcu/tutorials    /lefcu/training     301
 /lefcu/tutorials/   /lefcu/training     301
 /teachers/    /teachers    301
@@ -51,6 +52,10 @@
 # live in LEFC|U -> Training Videos.
 /tutorials     /lefcu/training     301
 /tutorials/    /lefcu/training     301
+# Equipped Training › Understanding Structure (2026-11-03): Training Videos,
+# scrolled to the Equipped block.
+/structure     /lefcu/structure    301
+/structure/    /lefcu/structure    301
 
 /mobilization  /special-visits  301
 /mobilization/ /special-visits  301
@@ -65,6 +70,7 @@
 /lefcu/training    /       200
 /lefcu/articles    /       200
 /lefcu/class-videos /      200
+/lefcu/structure   /       200
 /teachers     /            200
 /courses      /            200
 /special-visits /          200
