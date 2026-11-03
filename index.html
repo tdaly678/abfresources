@@ -539,6 +539,12 @@
     .video-body p {
       font-size: .75rem; color: var(--text-muted); line-height: 1.5;
     }
+    .video-body .video-dl {
+      display: inline-block; margin-top: .6rem;
+      font-size: .75rem; font-weight: 700; color: var(--steel-blue);
+      text-decoration: none;
+    }
+    .video-body .video-dl:hover { text-decoration: underline; }
 
     /* ─── ARTICLES ──────────────────────────────────────────────── */
     .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
@@ -3473,8 +3479,32 @@
         <div class="hc-viewport">
           <div class="hc-track" id="hc-track">
 
-            <!-- 1 · Special Visits (replaced the Sept 13 kickoff slide 2026-10-15) -->
-            <div class="hc-slide gold-btn-dark" role="group" aria-roledescription="slide" aria-label="1 of 4: Schedule an elder or global partner visit">
+            <!-- 1 · Equipped Training: Understanding Structure (added 2026-11-03) -->
+            <div class="hc-slide steel" role="group" aria-roledescription="slide" aria-label="1 of 5: Equipped Training, Understanding Structure">
+              <div class="hc-inner">
+                <div class="hc-copy">
+                  <span class="hc-eyebrow">New on LEFC|U</span>
+                  <h2>Equipped Training: <em>Understanding Structure.</em></h2>
+                  <p>Learn to see how a Bible passage is built, so you can follow the author's flow of thought and teach what the text is actually saying. Watch the session, then work through the study packet.</p>
+                  <div class="hc-actions">
+                    <button type="button" class="hc-btn" onclick="showTab('training')">Watch the Training</button>
+                    <a class="hc-btn ghost" href="Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download the Study Packet (PDF)</a>
+                  </div>
+                </div>
+                <div class="hc-steps">
+                  <div class="hd">The session</div>
+                  <ul class="hc-points">
+                    <li><strong>Understanding Structure</strong>, Equipped Training series</li>
+                    <li>Taught by Lincoln Fitch of DiscipleMakers</li>
+                    <li>Recorded November 2, 2026</li>
+                    <li>For ABF leaders and teachers</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2 · Special Visits (replaced the Sept 13 kickoff slide 2026-10-15) -->
+            <div class="hc-slide gold-btn-dark" role="group" aria-roledescription="slide" aria-label="2 of 5: Schedule an elder or global partner visit">
               <div class="hc-inner">
                 <div class="hc-copy">
                   <span class="hc-eyebrow">Now Booking &mdash; Open Sundays This Year</span>
@@ -3503,8 +3533,8 @@
               </div>
             </div>
 
-            <!-- 2 · Attendance -->
-            <div class="hc-slide steel" role="group" aria-roledescription="slide" aria-label="2 of 4: How to take attendance">
+            <!-- 3 · Attendance -->
+            <div class="hc-slide steel" role="group" aria-roledescription="slide" aria-label="3 of 5: How to take attendance">
               <div class="hc-inner">
                 <div class="hc-copy">
                   <span class="hc-eyebrow">New &mdash; Take Attendance in 30 Seconds</span>
@@ -3533,8 +3563,8 @@
               </div>
             </div>
 
-            <!-- 3 · Be invitational (widened from September to all fall 2026-10-15) -->
-            <div class="hc-slide terra" role="group" aria-roledescription="slide" aria-label="3 of 4: Fall invite challenge">
+            <!-- 4 · Be invitational (widened from September to all fall 2026-10-15) -->
+            <div class="hc-slide terra" role="group" aria-roledescription="slide" aria-label="4 of 5: Fall invite challenge">
               <div class="hc-inner">
                 <div class="hc-copy">
                   <span class="hc-eyebrow">All Fall Long</span>
@@ -3558,8 +3588,8 @@
               </div>
             </div>
 
-            <!-- 4 · New spaces -->
-            <div class="hc-slide olive" role="group" aria-roledescription="slide" aria-label="4 of 4: The new D-wing is open">
+            <!-- 5 · New spaces -->
+            <div class="hc-slide olive" role="group" aria-roledescription="slide" aria-label="5 of 5: The new D-wing is open">
               <div class="hc-inner">
                 <div class="hc-copy">
                   <span class="hc-eyebrow">Our New Spaces</span>
@@ -4674,6 +4704,26 @@
       <!-- Training videos section -->
       <div class="lefcu-section" data-lefcu-section="training" style="display:none;">
         <p class="page-sub" style="margin-bottom:1rem;">Video resources for every stage of ABF leadership.</p>
+
+        <!-- Equipped Training (added 2026-11-03; featured first) -->
+        <div class="training-section" id="training-equipped">
+          <div class="training-section-header">
+            <h3>Equipped Training</h3>
+            <span class="audience-badge exist">Leaders &amp; Teachers</span>
+          </div>
+          <div class="video-grid">
+            <div class="video-card">
+              <div class="video-embed">
+                <iframe src="https://player.vimeo.com/video/1243014222?title=0&byline=0&portrait=0" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              </div>
+              <div class="video-body">
+                <h4>Understanding Structure</h4>
+                <p>Before you teach a passage, learn to see how it is built. This session walks through spotting the structure of a Bible text so you can follow the author's flow of thought and teach what the passage is actually saying. Taught by Lincoln Fitch of DiscipleMakers. LEFC|U, November 2, 2026.</p>
+                <a class="video-dl" href="Equipped_Training_Structure_Study_Packet.pdf" target="_blank" rel="noopener" download>Download study packet (PDF) &darr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Scheduling Tool Tutorials -->
         <div class="training-section">

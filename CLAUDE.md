@@ -88,6 +88,12 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ## Recent changes (November 2026)
 
+**2026-11-03 — Equipped Training: "Understanding Structure" published.** First session of the Equipped Training series (Lincoln Fitch of DiscipleMakers, recorded 2026-11-02, Vimeo `1243014222`). Not yet deployed.
+
+- **Training Videos:** new `#training-equipped` section placed **first** in the LEFC|U Training Videos pane (above Scheduling Tool Tutorials), badge "Leaders & Teachers". The card links the study packet `Equipped_Training_Structure_Study_Packet.pdf` (repo root) via a new `.video-dl` link style. Future sessions go in as more `.video-card`s in that section's grid.
+- **Home carousel:** new **slide 1** (steel), "Equipped Training: Understanding Structure," eyebrow "New on LEFC|U"; CTAs → `showTab('training')` (opens `/lefcu/training`) and the packet PDF. The carousel is now **5 slides**; all `aria-label`s renumbered "N of 5". Slides 1 and 3 are both steel. Retire or replace this slide once the next session posts.
+- **The PDF is public.** The front-page gate has been off since 2026-08-03, so anyone with the URL can download the packet.
+
 **2026-11-02 — Ben Spead (Branches) batch: sorted teachers, click-to-request grid, June electives Sunday closed, Christian Ambition class videos, leader Withdraw.** Committed, **not yet deployed** (deploy the worker before the site; see the deploy note below).
 
 - **Teachers sort A to Z by first then last name** in the New Request dropdown and the leader Availability grid rows (`DataStore.listTeachersSorted()` / `compareTeacherNames`). Airtable returns create order.
