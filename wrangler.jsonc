@@ -1,0 +1,17 @@
+// Config for the SITE Worker (`abfresources`, static assets only). The email /
+// API worker has its own config in worker/wrangler.toml.
+//
+// Not meant to be run from the repo root: ./public does not exist here, so a
+// stray `wrangler deploy` in this folder fails instead of publishing .git.
+// The deploy recipe in CLAUDE.md copies this file next to the staged public/.
+{
+  "name": "abfresources",
+  "compatibility_date": "2026-08-17",
+  "assets": {
+    "directory": "./public",
+    // Serve 404.html for unknown paths. Without this the Worker returns an
+    // empty 404, so survey short links (/12345 -> /?f=12345, handled by the
+    // script in 404.html) never resolve.
+    "not_found_handling": "404-page"
+  }
+}

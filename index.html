@@ -11054,6 +11054,13 @@
       .replace(/^www\./, '');
     return host + '/' + slug;
   }
+  // What every survey QR encodes: a full https URL on the canonical host that
+  // opens the form directly. Not the short link: a QR holding a bare
+  // "abfresources.com/12345" has no scheme, so many phone cameras read it as
+  // plain text, and it also depends on the /<code> -> /?f=<code> hop.
+  function fbQrUrl(slug) {
+    return 'https://www.abfresources.com/?f=' + encodeURIComponent(slug);
+  }
 
   function renderFbOpenList() {
     const host = document.getElementById('fb-open-list');
@@ -11449,7 +11456,7 @@
     const titleText  = (form ? form.title : tpl.name) + ' — Printable Feedback Form';
     const surveyCode = form ? String(form.slug || '') : '';
     const surveyUrl  = form ? fbShortUrl(form.slug)  : 'abfresources.com/feedback';
-    const qrTarget   = form ? fbPublicUrl(form.slug) : (location.origin + '/?tab=feedback');
+    const qrTarget   = form ? fbQrUrl(form.slug) : 'https://www.abfresources.com/feedback';
     const qrSrc      = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(qrTarget);
     const largePrint = !!opts.largePrint;
     // Large print is always single-column and flows onto a second page.
@@ -11728,7 +11735,7 @@
           qrWrap.style.display = 'none';
           qrBtn.textContent = 'Show QR code';
         } else {
-          const url = fbShortUrl(form.slug);
+          const url = fbQrUrl(form.slug);
           // qrserver.com is a free public QR generator — same one many church communicators use.
           const src = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=12&format=png&data=' + encodeURIComponent(url);
           qrImg.src = src;
@@ -12235,7 +12242,7 @@
     // up on a laptop or phone and immediately share into slides/texts.
     const shareShort = fbShortUrl(form.slug);
     const shareFull  = fbPublicUrl(form.slug);
-    const qrSrc      = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=12&format=png&data=' + encodeURIComponent(shareShort);
+    const qrSrc      = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=12&format=png&data=' + encodeURIComponent(fbQrUrl(form.slug));
 
     const shareBanner =
       '<div class="pf-share-banner">' +

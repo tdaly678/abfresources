@@ -56,8 +56,10 @@ A combined video forces both audiences to sit through content that isn't theirs.
   cd <clean clone> && tar --exclude='.git' --exclude='.wrangler' -cf - . \
     | (cd /tmp/abfdeploy/public && tar -xf -)
   cd /tmp/abfdeploy   # assets MUST be a subdir, or wrangler's own .wrangler/ cache gets published
-  npx wrangler@latest deploy --name abfresources --assets=./public --compatibility-date=2026-08-17
+  cp public/wrangler.jsonc .   # name, compat date, assets dir, and not_found_handling
+  npx wrangler@latest deploy
   ```
+  **Deploy with the config, not bare CLI flags (2026-11-15).** `wrangler.jsonc` sets `not_found_handling: "404-page"`. Without it the Worker returns an empty 404 for unknown paths, 404.html never runs, and every survey short link (`/12345`) is dead. That was the cause of the Nov 2026 "QR codes don't work" report. The three `25125/ 64270/ 87548/` stub folders were an earlier workaround for the same thing.
   `.git` must be excluded or the deploy hard-fails: the pack file is 43.6 MiB vs the 25 MiB per-asset limit. Allow ~40–60s for propagation after wrangler reports success.
   - **Canonical host is `www.abfresources.com`.** The apex `abfresources.com` 301-redirects to www. Note `abfresources.com/index.html` 307-redirects to `/`, so always test against `https://www.abfresources.com/` — the other forms return redirects with no body and can look like stale content.
   - **~~Known issue~~ RESOLVED (verified 2026-08-05):** the apex empty-`Location` redirect bug is fixed. A Redirect Rule named **"Apex to www"** now exists in the Cloudflare dashboard (Rules → Redirect Rules): custom filter `Hostname equals abfresources.com` → Dynamic redirect `concat("https://www.abfresources.com", http.request.uri.path)`, 301, preserve query string, placed First. Verified live: apex paths, `?f=` query strings, `/12345` short codes, and plain-http all redirect correctly to www with path intact. Don't recreate or "fix" this rule — it's correct as-is.
