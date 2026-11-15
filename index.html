@@ -11065,6 +11065,15 @@
   function renderFbOpenList() {
     const host = document.getElementById('fb-open-list');
     if (!host) return;
+    // Opening /feedback directly renders before the data arrives; wait for
+    // it instead of claiming there are no open surveys.
+    if (!Airtable._cache) {
+      host.innerHTML = '<div class="fb-empty">Loading surveys…</div>';
+      Airtable.ensureLoaded().then(() => renderFbOpenList()).catch(() => {
+        host.innerHTML = '<div class="fb-empty">Could not load surveys. Please refresh the page.</div>';
+      });
+      return;
+    }
     const open = DataStore.listOpenFeedbackForms();
     if (!open.length) {
       host.innerHTML = '<div class="fb-empty">No open surveys right now. Check back later, or — if you\'re a teacher — create one from the <strong>Create Survey</strong> tab.</div>';
