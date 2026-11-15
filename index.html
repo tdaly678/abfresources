@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="robots" content="noindex, nofollow" />
   <title>ABF Resources | LEFC</title>
+  <meta name="description" content="Resources for Adult Bible Fellowship (ABF) leaders and teachers at Lancaster Evangelical Free Church: class directory, key dates, LEFC|U training videos and online studies, teacher scheduling, and class feedback." />
+  <link rel="canonical" href="https://www.abfresources.com/" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     /* ─── Reset & Base ─────────────────────────────────────────── */
@@ -12695,6 +12696,17 @@
     return p === '' ? '/' : p;
   }
 
+  // Point <link rel="canonical"> at the current route (2026-11-15) so search
+  // engines index each tab as its own page instead of folding them into "/".
+  // Query strings are dropped; unknown paths fall back to the home page.
+  function syncCanonical() {
+    const link = document.querySelector('link[rel="canonical"]');
+    if (!link) return;
+    const p = currentRoutePath();
+    const known = p === '/' || PATH_TO_TAB[p] || PATH_TO_COURSE[p];
+    link.href = 'https://www.abfresources.com' + (known ? p : '/');
+  }
+
   // Routing layer on top of showTab: update the address bar + title.
   // Second arg pushUrl=false is used by popstate / initial load so we
   // don't create duplicate history entries.
@@ -12712,7 +12724,7 @@
     if (pushUrl && route && window.history && history.pushState &&
         (location.pathname + location.search) !== route) {
       history.pushState({ tab: OWN_ROUTE[id] ? id : canonical }, '', route);
-    }
+    }    syncCanonical();
   };
 
   // Routing layer on top of showCourse: a course detail view gets its own
@@ -12726,7 +12738,7 @@
     if (pushUrl && route && window.history && history.pushState &&
         (location.pathname + location.search) !== route) {
       history.pushState({ course: id }, '', route);
-    }
+    }    syncCanonical();
   };
 
   window.addEventListener('popstate', () => {
