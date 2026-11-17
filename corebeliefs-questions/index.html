@@ -246,7 +246,20 @@
   </header>
 
   <main>
-    <div id="form-view">
+    <!-- ═══════ CLOSED NOTICE ═══════ -->
+    <div id="closed-view" class="thanks" style="display:block">
+      <div class="check">&#10003;</div>
+      <h2>Questions are closed for now.</h2>
+      <p>Thanks to everyone who sent one in. We held the Core Beliefs panel on
+      Sunday, August 30, and the question box is closed for this round.</p>
+      <p>You can still watch all twelve sessions, the panel included, any time at
+      <a href="https://www.abfresources.com/lefcu">abfresources.com/lefcu</a>.
+      And if something is still on your mind, email me at
+      <a href="mailto:daly@lefc.net">daly@lefc.net</a>.</p>
+      <div class="sig">Tom</div>
+    </div>
+
+    <div id="form-view" style="display:none">
       <div class="subtitle">Core Beliefs · Questions &amp; Feedback</div>
       <h1 class="page-title">Ask your question</h1>
 
@@ -321,6 +334,20 @@
 
   <script>
   (function(){
+    // ─── Open / closed switch ───────────────────────────────────
+    // The panel was Sunday, Aug 30, 2026. Questions are now closed. To reopen
+    // the box the next time the course runs, set FORM_CLOSED = false and redeploy.
+    const FORM_CLOSED = true;
+    const _formView   = document.getElementById('form-view');
+    const _closedView = document.getElementById('closed-view');
+    if (FORM_CLOSED) {
+      _formView.style.display   = 'none';
+      _closedView.style.display = 'block';
+      return;
+    }
+    _formView.style.display   = 'block';
+    _closedView.style.display = 'none';
+
     // Submissions go through the worker API. Public + rate-limited server-side;
     // no Airtable token or password lives in this file.
     const API_BASE = 'https://abf-email-worker.tdaly678.workers.dev/api';
