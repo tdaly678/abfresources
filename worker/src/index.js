@@ -292,11 +292,11 @@ async function processNewRequests(cfg) {
         .filter(p => !sameEmail(p.email, teacherEmail) && !sameEmail(p.email, leaderEmail));
 
       const portalUrl = cfg.portalUrl + '/?tab=scheduling';
-      const details = { teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl };
+      const details = { teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl, leaderEmail };
       const email = buildNewRequestEmail(details);
 
       if (cfg.dryRun) {
-        console.log('DRY_RUN A:', JSON.stringify({ to: teacherEmail, subject: email.subject, fyi: coLeaders.map(p => p.email) }));
+        console.log('DRY_RUN A:', JSON.stringify({ to: teacherEmail, subject: email.subject, replyTo: email.replyTo?.email || null, fyi: coLeaders.map(p => p.email) }));
       } else {
         // Admin BCC is still added inside sendgridSend.
         await sendgridSend(cfg, { to: teacherEmail, toName: teacherName, ...email });
@@ -355,7 +355,9 @@ async function processStatusChanges(cfg) {
       const service       = cls?.fields?.Service || '';
       const room          = cls?.fields?.Room || '';
       const courseTitle   = (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '';
-      const teacherResp   = req.fields['Teacher Response'] || '(no note from the teacher)';
+      // Reply-To the teacher only when they actually wrote a note (2026-11-23).
+      const teacherNote   = String(req.fields['Teacher Response'] || '').trim();
+      const teacherResp   = teacherNote || '(no note from the teacher)';
       const counterIds    = req.fields['Counter Sundays'] || [];
       const counterDates  = await fetchLinkedFieldValues(cfg, 'Sundays', counterIds, 'Date');
       const requestedDates = await fetchLinkedFieldValues(cfg, 'Sundays', req.fields['Requested Sundays'] || [], 'Date');
@@ -392,6 +394,7 @@ async function processStatusChanges(cfg) {
           requestedDates,
           note: extractWithdrawNote(req.fields['Leader Message']),
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
+          leaderEmail,
         });
       } else if (leaderActed) {
         if (!teacherEmail) continue;
@@ -406,6 +409,7 @@ async function processStatusChanges(cfg) {
           agreedDates: requestedDates,
           leaderReply: extractLeaderReply(req.fields['Leader Message']),
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
+          leaderEmail,
         });
       } else {
         if (!leaderEmail) continue;
@@ -417,11 +421,12 @@ async function processStatusChanges(cfg) {
           leaderName, teacherName, className, service, room, courseTitle, status,
           teacherResp, requestedDates, counterDates,
           portalUrl: cfg.portalUrl + '/?tab=scheduling',
+          replyTo: teacherNote ? personReplyTo(teacherEmail, teacherName) : null,
         });
       }
 
       if (cfg.dryRun) {
-        console.log('DRY_RUN B:', JSON.stringify({ to: toEmail, status, leaderActed, subject: email.subject, bccs: classLeaderBccs }));
+        console.log('DRY_RUN B:', JSON.stringify({ to: toEmail, status, leaderActed, subject: email.subject, replyTo: email.replyTo?.email || null, bccs: classLeaderBccs }));
       } else {
         await sendgridSend(cfg, { to: toEmail, toName, ...email, extraBccs: classLeaderBccs });
       }
@@ -1032,7 +1037,11 @@ async function brevoRequest(cfg, payload) {
   }
 }
 
-async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs = [] }) {
+// `replyTo` (2026-11-23): the {email, name} of the person whose note or
+// message the email quotes, from personReplyTo(). When present the recipient
+// can hit Reply and reach that person; From stays the noreply sender. When
+// absent, Reply-To stays the sender address, exactly as before.
+async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs = [], replyTo = null }) {
   // (Name kept from the SendGrid era so call sites didn't change.)
   const toLower = (to || '').toLowerCase();
   const allBccs = [];
@@ -1052,7 +1061,9 @@ async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs =
   }
   const payload = {
     sender: { email: cfg.fromEmail, name: cfg.fromName },
-    replyTo: { email: cfg.fromEmail, name: cfg.fromName },
+    replyTo: replyTo?.email
+      ? { email: replyTo.email, name: replyTo.name || replyTo.email }
+      : { email: cfg.fromEmail, name: cfg.fromName },
     to: [{ email: to, name: toName || to }],
     subject,
     textContent: plain,
@@ -1247,6 +1258,26 @@ function requestSubjectDates(sundayDates) {
   return fmtSundaysCompact(sundayDates, true);
 }
 
+/* Reply-To for emails that quote a person's own note or message (2026-11-23,
+   from Ben Spead's portal feedback). Returns null when there is no usable
+   address, and the caller then omits both the header and the reply line. */
+function personReplyTo(email, name) {
+  const e = String(email || '').trim();
+  if (!e || !/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(e)) return null;
+  return { email: e, name: String(name || '').trim() || e };
+}
+
+// "Reply to this email to respond to X directly." Ministry accounts read as
+// "the Global Partner Visits team" rather than "LEFC Mobilization".
+function replyLine(replyTo) {
+  if (!replyTo) return { plain: '', html: '' };
+  const who = ministryDisplay(replyTo.name)?.subject || replyTo.name;
+  return {
+    plain: `\nReply to this email to respond to ${who} directly.\n`,
+    html: `<p style="font-size:13px;color:#6b6050;margin:0 0 14px;">Reply to this email to respond to <strong>${escapeHtml(who)}</strong> directly.</p>`,
+  };
+}
+
 function messageBlock(leaderName, message) {
   if (!message) return { plain: '', html: '' };
   return {
@@ -1256,7 +1287,7 @@ function messageBlock(leaderName, message) {
   };
 }
 
-function buildNewRequestEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl }) {
+function buildNewRequestEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl, leaderEmail }) {
   const dates = requestSubjectDates(sundayDates);
   const subject = `Teaching request: ${className}${dates ? `, ${dates}` : ''} (from ${leaderName})`;
   const greet = ministryDisplay(teacherName)?.greeting || teacherName;
@@ -1265,12 +1296,15 @@ function buildNewRequestEmail({ teacherName, leaderName, className, service, roo
     sundayRow('Sundays', sundayDates),
   ];
   const msg = messageBlock(leaderName, message);
+  // Reply-To only when there is a message to reply to.
+  const replyTo = message ? personReplyTo(leaderEmail, leaderName) : null;
+  const rl = replyLine(replyTo);
   const plain = `Hi ${greet},
 
 ${leaderName} just asked you to teach in ${className}.
 
 ${detailsPlain(rows)}
-${msg.plain}
+${msg.plain}${rl.plain}
 Open the portal to accept, decline, or suggest different Sundays:
 ${portalUrl}
 
@@ -1280,15 +1314,16 @@ ABF Scheduling`;
   <p><strong>${escapeHtml(leaderName)}</strong> just asked you to teach in <strong>${escapeHtml(className)}</strong>.</p>
   ${detailsHtml(rows)}
   ${msg.html}
+  ${rl.html}
   <p style="font-size:13px;color:#6b6050;">You can accept, decline, or suggest different Sundays from the portal.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
-  return { subject, plain, html };
+  return { subject, plain, html, replyTo };
 }
 
 /* The co-leader copy of a new request (2026-11-23). Same facts as the
    teacher's email, but it opens by saying it's an FYI, who the request went
    to, and why this person got it. No call to action. */
-function buildCoLeaderFyiEmail({ recipientName, teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl }) {
+function buildCoLeaderFyiEmail({ recipientName, teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl, leaderEmail }) {
   const dates = requestSubjectDates(sundayDates);
   const who = ministryDisplay(teacherName)?.who || teacherName;
   const whoShort = ministryDisplay(teacherName)?.subject || teacherName;
@@ -1306,6 +1341,10 @@ function buildCoLeaderFyiEmail({ recipientName, teacherName, leaderName, classNa
     sundayRow('Sundays', sundayDates),
   ];
   const msg = messageBlock(leaderName, message);
+  // Same rule as the teacher's copy: Reply-To the requesting leader only when
+  // the FYI quotes their message. With no message there is nothing to answer.
+  const replyTo = message ? personReplyTo(leaderEmail, leaderName) : null;
+  const rl = replyLine(replyTo);
   const plain = `Hi ${recipientName},
 
 ${lead}
@@ -1313,7 +1352,7 @@ ${lead}
 ${why}
 
 ${detailsPlain(rows)}
-${msg.plain}
+${msg.plain}${rl.plain}
 Scheduling on ABF Resources:
 ${portalUrl}
 
@@ -1325,11 +1364,12 @@ ABF Scheduling`;
   <p style="font-size:14px;color:#6b6050;">The request went to ${escapeHtml(who)}, not to you, and ${escapeHtml(leaderName)} will hear back when they respond.</p>
   ${detailsHtml(rows, '#3F5765')}
   ${msg.html}
+  ${rl.html}
   <p style="font-size:13px;color:#6b6050;margin-top:22px;">Scheduling on ABF Resources: <a href="${portalUrl}" style="color:#AA3B24;">${escapeHtml(portalUrl.replace(/^https?:\/\//, ''))}</a></p>`);
-  return { subject, plain, html };
+  return { subject, plain, html, replyTo };
 }
 
-function buildStatusChangeEmail({ leaderName, teacherName, className, service, room, courseTitle, status, teacherResp, requestedDates, counterDates, portalUrl }) {
+function buildStatusChangeEmail({ leaderName, teacherName, className, service, room, courseTitle, status, teacherResp, requestedDates, counterDates, portalUrl, replyTo = null }) {
   const countered = status === 'Counter-Proposed' && (counterDates || []).length > 0;
   const accent = status === 'Accepted' ? '#524B30' : status === 'Declined' ? '#AA3B24' : '#3F5765';
 
@@ -1353,6 +1393,7 @@ function buildStatusChangeEmail({ leaderName, teacherName, className, service, r
     ? `${teacherName} can't do the Sundays you asked for in ${className}, and suggested a different set instead.`
     : `${teacherName} responded "${status}" to your request to teach in ${className}.`;
 
+  const rl = replyLine(replyTo);
   const plain = `Hi ${leaderName},
 
 ${lead}
@@ -1361,7 +1402,7 @@ ${detailsPlain(rows)}
 
 Their note:
 ${teacherResp}
-
+${rl.plain}
 ${countered
   ? `Accept or decline these Sundays in the portal:`
   : `Open the portal to see the full request:`}
@@ -1377,9 +1418,10 @@ ${portalUrl}
   ${detailsHtml(rows, accent)}
   <p style="margin-top:18px;"><strong>Their note:</strong></p>
   <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(teacherResp).replace(/\n/g, '<br>')}</p>
+  ${rl.html}
   ${countered ? `<p style="font-size:13px;color:#6b6050;">Nothing is booked yet — the request is waiting on you to accept or decline these dates.</p>` : ''}
   <p style="margin-top:22px;">${ctaButton(countered ? 'Accept or decline these Sundays' : 'Open the portal', portalUrl)}</p>`);
-  return { subject, plain, html };
+  return { subject, plain, html, replyTo };
 }
 
 /* Nudge for the other direction: the teacher countered with different
@@ -1414,7 +1456,7 @@ ${portalUrl}
    the teacher. Without it, the only email on a counter-proposal resolution
    went back to the leader who had just clicked the button, and the teacher
    was never told the outcome. (added 2026-08-06) */
-function buildCounterResolvedEmail({ teacherName, leaderName, className, service, room, courseTitle, status, agreedDates, leaderReply, portalUrl }) {
+function buildCounterResolvedEmail({ teacherName, leaderName, className, service, room, courseTitle, status, agreedDates, leaderReply, portalUrl, leaderEmail }) {
   const accepted = status === 'Accepted';
   const accent = accepted ? '#524B30' : '#AA3B24';
   const compactShort = fmtSundaysCompact(agreedDates, true);
@@ -1427,7 +1469,9 @@ function buildCounterResolvedEmail({ teacherName, leaderName, className, service
     accepted ? sundayRow("You're scheduled for", agreedDates) : null,
   ].filter(Boolean);
 
-  const replyPlain = leaderReply ? `\n${leaderName}'s note:\n${leaderReply}\n` : '';
+  const replyTo = leaderReply ? personReplyTo(leaderEmail, leaderName) : null;
+  const rl = replyLine(replyTo);
+  const replyPlain = leaderReply ? `\n${leaderName}'s note:\n${leaderReply}\n${rl.plain}` : '';
   const plain = `Hi ${teacherName},
 
 ${accepted
@@ -1443,7 +1487,8 @@ ${portalUrl}
 
   const replyHtml = leaderReply
     ? `<p style="margin-top:18px;"><strong>${escapeHtml(leaderName)}'s note:</strong></p>
-       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(leaderReply).replace(/\n/g, '<br>')}</p>`
+       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(leaderReply).replace(/\n/g, '<br>')}</p>
+       ${rl.html}`
     : '';
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
@@ -1451,19 +1496,21 @@ ${portalUrl}
   ${detailsHtml(rows, accent)}
   ${replyHtml}
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
-  return { subject, plain, html };
+  return { subject, plain, html, replyTo };
 }
 
 /* The leader withdrew a request the teacher hadn't answered yet. Goes to
    the teacher. (added 2026-11-02) */
-function buildWithdrawnEmail({ teacherName, leaderName, className, service, room, courseTitle, requestedDates, note, portalUrl }) {
+function buildWithdrawnEmail({ teacherName, leaderName, className, service, room, courseTitle, requestedDates, note, portalUrl, leaderEmail }) {
   const accent = '#6b6050';
   const subject = `${leaderName} withdrew their teaching request for ${className}`;
   const rows = [
     ...requestRows({ className, service, room, courseTitle }),
     sundayRow('Sundays', requestedDates, { struck: true }),
   ];
-  const notePlain = note ? `\n${leaderName}'s note:\n${note}\n` : '';
+  const replyTo = note ? personReplyTo(leaderEmail, leaderName) : null;
+  const rl = replyLine(replyTo);
+  const notePlain = note ? `\n${leaderName}'s note:\n${note}\n${rl.plain}` : '';
   const plain = `Hi ${teacherName},
 
 ${leaderName} withdrew their request for you to teach in ${className}. There's nothing you need to do, and nothing was added to your schedule.
@@ -1476,7 +1523,8 @@ ${portalUrl}
 ABF Scheduling`;
   const noteHtml = note
     ? `<p style="margin-top:18px;"><strong>${escapeHtml(leaderName)}'s note:</strong></p>
-       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+       <p style="background:#faf7ef;border-left:3px solid ${accent};padding:10px 14px;margin:6px 0 18px;">${escapeHtml(note).replace(/\n/g, '<br>')}</p>
+       ${rl.html}`
     : '';
   const html = brandShell(`
   <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
@@ -1485,7 +1533,7 @@ ABF Scheduling`;
   ${noteHtml}
   <p style="font-size:13px;color:#6b6050;">Thank you for being willing to serve.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal', portalUrl)}</p>`);
-  return { subject, plain, html };
+  return { subject, plain, html, replyTo };
 }
 
 function buildFeedbackResponseEmail({ teacherName, formTitle, submitterName, submittedAt, portalUrl }) {
