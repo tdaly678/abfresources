@@ -183,6 +183,37 @@ then push. To test: `curl -X POST -H 'Content-Type: application/json' \
 
 ---
 
+## End-of-survey AI feedback report (flow G, added 2026-11-23)
+
+When a feedback survey closes, the worker asks Claude for a pastoral synthesis of the responses and emails it to the survey's teacher (BCC `BCC_EMAIL`), from `noreply@abfresources.com` via Brevo. Code: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail` in `src/index.js`. Design rules: `feedback/REPORT_DESIGN.md`.
+
+- **Secret:** `ANTHROPIC_API_KEY` (`npx wrangler secret put ANTHROPIC_API_KEY -c wrangler.toml`). If it is missing, flow G logs an error and skips; the other flows are unaffected.
+- **Model:** `claude-sonnet-5-5`, `anthropic-version: 2026-10-21`, `max_tokens` 8000, `output_config.effort: "medium"`. No temperature or thinking params (Sonnet 5.5 rejects them). Token usage is logged as `G usage: {...}`.
+- **Schedule:** runs on the first cron tick of each UTC hour (minute < 5), at most 2 surveys per tick. `POST /run` never generates or sends reports.
+- **Auto-send rules:** `Closes At` has passed (full timestamp) AND is strictly after `REPORT_AUTO_SEND_CUTOFF = 2026-11-23T22:00:00.000Z` (5 PM ET, Nov 23 2026), not a question-box form, at least 1 real response (submitter names starting `test - automation` don't count), `Report Sent At` blank, attempts under the cap. Surveys that closed before the cutoff (11403, 30334, 25125, 64270) and surveys with no `Closes At` never auto-send.
+- **Anonymity:** respondent names and emails never go to the model; respondents are "Respondent 1..N". The score table is computed in the worker, not by the model. The model writes the narrative only, as an email-safe HTML fragment; the worker strips scripts, styles, SVG, images, event handlers and em dashes before sending.
+- **Airtable columns** (Feedback Forms): `Report Sent At` (date+time), `Report Started At` (date+time, the lock), `Report Attempt Count` (number), `Report Last Error` (long text), `aiReportHtml` (long text). The job creates missing ones through the Metadata API on first need (cached per isolate for 6 h). If the token lacks `schema.bases:write` it logs which columns to add by hand and keeps working off KV.
+- **Lock and retries:** before calling Claude the job stamps `Report Started At` and bumps `Report Attempt Count`. A lock under 15 minutes old is skipped; an older one is treated as stale and retried. A failure writes `Report Last Error`, leaves `Report Sent At` blank, and the next hourly run retries, up to 5 attempts total. `Report Sent At` and `aiReportHtml` are written only after Brevo accepts the email. All state is mirrored to KV key `report:<formRecordId>` (RATE namespace) so a missing column can't cause a double send; with neither KV nor a `Report Sent At` column the job refuses to send. To retry a capped form, lower `Report Attempt Count` in Airtable and delete the KV key, or use the manual trigger.
+- **DRY_RUN=true** makes the cron log `DRY_RUN G:` candidates without calling Claude.
+
+**Manual trigger** (same `MANUAL_TRIGGER_AUTH` as `/run`):
+
+```bash
+# Preview: calls Claude, returns JSON with html, plain, usage, to, subject, wouldSend.
+# Sends nothing and writes nothing to Airtable or KV.
+curl -s -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" \
+  "https://abf-email-worker.tdaly678.workers.dev/run/report?slug=11403&dry=1"
+
+# Real send: survey must have closed. Ignores the cutoff and the attempt cap.
+# Refuses if already sent unless &resend=1, and refuses question-box forms.
+curl -s -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" \
+  "https://abf-email-worker.tdaly678.workers.dev/run/report?slug=11403"
+```
+
+To read just the HTML from a preview: `... | python3 -c 'import json,sys; print(json.load(sys.stdin)["html"])' > report.html`.
+
+---
+
 ## Cleanup of synthetic test data
 
 I created one synthetic Feedback Response during the Airtable Automation attempt (Submitter Name: "TEST - automation setup", linked to the Bailey form). The worker code skips email sending for any submitter name starting with `TEST - automation` so the real teacher (Joshua Bailey) won't get a stray email — but the row itself can be deleted from the Feedback Responses table whenever you want.
@@ -205,7 +236,9 @@ Both run the same three processors:
 - `processNewFeedbackResponses()` — finds Feedback Responses where `Email Sent At` is empty, walks the Form link to find the Teacher, sends to the teacher.
 - `processPendingReminders()` — finds Requests still `Pending` with `Reminder Sent At` empty whose age (from `Created At`, falling back to record createdTime) exceeds 5 × 24 hours, and emails the teacher a nudge. On the cron it only fires during the **7am hour America/New_York** (the `Reminder Sent At` stamp means only the first tick that hour sends anything); manual `POST /run` bypasses the hour gate so you can test on demand. One reminder per request — if you later want repeat nudges every N days, change the stamp check to compare against `now - N days` instead of blank.
 
-All three handlers are independent and idempotent — failures in one don't block the others, and re-running the worker won't duplicate emails (the "sent at" markers prevent it).
+- `processClosedFeedbackReports()` — flow G, cron only, hourly. See the section above.
+
+All the handlers are independent and idempotent — failures in one don't block the others, and re-running the worker won't duplicate emails (the "sent at" markers prevent it).
 
 ---
 

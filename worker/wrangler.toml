@@ -11,6 +11,7 @@ crons = ["*/5 * * * *"]
 #   wrangler secret put BREVO_API_KEY
 #   wrangler secret put SESSION_SECRET     (API layer — any long random string)
 #   wrangler secret put ROCK_ACCESS_HASH   (sha256 hex of the /bri board password)
+#   wrangler secret put ANTHROPIC_API_KEY  (flow G feedback reports; G skips if unset)
 # Or via the Cloudflare Dashboard → Workers → abf-email-worker → Settings → Variables
 # (Migrated from SendGrid to Brevo 2026-07-30 — SendGrid free plan sunset.)
 

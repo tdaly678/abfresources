@@ -1,0 +1,367 @@
+{
+  "exported_at": "2026-05-05",
+  "airtable_base": "appTpp1agJQqoId07",
+  "airtable_table": "tblFuma2qufToaLV2",
+  "templates": [
+    {
+      "airtable_id": "rechhUfDL9s313g5V",
+      "name": "Class Feedback (Standard)",
+      "description": "A focused 9-question survey for a single ABF class or short series. Covers clarity of the main point, fidelity to the passage, accessibility for varied Bible knowledge, life application, pace, classroom interaction, component dials, one takeaway, and overall spiritual nourishment. About 2 minutes on a phone.",
+      "active": true,
+      "question_count": 9,
+      "questions": [
+        {
+          "id": "q_main_idea",
+          "label": "How clearly did the teacher communicate one main point from the passage?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Couldn't tell",
+          "maxLabel": "Crystal clear",
+          "required": true
+        },
+        {
+          "id": "q_text_anchor",
+          "label": "How well did the teaching stay rooted in the Bible passage itself?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Drifted from text",
+          "maxLabel": "Stayed anchored",
+          "required": true
+        },
+        {
+          "id": "q_pitched",
+          "label": "How understandable was the teaching for someone at your level of Bible knowledge?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Wrong pitch",
+          "maxLabel": "Pitched right for me",
+          "required": true
+        },
+        {
+          "id": "q_application",
+          "label": "How well did the teaching help you see how the passage applies to your life this week?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "No clear application",
+          "maxLabel": "I know what to do/believe/feel",
+          "required": true
+        },
+        {
+          "id": "q_pace",
+          "label": "How was the pace and use of the 45 minutes?",
+          "type": "single_choice",
+          "options": [
+            "Too rushed",
+            "Slightly rushed",
+            "Just right",
+            "Slightly slow",
+            "Too slow"
+          ],
+          "required": true
+        },
+        {
+          "id": "q_interaction",
+          "label": "How well did the teacher foster classroom interaction \u2014 discussion, questions, and participation?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Mostly one-way",
+          "maxLabel": "Drew the room in well",
+          "required": true
+        },
+        {
+          "id": "q_components",
+          "label": "For each part of the class today, would you want more of it, about the same, or less?",
+          "type": "plus_minus",
+          "components": [
+            "Bible exposition",
+            "Group discussion",
+            "Application",
+            "Prayer",
+            "Q&A time"
+          ],
+          "help": "There's no right answer \u2014 this just helps your teacher calibrate next time.",
+          "required": false
+        },
+        {
+          "id": "q_takeaway_1",
+          "label": "What is one thing from today's class that you will take with you?",
+          "type": "text",
+          "help": "e.g. \"that the armor of God isn't optional gear \u2014 it's daily clothing\"",
+          "required": false
+        },
+        {
+          "id": "q_overall",
+          "label": "Overall, how spiritually nourishing was today's class for you?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not really",
+          "maxLabel": "Very much so",
+          "required": true
+        }
+      ]
+    },
+    {
+      "airtable_id": "recUd0Oz8VjwZqOj8",
+      "name": "Topical Class Feedback",
+      "description": "A shorter 10-question survey for topical classes built on biblical principles rather than expositing a single passage. Focuses on whether the principles came through clearly, how well they were grounded in Scripture, classroom interaction, and life application. About 2 minutes on a phone.",
+      "active": true,
+      "question_count": 10,
+      "questions": [
+        {
+          "id": "q_principles_clear",
+          "label": "How clearly did the biblical principles come through in today's teaching?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Couldn't tell",
+          "maxLabel": "Crystal clear",
+          "required": true
+        },
+        {
+          "id": "q_grounded_scripture",
+          "label": "How well were the biblical principles grounded in Scripture?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Mostly opinion",
+          "maxLabel": "Clearly drawn from God's Word",
+          "help": "Did Scripture do the heavy lifting, or was it mostly the teacher's own thoughts?",
+          "required": true
+        },
+        {
+          "id": "q_pitched",
+          "label": "How understandable was the teaching for someone at your level of Bible knowledge?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Wrong pitch",
+          "maxLabel": "Pitched right for me",
+          "required": true
+        },
+        {
+          "id": "q_application",
+          "label": "How well did the teaching help you see how these principles apply to your life this week?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "No clear application",
+          "maxLabel": "I know what to do, believe, or feel",
+          "required": true
+        },
+        {
+          "id": "q_interaction",
+          "label": "How well did the teacher foster classroom interaction \u2014 discussion, questions, and participation?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Mostly one-way",
+          "maxLabel": "Drew the room in well",
+          "required": true
+        },
+        {
+          "id": "q_pace",
+          "label": "How was the pace and use of the time?",
+          "type": "single_choice",
+          "options": [
+            "Too rushed",
+            "Slightly rushed",
+            "Just right",
+            "Slightly slow",
+            "Too slow"
+          ],
+          "required": true
+        },
+        {
+          "id": "q_takeaway_principle",
+          "label": "What is one biblical principle from today that you will take with you?",
+          "type": "text",
+          "help": "e.g. \"that being quick to listen and slow to speak isn't just good advice \u2014 it's how love behaves\"",
+          "required": false
+        },
+        {
+          "id": "q_improve",
+          "label": "What is one thing that would have made the teaching even better?",
+          "type": "long_text",
+          "help": "Specific and charitable is most useful \u2014 what would have helped YOU grow more?",
+          "required": false
+        },
+        {
+          "id": "q_encouragement",
+          "label": "What encouraged you, or what is one thing you're thankful for from today's class?",
+          "type": "long_text",
+          "required": false
+        },
+        {
+          "id": "q_overall",
+          "label": "Overall, how spiritually nourishing was today's class for you?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not really",
+          "maxLabel": "Very much so",
+          "required": true
+        }
+      ]
+    },
+    {
+      "airtable_id": "recsgDN8lDevXp557",
+      "name": "Series Feedback (End-of-Series)",
+      "description": "An end-of-series instrument for multi-week ABF studies. Includes session attendance, growth in understanding, fidelity to the text, classroom interaction, component dials for each part of the series (Bible exposition, application, discussion, prayer, testimonies, visuals, memory work, Q&A), three takeaway prompts, goal-achievement reflection, qualitative highlights, encouragement, and an overall rating. About 5 minutes.",
+      "active": true,
+      "question_count": 16,
+      "questions": [
+        {
+          "id": "q_sessions_attended",
+          "label": "How many of the sessions in this series did you attend?",
+          "type": "single_choice",
+          "options": [
+            "All of them",
+            "Most (75% or more)",
+            "About half",
+            "Less than half"
+          ],
+          "required": true
+        },
+        {
+          "id": "q_understanding_deepened",
+          "label": "From the start of the series to the end, how much did your understanding of this passage or topic deepen?",
+          "type": "rating",
+          "min": 1,
+          "max": 10,
+          "minLabel": "Not at all",
+          "maxLabel": "Profoundly",
+          "help": "Use the full 1\u201310 scale \u2014 even a 7 is meaningful growth.",
+          "required": true
+        },
+        {
+          "id": "q_main_idea",
+          "label": "How clearly did the series communicate one big idea or theme?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "I couldn't tell",
+          "maxLabel": "Crystal clear",
+          "required": true
+        },
+        {
+          "id": "q_text_anchor",
+          "label": "How well did the teaching stay rooted in the biblical text(s) across the series?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Drifted from text",
+          "maxLabel": "Anchored throughout",
+          "required": true
+        },
+        {
+          "id": "q_pitched",
+          "label": "How understandable was the teaching for someone at your level of Bible knowledge?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Wrong pitch",
+          "maxLabel": "Pitched right for me",
+          "required": true
+        },
+        {
+          "id": "q_application",
+          "label": "How well did the series help you see how the text applies to your life?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "No clear application",
+          "maxLabel": "I know what to do/believe/feel",
+          "required": true
+        },
+        {
+          "id": "q_components",
+          "label": "For each part of the series, would you want more of it, about the same, or less?",
+          "type": "plus_minus",
+          "components": [
+            "Bible exposition",
+            "Application teaching",
+            "Group discussion",
+            "Prayer",
+            "Personal testimonies",
+            "Visuals & handouts",
+            "Memory work",
+            "Q&A"
+          ],
+          "help": "Tells your teacher exactly which dials to turn next time.",
+          "required": false
+        },
+        {
+          "id": "q_interaction",
+          "label": "How well did the teaching foster classroom interaction across the series \u2014 discussion, questions, and participation?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Mostly one-way",
+          "maxLabel": "Drew the room in well",
+          "required": false
+        },
+        {
+          "id": "q_goal_achievement",
+          "label": "If your teacher set goals for this series, how well were they achieved for you, and which ones stuck?",
+          "type": "long_text",
+          "help": "Skip if no specific goals were stated up front.",
+          "required": false
+        },
+        {
+          "id": "q_takeaway_1",
+          "label": "Key takeaway #1 \u2014 one main thing you'll carry forward from this series.",
+          "type": "text",
+          "help": "e.g. \"that prayer is part of the armor of God, not a separate thing\"",
+          "required": true
+        },
+        {
+          "id": "q_takeaway_2",
+          "label": "Key takeaway #2 (if any).",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "q_takeaway_3",
+          "label": "Key takeaway #3 (if any).",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "q_qualitative_highlight",
+          "label": "What was the highlight of this series for you? Was there a session, illustration, or moment that especially landed?",
+          "type": "long_text",
+          "required": false
+        },
+        {
+          "id": "q_improve",
+          "label": "What would have made this series even better?",
+          "type": "long_text",
+          "help": "Specific is more useful than general.",
+          "required": false
+        },
+        {
+          "id": "q_encouragement",
+          "label": "What encouraged you, or what are you thankful for to the teacher(s)?",
+          "type": "long_text",
+          "required": false
+        },
+        {
+          "id": "q_overall",
+          "label": "Overall, how spiritually nourishing was this series for you?",
+          "type": "rating",
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not really",
+          "maxLabel": "Very much so",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

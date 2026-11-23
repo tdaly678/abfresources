@@ -15,6 +15,8 @@
  *      every 5 days (5 × 24h) until it's answered, during the 7am hour
  *      America/New_York. Pending nudges the teacher; Counter-Proposed nudges
  *      the leader. Stops once all the Sundays in question have passed.
+ *   G. Feedback survey closed → AI synthesis report (Claude) emailed to the
+ *      teacher, about once an hour (2026-11-23). See processClosedFeedbackReports.
  *
  * Schema additions required (added once via Airtable UI):
  *
@@ -35,6 +37,7 @@
  *   FROM_NAME          — sender display name
  *   PORTAL_URL         — base URL of abfresources.com
  *   DRY_RUN            — "true" to log instead of send (for testing)
+ *   ANTHROPIC_API_KEY  — Claude API key for flow G (secret; G skips if unset)
  */
 
 const STATUSES_TO_EMAIL = ['Accepted', 'Declined', 'Counter-Proposed', 'Withdrawn'];
@@ -80,6 +83,16 @@ export default {
       results.upcoming = await processUpcomingClassReminders(cfg, false);
     } catch (e) { results.errors.push(`upcoming: ${e.message}`); }
 
+    try {
+      // Flow G: once an hour, the first tick of each UTC hour (minute < 5).
+      // Manual sends go through POST /run/report instead; POST /run never
+      // generates or sends reports.
+      const tick = new Date(event.scheduledTime || Date.now());
+      if (tick.getUTCMinutes() < 5) {
+        results.reports = await processClosedFeedbackReports(cfg);
+      }
+    } catch (e) { results.errors.push(`reports: ${e.message}`); }
+
     console.log('ABF email worker run complete', JSON.stringify(results));
   },
 
@@ -112,6 +125,28 @@ export default {
       } catch (e) {
         console.error('rock-notify error:', e.message);
         return jsonResponse({ error: e.message }, 400);
+      }
+    }
+
+    // Flow G manual trigger: one survey's report, by slug. dry=1 returns the
+    // HTML without emailing or writing anything to Airtable.
+    if (path === '/run/report') {
+      if (request.headers.get('x-trigger-auth') !== env.MANUAL_TRIGGER_AUTH || !env.MANUAL_TRIGGER_AUTH) {
+        return new Response('forbidden', { status: 403 });
+      }
+      if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+      const cfg = buildConfig(env);
+      const params = new URL(request.url).searchParams;
+      try {
+        const out = await runManualReport(cfg, {
+          slug: params.get('slug') || '',
+          dry: cfg.dryRun || params.get('dry') === '1',
+          resend: params.get('resend') === '1',
+        });
+        return jsonResponse(out, out.error ? (out.status || 400) : 200);
+      } catch (e) {
+        console.error('run/report error:', e.message);
+        return jsonResponse({ error: e.message }, 500);
       }
     }
 
@@ -170,6 +205,8 @@ function buildConfig(env) {
     bccEmail: env.BCC_EMAIL || '',  // BCC every outgoing email here (admin visibility). Empty = no BCC.
     portalUrl: env.PORTAL_URL || 'https://www.abfresources.com',
     dryRun: env.DRY_RUN === 'true',
+    // Flow G (feedback reports). Never logged.
+    anthropicKey: env.ANTHROPIC_API_KEY || '',
     // KV (the namespace the /api layer rate-limits with) doubles as the store
     // for flow F's "already reminded" markers — see processUpcomingClassReminders.
     kv: env.RATE,
@@ -930,7 +967,591 @@ async function processUpcomingClassReminders(cfg, force, collect) {
   return sent;
 }
 
+// ─── Process: G — End-of-survey AI report ───────────────────────────────────
+//
+// When a feedback survey closes, Claude writes a pastoral synthesis of the
+// responses and it is emailed to the survey's teacher (BCC admin). Design
+// rules live in feedback/REPORT_DESIGN.md. (added 2026-11-23)
+//
+// Auto path (cron, first tick of each UTC hour) only picks up forms that:
+//   • have a Closes At that has passed (full timestamp compare)
+//   • closed strictly AFTER REPORT_AUTO_SEND_CUTOFF. Forms that closed
+//     before this feature shipped never auto-send (no surprise backfill);
+//     Tom can still send one on purpose through POST /run/report.
+//   • are not question-box forms, have ≥1 real response, have no
+//     Report Sent At, and are under REPORT_MAX_ATTEMPTS.
+//
+// Lock and retries: before calling Claude, the job stamps Report Started At
+// and bumps Report Attempt Count. A form whose lock is under
+// REPORT_LOCK_MINUTES old is skipped; an older lock is treated as stale (the
+// run died) and retried. Any failure records Report Last Error and leaves
+// Report Sent At blank, so the next hourly run tries again, up to
+// REPORT_MAX_ATTEMPTS attempts. Report Sent At is written only after Brevo
+// accepts the email.
+//
+// The same state is mirrored into KV (`report:<formId>`), so if a column
+// can't be created (the PAT has lacked schema scope before; see flow F) the
+// job still can't double-send. If neither KV nor a confirmed Report Sent At
+// column is available, the job refuses to send at all.
+
+const REPORT_AUTO_SEND_CUTOFF = '2026-11-23T22:00:00.000Z'; // 5:00 PM ET, Nov 23 2026
+const REPORT_MODEL = 'claude-sonnet-5-5';
+const ANTHROPIC_VERSION = '2026-10-21';
+const REPORT_MAX_TOKENS = 8000;
+const REPORT_LOCK_MINUTES = 15;
+const REPORT_MAX_ATTEMPTS = 5;
+const REPORT_MAX_PER_RUN = 2;          // bounds one cron tick's wall time
+const REPORT_KV_PREFIX = 'report:';
+const REPORT_KV_TTL = 400 * 24 * 3600;
+const FEEDBACK_FORMS_TABLE_ID = 'tbl2gDQMd4zLBYC5v';     // same ids as api.js
+const FEEDBACK_TEMPLATES_TABLE_ID = 'tblFuma2qufToaLV2';
+
+const RF = {
+  sentAt: 'Report Sent At',
+  startedAt: 'Report Started At',
+  attempts: 'Report Attempt Count',
+  lastError: 'Report Last Error',
+  html: 'aiReportHtml',
+};
+
+const REPORT_FIELD_SPECS = [
+  { name: RF.sentAt, type: 'dateTime', options: { dateFormat: { name: 'iso' }, timeFormat: { name: '24hour' }, timeZone: 'America/New_York' } },
+  { name: RF.startedAt, type: 'dateTime', options: { dateFormat: { name: 'iso' }, timeFormat: { name: '24hour' }, timeZone: 'America/New_York' } },
+  { name: RF.attempts, type: 'number', options: { precision: 0 } },
+  { name: RF.lastError, type: 'multilineText' },
+  { name: RF.html, type: 'multilineText' },
+];
+
+// Per-isolate cache of which report columns exist. A Set of field names, or
+// null when the Metadata API couldn't be read (then writes are best effort).
+let _reportFieldsCache;
+let _reportFieldsCheckedAt = 0;
+const REPORT_FIELDS_RECHECK_MS = 6 * 3600 * 1000;
+
+async function ensureReportFields(cfg) {
+  if (_reportFieldsCache !== undefined && Date.now() - _reportFieldsCheckedAt < REPORT_FIELDS_RECHECK_MS) {
+    return _reportFieldsCache;
+  }
+  _reportFieldsCheckedAt = Date.now();
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${cfg.airtableBase}/tables`, {
+      headers: { Authorization: `Bearer ${cfg.airtableToken}` },
+    });
+    if (!res.ok) throw new Error(`meta read ${res.status}`);
+    const json = await res.json();
+    const table = (json.tables || []).find(t => t.id === FEEDBACK_FORMS_TABLE_ID || t.name === 'Feedback Forms');
+    if (!table) throw new Error('Feedback Forms table not found in meta');
+    const have = new Set((table.fields || []).map(f => f.name));
+    for (const spec of REPORT_FIELD_SPECS) {
+      if (have.has(spec.name)) continue;
+      const cr = await fetch(`https://api.airtable.com/v0/meta/bases/${cfg.airtableBase}/tables/${table.id}/fields`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cfg.airtableToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(spec),
+      });
+      if (cr.ok) {
+        have.add(spec.name);
+        console.log(`G: created Feedback Forms field "${spec.name}"`);
+      } else {
+        console.error(`G: could not create field "${spec.name}": ${cr.status} ${(await cr.text()).slice(0, 300)}`);
+      }
+    }
+    _reportFieldsCache = have;
+  } catch (e) {
+    console.error(`G: Airtable Metadata API unavailable (${e.message}); report state falls back to KV. Add the Report columns by hand: ${REPORT_FIELD_SPECS.map(s => s.name).join(', ')}`);
+    _reportFieldsCache = null;
+  }
+  return _reportFieldsCache;
+}
+
+// Combined report state: Airtable columns first, KV mirror filling gaps.
+async function getReportState(cfg, form) {
+  const f = form.fields || {};
+  let kvState = {};
+  if (cfg.kv) {
+    try { kvState = JSON.parse(await cfg.kv.get(REPORT_KV_PREFIX + form.id) || '{}') || {}; } catch { kvState = {}; }
+  }
+  return {
+    sentAt: f[RF.sentAt] || kvState.sentAt || '',
+    startedAt: [f[RF.startedAt], kvState.startedAt].filter(Boolean).sort().pop() || '',
+    attempts: Math.max(Number(f[RF.attempts]) || 0, Number(kvState.attempts) || 0),
+    lastError: f[RF.lastError] || kvState.lastError || '',
+  };
+}
+
+// Write state to KV and to whichever Airtable columns exist. `patch` uses the
+// short keys from RF. Throws only if NEITHER store took the write.
+async function writeReportState(cfg, form, prev, patch, fields) {
+  const next = { ...prev, ...patch };
+  let ok = false;
+  if (cfg.kv) {
+    try {
+      await cfg.kv.put(REPORT_KV_PREFIX + form.id, JSON.stringify(next), { expirationTtl: REPORT_KV_TTL });
+      ok = true;
+    } catch (e) { console.error(`G: KV write failed for ${form.id}: ${e.message}`); }
+  }
+  const at = {};
+  for (const [k, v] of Object.entries(patch)) {
+    const col = RF[k];
+    if (!col) continue;
+    if (fields && !fields.has(col)) continue;
+    at[col] = v;
+  }
+  if (Object.keys(at).length) {
+    try {
+      await airtableUpdate(cfg, 'Feedback Forms', form.id, at);
+      ok = true;
+    } catch (e) {
+      console.error(`G: Airtable state write failed for ${form.id}: ${String(e.message).slice(0, 300)}`);
+    }
+  }
+  if (!ok) throw new Error('could not record report state in KV or Airtable');
+  return next;
+}
+
+function isRealResponse(r) {
+  return !String(r.fields?.['Submitter Name'] || '').toLowerCase().startsWith('test - automation');
+}
+
+// Question boxes are listed in QUESTION_BOX_FORMS; as a backstop, a form with
+// no template whose answers are all {question} is treated as one too.
+function isQuestionBoxForm(form, responses) {
+  if (QUESTION_BOX_FORMS[form.id]) return true;
+  if ((form.fields?.Template || []).length) return false;
+  return responses.length > 0 && responses.every(r => {
+    try { return typeof JSON.parse(r.fields?.Answers || '{}').question === 'string'; } catch { return false; }
+  });
+}
+
+async function responsesByForm(cfg) {
+  const all = await airtableQueryAll(cfg, 'Feedback Responses', `{Form}!=''`);
+  const map = new Map();
+  for (const r of all) {
+    if (!isRealResponse(r)) continue;
+    const fid = (r.fields?.Form || [])[0];
+    if (!fid) continue;
+    if (!map.has(fid)) map.set(fid, []);
+    map.get(fid).push(r);
+  }
+  return map;
+}
+
+async function processClosedFeedbackReports(cfg) {
+  if (!cfg.anthropicKey) {
+    console.error('G: ANTHROPIC_API_KEY is not set; skipping feedback reports');
+    return 0;
+  }
+  const now = Date.now();
+  const cutoff = Date.parse(REPORT_AUTO_SEND_CUTOFF);
+
+  // Only Closes At in the formula: referencing a report column that doesn't
+  // exist yet would make Airtable reject the whole query.
+  const forms = (await airtableQueryAll(cfg, 'Feedback Forms', `{Closes At}!=''`))
+    .filter(f => {
+      const closes = Date.parse(f.fields?.['Closes At'] || '');
+      return Number.isFinite(closes) && closes > cutoff && closes <= now && !QUESTION_BOX_FORMS[f.id];
+    });
+  if (!forms.length) return 0;
+
+  const fields = await ensureReportFields(cfg);
+  if (!cfg.kv && !(fields && fields.has(RF.sentAt))) {
+    console.error('G: no KV binding and no Report Sent At column; refusing to send reports (cannot guarantee one send per survey)');
+    return 0;
+  }
+
+  const byForm = await responsesByForm(cfg);
+  let sent = 0, tried = 0;
+  for (const form of forms) {
+    if (tried >= REPORT_MAX_PER_RUN) break;
+    const label = form.fields?.Slug || form.id;
+    try {
+      const responses = byForm.get(form.id) || [];
+      if (!responses.length || isQuestionBoxForm(form, responses)) continue;
+      const state = await getReportState(cfg, form);
+      if (state.sentAt) continue;
+      if (state.attempts >= REPORT_MAX_ATTEMPTS) continue;
+      if (state.startedAt && now - Date.parse(state.startedAt) < REPORT_LOCK_MINUTES * 60e3) continue;
+
+      // DRY_RUN=true on the worker: report what would run, but don't spend
+      // Claude tokens every hour on a preview nobody reads.
+      if (cfg.dryRun) {
+        console.log('DRY_RUN G:', JSON.stringify({ form: label, responses: responses.length, attempts: state.attempts }));
+        continue;
+      }
+
+      tried++;
+      const out = await generateFeedbackReport(cfg, form, { responses, state, fields, dry: false });
+      if (out.sent) sent++;
+      if (out.error) console.error(`G error on form ${label}: ${out.error}`);
+    } catch (e) {
+      console.error(`G error on form ${label}:`, e.message);
+    }
+  }
+  return sent;
+}
+
+/* POST /run/report?slug=NNNNN[&dry=1][&resend=1]. Bypasses the cutoff, the
+   hourly gate and the attempt cap. A real send still requires the survey to
+   have closed, refuses question boxes, and refuses a survey whose report was
+   already sent unless resend=1. */
+async function runManualReport(cfg, { slug, dry, resend }) {
+  if (!/^[A-Za-z0-9_-]{1,40}$/.test(slug)) return { error: 'slug required (letters, digits, - or _)', status: 400 };
+  if (!cfg.anthropicKey) return { error: 'ANTHROPIC_API_KEY is not set on the worker', status: 500 };
+
+  const forms = await airtableQuery(cfg, 'Feedback Forms', `{Slug}='${slug}'`);
+  const form = forms[0];
+  if (!form) return { error: `no Feedback Form with slug ${slug}`, status: 404 };
+
+  const responses = (await responsesByForm(cfg)).get(form.id) || [];
+  if (isQuestionBoxForm(form, responses)) return { error: 'question-box forms do not get AI reports', status: 400 };
+  if (!responses.length) return { error: 'no real responses on this form', status: 400 };
+
+  const fields = dry ? _reportFieldsCache ?? null : await ensureReportFields(cfg);
+  const state = await getReportState(cfg, form);
+
+  if (!dry) {
+    const closes = Date.parse(form.fields?.['Closes At'] || '');
+    if (!Number.isFinite(closes) || closes > Date.now()) {
+      return { error: 'survey has not closed yet; use dry=1 for a preview', status: 409 };
+    }
+    if (state.sentAt && !resend) {
+      return { error: `report already sent at ${state.sentAt}; add resend=1 to send again`, status: 409 };
+    }
+    if (state.startedAt && Date.now() - Date.parse(state.startedAt) < REPORT_LOCK_MINUTES * 60e3) {
+      return { error: `a report run started at ${state.startedAt} may still be in progress; try again in ${REPORT_LOCK_MINUTES} minutes`, status: 409 };
+    }
+    if (!cfg.kv && !(fields && fields.has(RF.sentAt))) {
+      return { error: 'no KV binding and no Report Sent At column; refusing to send', status: 500 };
+    }
+  }
+
+  return await generateFeedbackReport(cfg, form, { responses, state, fields, dry });
+}
+
+/* Build, generate and (unless dry) send one report. Returns
+   { slug, formTitle, to, subject, dryRun, wouldSend, sent, usage, html, error }.
+   A dry run writes nothing anywhere. */
+async function generateFeedbackReport(cfg, form, { responses, state, fields, dry }) {
+  const f = form.fields || {};
+  const slug = f.Slug || '';
+  const formTitle = f.Title || 'your feedback survey';
+  const subject = `[LEFC|U] Your feedback report for ${formTitle}`;
+
+  let st = state;
+  if (!dry) {
+    st = await writeReportState(cfg, form, st, {
+      startedAt: new Date().toISOString(),
+      attempts: (st.attempts || 0) + 1,
+    }, fields);
+  }
+
+  let to = '', toName = '';
+  try {
+    const teacherId = (f.Teacher || [])[0];
+    const templateId = (f.Template || [])[0];
+    const classId = (f['ABF Class'] || [])[0];
+    const [teacher, template, cls] = await Promise.all([
+      teacherId ? airtableGet(cfg, 'Teachers', teacherId) : null,
+      templateId ? airtableGet(cfg, FEEDBACK_TEMPLATES_TABLE_ID, templateId) : null,
+      classId ? airtableGet(cfg, 'ABF Classes', classId) : null,
+    ]);
+    to = String(teacher?.fields?.Email || '').trim();
+    toName = teacher?.fields?.Name || '';
+    if (!to && !dry) throw new Error('survey teacher has no email on record');
+
+    let questions = [];
+    try { questions = JSON.parse(template?.fields?.Questions || '[]'); } catch { questions = []; }
+
+    const data = buildReportData({
+      form, formTitle, teacherName: toName, className: cls?.fields?.Name || '',
+      templateName: template?.fields?.Name || '', questions, responses,
+    });
+
+    const ai = await callClaudeForReport(cfg, data);
+    console.log('G usage:', JSON.stringify({ form: slug || form.id, model: REPORT_MODEL, input_tokens: ai.usage.input_tokens, output_tokens: ai.usage.output_tokens, dry }));
+
+    const email = buildFeedbackReportEmail({
+      subject, teacherName: toName, formTitle, data, aiHtml: ai.html,
+      portalUrl: cfg.portalUrl + '/?tab=feedback',
+    });
+
+    const base = {
+      slug, formId: form.id, formTitle, to, toName, bcc: cfg.bccEmail || null, subject,
+      responses: data.n, model: REPORT_MODEL, usage: ai.usage,
+    };
+
+    if (dry) {
+      return { ...base, dryRun: true, wouldSend: !!to, sent: false, html: email.html, plain: email.plain };
+    }
+
+    await sendgridSend(cfg, { to, toName, subject, plain: email.plain, html: email.html });
+
+    // Sent. From here on, a failed stamp must NOT be reported as a failed
+    // attempt, or the next run would send it again.
+    const sentAt = new Date().toISOString();
+    try {
+      await writeReportState(cfg, form, st, { sentAt, lastError: '' }, fields);
+    } catch (e) {
+      console.error(`G: report for ${slug} SENT but the Sent At stamp failed: ${e.message}`);
+    }
+    if (!fields || fields.has(RF.html)) {
+      try {
+        // Airtable long text caps at 100k characters.
+        await airtableUpdate(cfg, 'Feedback Forms', form.id, { [RF.html]: email.html.slice(0, 99000) });
+      } catch (e) { console.error(`G: aiReportHtml write failed for ${slug}: ${String(e.message).slice(0, 200)}`); }
+    }
+    return { ...base, dryRun: false, wouldSend: true, sent: true, sentAt };
+  } catch (e) {
+    const msg = String(e.message || e).slice(0, 1000);
+    if (!dry) {
+      try {
+        await writeReportState(cfg, form, st, { lastError: `${new Date().toISOString()} ${msg}` }, fields);
+      } catch (e2) { console.error(`G: could not record error for ${slug}: ${e2.message}`); }
+    }
+    return { slug, formId: form.id, formTitle, to, subject, dryRun: !!dry, sent: false, error: msg, status: 502 };
+  }
+}
+
+/* Everything the model sees. Respondent names and emails are deliberately
+   left out: respondents are "Respondent 1..N" in submission order. Numeric
+   summaries are computed here, not by the model, so the score table in the
+   email is exact. */
+function buildReportData({ form, formTitle, teacherName, className, templateName, questions, responses }) {
+  const f = form.fields || {};
+  const sorted = responses.slice().sort((a, b) =>
+    String(a.fields?.['Submitted At'] || a.createdTime || '').localeCompare(String(b.fields?.['Submitted At'] || b.createdTime || '')));
+  const answers = sorted.map(r => {
+    try { return JSON.parse(r.fields?.Answers || '{}') || {}; } catch { return {}; }
+  });
+
+  const qList = Array.isArray(questions) && questions.length
+    ? questions
+    : [...new Set(answers.flatMap(a => Object.keys(a)))].map(id => ({ id, label: id, type: 'unknown' }));
+
+  const ratings = [], choices = [], dials = [];
+  for (const q of qList) {
+    if (q.type === 'rating') {
+      const vals = answers.map(a => Number(a[q.id])).filter(v => Number.isFinite(v) && v > 0);
+      if (!vals.length) continue;
+      const dist = {};
+      for (const v of vals) dist[v] = (dist[v] || 0) + 1;
+      ratings.push({
+        id: q.id, label: q.label || q.id, min: q.min ?? 1, max: q.max ?? 5,
+        n: vals.length, avg: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 100) / 100,
+        distribution: dist,
+      });
+    } else if (q.type === 'single_choice' || q.type === 'choice' || q.type === 'multi_select') {
+      const counts = {};
+      for (const a of answers) {
+        const v = a[q.id];
+        for (const x of (Array.isArray(v) ? v : [v])) if (x) counts[x] = (counts[x] || 0) + 1;
+      }
+      if (Object.keys(counts).length) choices.push({ id: q.id, label: q.label || q.id, options: q.options || null, counts });
+    } else if (q.type === 'plus_minus') {
+      const comps = {};
+      for (const a of answers) {
+        const v = a[q.id];
+        if (!v || typeof v !== 'object') continue;
+        for (const [c, x] of Object.entries(v)) {
+          comps[c] = comps[c] || {};
+          comps[c][x] = (comps[c][x] || 0) + 1;
+        }
+      }
+      if (Object.keys(comps).length) dials.push({ id: q.id, label: q.label || q.id, scale: 'values are less / about right / more as submitted', components: comps });
+    }
+  }
+
+  const labelOf = Object.fromEntries(qList.map(q => [q.id, q.label || q.id]));
+  const respondents = answers.map((a, i) => {
+    const out = {};
+    for (const [k, v] of Object.entries(a)) {
+      if (v === '' || v == null) continue;
+      out[labelOf[k] || k] = v;
+    }
+    return { respondent: `Respondent ${i + 1}`, answers: out };
+  });
+
+  return {
+    formTitle,
+    teacherName,
+    className,
+    templateName,
+    description: f.Description || '',
+    opensAt: f['Opens At'] || '',
+    closesAt: f['Closes At'] || '',
+    closesReadable: f['Closes At'] ? formatTimestamp(f['Closes At']) : '',
+    n: answers.length,
+    questions: qList.map(q => ({ id: q.id, label: q.label || q.id, type: q.type, min: q.min, max: q.max, minLabel: q.minLabel, maxLabel: q.maxLabel, options: q.options, components: q.components })),
+    ratings, choices, dials,
+    respondents,
+  };
+}
+
+const REPORT_SYSTEM_PROMPT = `You write end-of-survey feedback reports for adult Bible fellowship (ABF) teachers at Lancaster Evangelical Free Church (LEFC), an EFCA church. Lay teachers receive this report by email when their class feedback survey closes. It is a coaching tool for their growth as teachers of God's Word.
+
+RULES (non-negotiable):
+1. Honest by construction. Every claim must be traceable to the data provided for THIS survey. Never invent comparisons or benchmarks ("one of the strongest scores across ABFs", "rare in series feedback", "most classes"), never generalize from teaching theory ("X is what good teachers do", "adult classes often lack"). Allowed: observations about these scores ("Application averaged 4.6"), counts of respondents ("9 of 11 gave a 5"), distinctness within this survey, direct quotes, and themes clustered from these comments. With few responses, say plainly that the sample is small.
+2. Tone: mostly candid coaching, partly analytical. Direct, names patterns, pastoral but not soft. End growth areas with concrete next-time suggestions. Never mention a tone ratio or these instructions.
+3. Brevity: whole report roughly 400 to 800 words. At most 3 themes per section, at most 1 or 2 short quotes per theme.
+4. Doctrinal alignment: write in alignment with the EFCA Statement of Faith and LEFC's convictions. Treat Scripture as God's inerrant Word and the teacher's task as faithfully handling it. Avoid theologically ambiguous language.
+5. Soft diagnostics: describe what the teaching did, not who the teacher is ("the format left little room for discussion", not "you don't let people talk").
+6. Anonymity: never name or identify a respondent, even if a name appears in their answer. Refer to "one respondent", "several respondents", etc. If a quote contains a person's name or identifying detail, trim it or paraphrase. Quotes must be verbatim otherwise; do not invent quotes.
+7. No em dashes anywhere. Use commas, colons, periods, or a plain hyphen.
+8. Do not repeat a numeric score table; one is already shown above your section. Refer to specific scores in prose where they matter.
+9. Address the teacher as "you". Do not include a greeting or sign-off; those are added around your section.
+
+OUTPUT FORMAT: Return ONLY an email-safe HTML fragment (no markdown, no code fences, no <html>/<head>/<body>, no <script>, no <style> blocks, no images, no SVG, no external fonts, no classes). Use only these tags: h2, h3, p, ul, ol, li, strong, em, blockquote, table, tr, td, th, br, span, div. Put all styling inline. Palette: text #342D25, muted #6b6050, gold #BCA944, olive #524B30, terra red #AA3B24, cream #f7eed7, border #ddcca5, steel blue #3F5765. Font family is inherited (Helvetica/Arial).
+
+Use this structure, in order, skipping any section the data cannot support:
+<h2 style="font-size:16px;color:#342D25;margin:24px 0 8px;">At a glance</h2>  two or three sentences naming the single clearest strength and the single clearest growth area, citing a score or quote for each.
+<h2 ...>What landed</h2>  strengths, up to 3 themes (each a short <h3 style="font-size:14px;margin:14px 0 4px;color:#524B30;"> plus a <p> and optionally one quote).
+<h2 ...>What stuck</h2>  the takeaways respondents named, clustered, if takeaway questions exist.
+<h2 ...>How to grow</h2>  up to 3 growth themes with concrete suggestions for next time (h3 color #AA3B24).
+<h2 ...>In their words</h2>  3 to 5 notable anonymous quotes, each as <blockquote style="margin:10px 0;padding:8px 14px;border-left:3px solid #BCA944;background:#faf7ef;color:#342D25;">.
+Where pace or component-dial (less / about right / more) data exists, weave it into the relevant section briefly.`;
+
+async function callClaudeForReport(cfg, data) {
+  const user = `Here is the survey data as JSON. Write the report section.\n\n${JSON.stringify(data)}`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': cfg.anthropicKey,
+      'anthropic-version': ANTHROPIC_VERSION,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: REPORT_MODEL,
+      max_tokens: REPORT_MAX_TOKENS,
+      output_config: { effort: 'medium' },
+      system: REPORT_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: user }],
+    }),
+    signal: AbortSignal.timeout(240000),
+  });
+  if (!res.ok) {
+    // Error bodies don't echo the key; still cap what gets stored.
+    throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 400)}`);
+  }
+  const json = await res.json();
+  if (json.stop_reason !== 'end_turn' && json.stop_reason !== 'stop_sequence') {
+    throw new Error(`Anthropic stop_reason ${json.stop_reason}; not sending a partial report`);
+  }
+  const text = (json.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const html = sanitizeReportHtml(text);
+  if (html.replace(/<[^>]+>/g, '').trim().length < 200) throw new Error('Anthropic returned an empty or too-short report');
+  return {
+    html,
+    usage: { input_tokens: json.usage?.input_tokens ?? null, output_tokens: json.usage?.output_tokens ?? null },
+  };
+}
+
+// Belt and braces on the model's HTML: strip fences, a stray document
+// wrapper, anything active, and em dashes.
+function sanitizeReportHtml(s) {
+  let h = String(s || '').trim();
+  h = h.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '');
+  const body = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(h);
+  if (body) h = body[1];
+  h = h.replace(/<!DOCTYPE[^>]*>/gi, '')
+    .replace(/<(script|style|iframe|object|embed|svg|form|head|title)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<\/?(html|body|meta|link|img|input|button|base)\b[^>]*>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '')
+    .replace(/\s*(—|&mdash;|&#8212;|&#x2014;)\s*/gi, ', ');
+  return h.trim();
+}
+
+function reportScoreTableHtml(ratings) {
+  if (!ratings.length) return '';
+  const rows = ratings.map(r => `
+    <tr>
+      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:13px;vertical-align:top;">${escapeHtml(r.label)}</td>
+      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:15px;font-weight:800;text-align:right;white-space:nowrap;vertical-align:top;">${r.avg.toFixed(2)}<span style="font-size:11px;font-weight:400;color:#6b6050;"> / ${escapeHtml(String(r.max))}</span></td>
+      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:12px;color:#6b6050;text-align:right;white-space:nowrap;vertical-align:top;">n=${r.n}</td>
+    </tr>`).join('');
+  return `<h2 style="font-size:16px;color:#342D25;margin:24px 0 8px;">Scores</h2>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;background:#f7eed7;border-left:3px solid #524B30;">
+    <tr>
+      <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b6050;text-align:left;">Question</th>
+      <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b6050;text-align:right;">Average</th>
+      <th style="padding:7px 10px;"></th>
+    </tr>${rows}
+  </table>`;
+}
+
+function reportScoreTablePlain(ratings) {
+  if (!ratings.length) return '';
+  return '\nScores\n' + ratings.map(r => `  ${r.label}: ${r.avg.toFixed(2)} / ${r.max} (n=${r.n})`).join('\n') + '\n';
+}
+
+// Rough HTML to text for the plain-text part of the email.
+function htmlToPlain(h) {
+  return String(h || '')
+    .replace(/<\/(p|h2|h3|li|tr|blockquote|div)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '  - ')
+    .replace(/<h2[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&rsquo;/g, "'").replace(/&ldquo;|&rdquo;/g, '"')
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function buildFeedbackReportEmail({ subject, teacherName, formTitle, data, aiHtml, portalUrl }) {
+  const greet = ministryDisplay(teacherName)?.greeting || teacherName || 'there';
+  const rows = [
+    { label: 'Survey', value: formTitle },
+    data.className ? { label: 'ABF', value: data.className } : null,
+    data.closesReadable ? { label: 'Closed', value: data.closesReadable } : null,
+    { label: 'Responses', value: String(data.n) },
+  ].filter(Boolean);
+  const lead = `Your survey "${formTitle}" has closed. Here is a summary of the ${data.n} ${data.n === 1 ? 'response' : 'responses'} it received. Respondents are kept anonymous.`;
+
+  const plain = `Hi ${greet},
+
+${lead}
+
+${detailsPlain(rows)}
+${reportScoreTablePlain(data.ratings)}
+${htmlToPlain(aiHtml)}
+
+(The written summary above is AI-generated from your survey responses.)
+
+See every individual response in the portal:
+${portalUrl}
+
+ABF Feedback`;
+
+  const html = brandShell(`
+  <p>Hi <strong>${escapeHtml(greet)}</strong>,</p>
+  <p>${escapeHtml(lead)}</p>
+  ${detailsHtml(rows, '#524B30')}
+  ${reportScoreTableHtml(data.ratings)}
+  <p style="margin:26px 0 0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#AA3B24;"><span style="font-size:14px;">&#9679;</span> AI-generated summary</p>
+  ${aiHtml}
+  <p style="margin-top:22px;font-size:13px;color:#6b6050;">This summary was written by AI from your survey responses. Scores and counts above are computed directly from the data.</p>
+  <p style="margin-top:18px;">${ctaButton('See every response in the portal', portalUrl)}</p>`);
+
+  return { subject, plain, html };
+}
+
 // ─── Airtable client ────────────────────────────────────────────────────────
+
+// Like airtableQuery, but follows `offset` past the first 100 records.
+async function airtableQueryAll(cfg, tableName, formula) {
+  const out = [];
+  let offset = '';
+  for (let page = 0; page < 50; page++) {
+    const url = `https://api.airtable.com/v0/${cfg.airtableBase}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${cfg.airtableToken}` } });
+    if (!res.ok) throw new Error(`Airtable query ${tableName} failed: ${res.status} ${await res.text()}`);
+    const json = await res.json();
+    out.push(...(json.records || []));
+    if (!json.offset) break;
+    offset = json.offset;
+  }
+  return out;
+}
 
 async function airtableQuery(cfg, tableName, formula) {
   const url = `https://api.airtable.com/v0/${cfg.airtableBase}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&pageSize=100`;

@@ -90,6 +90,16 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ## Recent changes (November 2026)
 
+**2026-11-23 (later) - End-of-survey AI feedback report (flow G) in the email worker.** Tom approved. Committed, **not yet deployed**, and the `ANTHROPIC_API_KEY` secret is not set yet. Full details in `worker/README.md` ("End-of-survey AI feedback report").
+
+- **What:** when a Feedback Form closes, `abf-email-worker` asks Claude (`claude-sonnet-5-5`, `anthropic-version 2026-10-21`, effort medium) for a pastoral synthesis and emails it to the form's teacher from `noreply@abfresources.com` via Brevo, BCC `BCC_EMAIL`. Subject: `[LEFC|U] Your feedback report for <Form Title>`. Functions: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail`.
+- **When:** first cron tick of each UTC hour, max 2 forms per tick. Auto-send only if `Closes At` has passed AND is after **`REPORT_AUTO_SEND_CUTOFF = 2026-11-23T22:00:00.000Z`** (5 PM ET). Earlier surveys (11403 Josh Bailey, 30334, 25125, 64270) never auto-send; forms with no `Closes At` and question-box forms never do either. `POST /run` does not touch reports.
+- **Anonymous by construction:** names/emails never reach the model; the score table is computed in the worker; the model writes the narrative only, and the worker strips scripts, SVG, images, handlers and em dashes.
+- **New Feedback Forms columns** (auto-created via the Metadata API if the PAT allows, else add by hand): `Report Sent At`, `Report Started At` (lock), `Report Attempt Count`, `Report Last Error`, `aiReportHtml`. State is mirrored to KV `report:<formRecordId>` so a missing column can't double-send.
+- **Lock/retry:** stamp `Report Started At` + bump attempts before calling Claude; skip locks under 15 min; failures write `Report Last Error` and retry hourly up to 5 attempts; `Report Sent At` only after Brevo accepts.
+- **Manual:** `POST https://abf-email-worker.tdaly678.workers.dev/run/report?slug=<slug>&dry=1` with header `x-trigger-auth: <MANUAL_TRIGGER_AUTH>` returns the HTML and token usage without sending or writing. Drop `dry=1` to send (survey must be closed; bypasses the cutoff and cap; `resend=1` to send again). That is how Josh's 11403 report goes out on purpose.
+- **Before deploy:** `cd worker && npx wrangler secret put ANTHROPIC_API_KEY -c wrangler.toml`, then deploy with `-c wrangler.toml`. Preview 11403 with `dry=1` first.
+
 **2026-11-23 - New-request emails: co-leaders get their own FYI; ministry greetings.** Prompted by Nick Desiato reading a BCC copy of Scott Galen's Koinonia request to LEFC Mobilization ("Hi LEFC Mobilization, Scott Galen just asked you to teach...") as a request sent to him. Email worker only (`worker/src/index.js`, Flow A).
 
 - **Co-leaders are no longer BCC'd on the teacher's email.** Each other active leader of the class gets a separate `buildCoLeaderFyiEmail`: FYI banner, "You're getting this because you lead X. No action needed.", plus Sent to / Sent by rows. Recipients come from `getClassLeaders` (deduped by email, case-insensitive) minus the teacher and the requesting leader. An FYI send failure is logged and does not block the `Created Email Sent At` stamp, so the teacher never gets a second copy. The admin BCC (`BCC_EMAIL`) still rides on every send.
