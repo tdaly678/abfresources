@@ -7176,7 +7176,7 @@
         select.innerHTML = '<option value="">— Choose —</option>';
         if (role === 'teacher') {
           label.textContent = 'Choose your name (Teacher)';
-          DataStore.listTeachers().forEach(t => {
+          DataStore.listTeachersSorted().forEach(t => {
             const o = document.createElement('option');
             o.value = t.id; o.textContent = t.name;
             select.appendChild(o);
