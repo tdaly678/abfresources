@@ -7187,13 +7187,28 @@
           if (regRow) regRow.style.display = Identity.isAdmin() ? '' : 'none';
         } else {
           label.textContent = 'Choose your name (ABF Leader)';
+          // One <optgroup> per class, classes A to Z, then leaders by first
+          // and last name. Leaders with no class go in a last group.
+          const byClass = new Map();
           DataStore.listABFLeaders().forEach(l => {
             const cls = DataStore.getABFClass(l.abfClassId);
-            const o = document.createElement('option');
-            o.value = l.id;
-            o.textContent = l.name + (cls ? ' — ' + cls.name : '');
-            select.appendChild(o);
+            const key = cls && cls.name ? cls.name : '';
+            if (!byClass.has(key)) byClass.set(key, []);
+            byClass.get(key).push(l);
           });
+          [...byClass.keys()]
+            .sort((a, b) => (!a) - (!b) || a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .forEach(key => {
+              const g = document.createElement('optgroup');
+              g.label = key || 'No class assigned';
+              byClass.get(key).slice().sort(compareTeacherNames).forEach(l => {
+                const o = document.createElement('option');
+                o.value = l.id;
+                o.textContent = l.name;
+                g.appendChild(o);
+              });
+              select.appendChild(g);
+            });
           if (regRow) regRow.style.display = 'none';
         }
         document.getElementById('id-picker-area').style.display = 'block';
