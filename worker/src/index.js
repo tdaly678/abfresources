@@ -4,7 +4,8 @@
  * Cloudflare Worker that polls Airtable on a cron and sends transactional
  * emails via Brevo (migrated from SendGrid 2026-07-30) for these event types:
  *
- *   A. New teaching request   →  email teacher
+ *   A. New teaching request   →  email teacher, plus a separate short FYI
+ *      email to each of the class's other leaders (2026-11-23)
  *   B. Teacher responded      →  email leader
  *      ...unless the LEADER was the one who acted (accepting or declining a
  *      counter-proposal, or withdrawing a Pending request), in which case it
@@ -276,22 +277,40 @@ async function processNewRequests(cfg) {
       const sundayIds    = req.fields['Requested Sundays'] || [];
       const sundayDates  = await fetchLinkedFieldValues(cfg, 'Sundays', sundayIds, 'Date');
       const courseTitle  = (await fetchLinkedFieldValues(cfg, 'Courses', req.fields['Course'] || [], 'Title'))[0] || '';
-      const message      = req.fields['Leader Message'] || '(no message)';
+      // Blank message = no message block at all (it used to print "(no message)").
+      const message      = String(req.fields['Leader Message'] || '').trim();
+      const leaderEmail  = leader?.fields?.Email || '';
 
       if (!teacherEmail) continue;
 
-      // BCC all OTHER leaders of this ABF (the requesting leader sent this, no need to re-notify)
-      const classLeaderBccs = await getClassLeaderEmails(cfg, classId, leaderId);
+      // Other leaders of this ABF get their OWN short FYI email (2026-11-23).
+      // They used to be BCC'd on the teacher's email, whose "Hi LEFC
+      // Mobilization ... just asked you to teach" read to a co-leader like a
+      // request addressed to them. Deduped by address, minus the teacher and
+      // the requesting leader (duplicate leader records can share an address).
+      const coLeaders = (await getClassLeaders(cfg, classId, leaderId))
+        .filter(p => !sameEmail(p.email, teacherEmail) && !sameEmail(p.email, leaderEmail));
 
-      const email = buildNewRequestEmail({
-        teacherName, leaderName, className, service, room, courseTitle, sundayDates, message,
-        portalUrl: cfg.portalUrl + '/?tab=scheduling',
-      });
+      const portalUrl = cfg.portalUrl + '/?tab=scheduling';
+      const details = { teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl };
+      const email = buildNewRequestEmail(details);
 
       if (cfg.dryRun) {
-        console.log('DRY_RUN A:', JSON.stringify({ to: teacherEmail, subject: email.subject, bccs: classLeaderBccs }));
+        console.log('DRY_RUN A:', JSON.stringify({ to: teacherEmail, subject: email.subject, fyi: coLeaders.map(p => p.email) }));
       } else {
-        await sendgridSend(cfg, { to: teacherEmail, toName: teacherName, ...email, extraBccs: classLeaderBccs });
+        // Admin BCC is still added inside sendgridSend.
+        await sendgridSend(cfg, { to: teacherEmail, toName: teacherName, ...email });
+        // The teacher email is the one that matters. If an FYI fails, log it
+        // and still stamp the request below, so the next cron tick does not
+        // send the teacher a second copy.
+        for (const p of coLeaders) {
+          try {
+            const fyi = buildCoLeaderFyiEmail({ ...details, recipientName: p.name });
+            await sendgridSend(cfg, { to: p.email, toName: p.name, ...fyi });
+          } catch (e) {
+            console.error(`A FYI error on record ${req.id} for leader ${p.id}:`, e.message);
+          }
+        }
       }
 
       await airtableUpdate(cfg, 'Requests', req.id, {
@@ -954,6 +973,30 @@ async function getClassLeaderEmails(cfg, classId, excludeLeaderId) {
     .filter(Boolean);
 }
 
+// Same set of leaders as getClassLeaderEmails, but as {id, name, email} and
+// deduped by email address (case-insensitive), so two leader records that
+// share an address produce one recipient. Used by Flow A's co-leader FYI.
+async function getClassLeaders(cfg, classId, excludeLeaderId) {
+  if (!classId) return [];
+  const all = await airtableQuery(cfg, 'ABF Leaders', `{Active}=TRUE()`);
+  const seen = new Set();
+  const out = [];
+  for (const r of all) {
+    const linked = r.fields?.['ABF Class'] || [];
+    if (!Array.isArray(linked) || !linked.includes(classId) || r.id === excludeLeaderId) continue;
+    const email = String(r.fields?.Email || '').trim();
+    const key = email.toLowerCase();
+    if (!email || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: r.id, name: r.fields?.Name || 'there', email });
+  }
+  return out;
+}
+
+function sameEmail(a, b) {
+  return !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
 async function airtableUpdate(cfg, tableName, recordId, fields) {
   const url = `https://api.airtable.com/v0/${cfg.airtableBase}/${encodeURIComponent(tableName)}/${recordId}`;
   const res = await fetch(url, {
@@ -1173,34 +1216,116 @@ function ctaButton(label, href) {
   return `<a href="${href}" style="display:inline-block;background:#AA3B24;color:#fff;padding:10px 22px;text-decoration:none;border-radius:4px;font-weight:700;">${escapeHtml(label)}</a>`;
 }
 
+/* Ministry accounts (2026-11-23). These are Teacher records that stand for a
+   ministry, not a person, so "Hi LEFC Mobilization," reads oddly. Keyed by the
+   Teacher record's Name, which is how MINISTRY_ACCOUNTS in index.html matches
+   them too. If an account is added or renamed there, add or rename it here.
+     greeting: used after "Hi"
+     subject:  how the co-leader FYI subject line names the recipient
+     who:      how the co-leader FYI body names the recipient; keeps the
+               account name in brackets so it stays clear which record the
+               request went to */
+const MINISTRY_DISPLAY = {
+  'lefc mobilization': {
+    greeting: 'Global Partner Visits team',
+    subject: 'the Global Partner Visits team',
+    who: 'the Global Partner Visits team (LEFC Mobilization)',
+  },
+  'lefc elders': {
+    greeting: 'Elders',
+    subject: 'the Elders',
+    who: 'the Elders (LEFC Elders)',
+  },
+};
+
+function ministryDisplay(teacherName) {
+  return MINISTRY_DISPLAY[String(teacherName || '').trim().toLowerCase()] || null;
+}
+
+// Subject date text: "Dec 6, 2026", "Dec 6 & 13, 2026", "Dec 13; Jan 3, 2027".
+function requestSubjectDates(sundayDates) {
+  return fmtSundaysCompact(sundayDates, true);
+}
+
+function messageBlock(leaderName, message) {
+  if (!message) return { plain: '', html: '' };
+  return {
+    plain: `\nMessage from ${leaderName}:\n${message}\n`,
+    html: `<p style="margin-top:18px;"><strong>Message from ${escapeHtml(leaderName)}:</strong></p>
+  <p style="background:#faf7ef;border-left:3px solid #524B30;padding:10px 14px;margin:6px 0 18px;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,
+  };
+}
+
 function buildNewRequestEmail({ teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl }) {
-  const compactShort = fmtSundaysCompact(sundayDates, true);
-  const subject = `${leaderName} asked you to teach ${className}${compactShort ? ` — ${compactShort}` : ''}`;
+  const dates = requestSubjectDates(sundayDates);
+  const subject = `Teaching request: ${className}${dates ? `, ${dates}` : ''} (from ${leaderName})`;
+  const greet = ministryDisplay(teacherName)?.greeting || teacherName;
   const rows = [
     ...requestRows({ className, service, room, courseTitle }),
     sundayRow('Sundays', sundayDates),
   ];
-  const plain = `Hi ${teacherName},
+  const msg = messageBlock(leaderName, message);
+  const plain = `Hi ${greet},
 
 ${leaderName} just asked you to teach in ${className}.
 
 ${detailsPlain(rows)}
-
-Their message:
-${message}
-
+${msg.plain}
 Open the portal to accept, decline, or suggest different Sundays:
 ${portalUrl}
 
-— ABF Scheduling`;
+ABF Scheduling`;
   const html = brandShell(`
-  <p>Hi <strong>${escapeHtml(teacherName)}</strong>,</p>
+  <p>Hi <strong>${escapeHtml(greet)}</strong>,</p>
   <p><strong>${escapeHtml(leaderName)}</strong> just asked you to teach in <strong>${escapeHtml(className)}</strong>.</p>
   ${detailsHtml(rows)}
-  <p style="margin-top:18px;"><strong>Their message:</strong></p>
-  <p style="background:#faf7ef;border-left:3px solid #524B30;padding:10px 14px;margin:6px 0 18px;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+  ${msg.html}
   <p style="font-size:13px;color:#6b6050;">You can accept, decline, or suggest different Sundays from the portal.</p>
   <p style="margin-top:22px;">${ctaButton('Open the portal to respond', portalUrl)}</p>`);
+  return { subject, plain, html };
+}
+
+/* The co-leader copy of a new request (2026-11-23). Same facts as the
+   teacher's email, but it opens by saying it's an FYI, who the request went
+   to, and why this person got it. No call to action. */
+function buildCoLeaderFyiEmail({ recipientName, teacherName, leaderName, className, service, room, courseTitle, sundayDates, message, portalUrl }) {
+  const dates = requestSubjectDates(sundayDates);
+  const who = ministryDisplay(teacherName)?.who || teacherName;
+  const whoShort = ministryDisplay(teacherName)?.subject || teacherName;
+  const subject = `FYI: ${leaderName} sent a ${className} teaching request to ${whoShort}${dates ? `, ${dates}` : ''}`;
+  const days = sortedDays(sundayDates);
+  const onDates = days.length === 1 ? ` on ${fmtSundayLong(isoOf(days[0]))}`
+    : days.length > 1 ? ` on ${days.length} Sundays (${fmtSundaysCompact(sundayDates, false)})` : '';
+  const what = courseTitle ? `"${courseTitle}" ` : '';
+  const lead = `FYI: ${leaderName} asked ${who} to teach ${what}in ${className}${onDates}.`;
+  const why = `You're getting this because you lead ${className}. No action needed. The request went to ${who}, not to you, and ${leaderName} will hear back when they respond.`;
+  const rows = [
+    { label: 'Sent to', value: who },
+    { label: 'Sent by', value: leaderName },
+    ...requestRows({ className, service, room, courseTitle }),
+    sundayRow('Sundays', sundayDates),
+  ];
+  const msg = messageBlock(leaderName, message);
+  const plain = `Hi ${recipientName},
+
+${lead}
+
+${why}
+
+${detailsPlain(rows)}
+${msg.plain}
+Scheduling on ABF Resources:
+${portalUrl}
+
+ABF Scheduling`;
+  const html = brandShell(`
+  <p style="background:#eef2f4;border-left:3px solid #3F5765;padding:10px 14px;margin:0 0 16px;font-size:14px;"><strong>FYI only. No action needed.</strong> You're getting this because you lead ${escapeHtml(className)}.</p>
+  <p>Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
+  <p>${escapeHtml(lead)}</p>
+  <p style="font-size:14px;color:#6b6050;">The request went to ${escapeHtml(who)}, not to you, and ${escapeHtml(leaderName)} will hear back when they respond.</p>
+  ${detailsHtml(rows, '#3F5765')}
+  ${msg.html}
+  <p style="font-size:13px;color:#6b6050;margin-top:22px;">Scheduling on ABF Resources: <a href="${portalUrl}" style="color:#AA3B24;">${escapeHtml(portalUrl.replace(/^https?:\/\//, ''))}</a></p>`);
   return { subject, plain, html };
 }
 

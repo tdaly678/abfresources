@@ -90,6 +90,13 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ## Recent changes (November 2026)
 
+**2026-11-23 - New-request emails: co-leaders get their own FYI; ministry greetings.** Prompted by Nick Desiato reading a BCC copy of Scott Galen's Koinonia request to LEFC Mobilization ("Hi LEFC Mobilization, Scott Galen just asked you to teach...") as a request sent to him. Email worker only (`worker/src/index.js`, Flow A).
+
+- **Co-leaders are no longer BCC'd on the teacher's email.** Each other active leader of the class gets a separate `buildCoLeaderFyiEmail`: FYI banner, "You're getting this because you lead X. No action needed.", plus Sent to / Sent by rows. Recipients come from `getClassLeaders` (deduped by email, case-insensitive) minus the teacher and the requesting leader. An FYI send failure is logged and does not block the `Created Email Sent At` stamp, so the teacher never gets a second copy. The admin BCC (`BCC_EMAIL`) still rides on every send.
+- **Ministry greetings:** `MINISTRY_DISPLAY` maps Teacher Name to greeting text (LEFC Mobilization → "Global Partner Visits team", LEFC Elders → "Elders"). Keyed by name, same as `MINISTRY_ACCOUNTS` in index.html; keep the two in sync.
+- Subject now `Teaching request: <Class>, <dates> (from <Leader>)`; the message block is omitted when blank (no more "(no message)"). Flow B (responses) still BCCs co-leaders unchanged.
+- **Deploy the email worker with an explicit config:** `cd worker && npx --yes wrangler@latest deploy -c wrangler.toml`. Since the root `wrangler.jsonc` landed (2026-11-15), wrangler 4.166 run bare in `worker/` resolves the *site* config and fails on the missing `public/` dir. The email worker is `abf-email-worker` (also serves `/api/*`); the site worker `abfresources` is static assets only.
+
 **2026-11-03 — Equipped Training: "Understanding Structure" published.** First session of the Equipped Training series (Lincoln Fitch of DiscipleMakers, recorded 2026-11-02, Vimeo `1243014222`). Not yet deployed.
 
 - **Training Videos:** new `#training-equipped` section placed **first** in the LEFC|U Training Videos pane (above Scheduling Tool Tutorials), badge "Leaders & Teachers". Its card is now a **compact pointer** (steel `.video-thumb-link` thumbnail, no embed) that opens the session page, plus a packet link. Future sessions go in as more `.video-card`s in that grid.
