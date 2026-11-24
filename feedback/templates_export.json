@@ -1,14 +1,14 @@
 {
-  "exported_at": "2026-05-05",
+  "exported_at": "2026-11-24",
   "airtable_base": "appTpp1agJQqoId07",
   "airtable_table": "tblFuma2qufToaLV2",
   "templates": [
     {
       "airtable_id": "rechhUfDL9s313g5V",
       "name": "Class Feedback (Standard)",
-      "description": "A focused 9-question survey for a single ABF class or short series. Covers clarity of the main point, fidelity to the passage, accessibility for varied Bible knowledge, life application, pace, classroom interaction, component dials, one takeaway, and overall spiritual nourishment. About 2 minutes on a phone.",
+      "description": "A focused 10-question survey for a single ABF class or short series. Covers clarity of the main point, fidelity to the passage, accessibility for varied Bible knowledge, life application, pace, classroom interaction, component dials, one takeaway, overall spiritual nourishment, and an optional closing note to the teacher. About 2 minutes on a phone.",
       "active": true,
-      "question_count": 9,
+      "question_count": 10,
       "questions": [
         {
           "id": "q_main_idea",
@@ -103,15 +103,21 @@
           "minLabel": "Not really",
           "maxLabel": "Very much so",
           "required": true
+        },
+        {
+          "id": "q_anything_else",
+          "label": "Anything else you'd like your teacher to know?",
+          "type": "long_text",
+          "required": false
         }
       ]
     },
     {
       "airtable_id": "recUd0Oz8VjwZqOj8",
       "name": "Topical Class Feedback",
-      "description": "A shorter 10-question survey for topical classes built on biblical principles rather than expositing a single passage. Focuses on whether the principles came through clearly, how well they were grounded in Scripture, classroom interaction, and life application. About 2 minutes on a phone.",
+      "description": "A shorter 11-question survey for topical classes built on biblical principles rather than expositing a single passage. Focuses on whether the principles came through clearly, how well they were grounded in Scripture, classroom interaction, and life application, with an optional closing note to the teacher. About 2 minutes on a phone.",
       "active": true,
-      "question_count": 10,
+      "question_count": 11,
       "questions": [
         {
           "id": "q_principles_clear",
@@ -206,15 +212,21 @@
           "minLabel": "Not really",
           "maxLabel": "Very much so",
           "required": true
+        },
+        {
+          "id": "q_anything_else",
+          "label": "Anything else you'd like your teacher to know?",
+          "type": "long_text",
+          "required": false
         }
       ]
     },
     {
       "airtable_id": "recsgDN8lDevXp557",
       "name": "Series Feedback (End-of-Series)",
-      "description": "An end-of-series instrument for multi-week ABF studies. Includes session attendance, growth in understanding, fidelity to the text, classroom interaction, component dials for each part of the series (Bible exposition, application, discussion, prayer, testimonies, visuals, memory work, Q&A), three takeaway prompts, goal-achievement reflection, qualitative highlights, encouragement, and an overall rating. About 5 minutes.",
+      "description": "An end-of-series instrument for multi-week ABF studies. Includes session attendance, growth in understanding, fidelity to the text, classroom interaction, component dials for each part of the series (Bible exposition, application, discussion, prayer, testimonies, visuals, memory work, Q&A), three takeaway prompts, goal-achievement reflection, qualitative highlights, encouragement, an overall rating, and an optional closing note to the teacher. About 5 minutes.",
       "active": true,
-      "question_count": 16,
+      "question_count": 17,
       "questions": [
         {
           "id": "q_sessions_attended",
@@ -360,6 +372,12 @@
           "minLabel": "Not really",
           "maxLabel": "Very much so",
           "required": true
+        },
+        {
+          "id": "q_anything_else",
+          "label": "Anything else you'd like your teacher to know?",
+          "type": "long_text",
+          "required": false
         }
       ]
     }

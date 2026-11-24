@@ -90,6 +90,8 @@ Architecture details in memory: `project_feedback_tab.md`.
 
 ## Recent changes (November 2026)
 
+**2026-11-24 - Optional closing question on all three feedback templates.** `q_anything_else` ("Anything else you'd like your teacher to know?", long_text, optional) is now the last question after `q_overall` in `feedback/templates_export.json`: Standard 10, Topical 11, Series 17. Forms render from the live template, so open forms (e.g. Mosaic `77467`) show it once Airtable is updated; no responses are touched. **Airtable is updated by running `python3 feedback/seed_templates.py --dry-run`, then without the flag, which prompts for the admin PIN** (new proxy mode; no PAT needed locally). No site or email worker deploy needed: the report already passes every write-in to the model.
+
 **2026-11-23 (later) - End-of-survey AI feedback report (flow G) in the email worker.** Tom approved. Committed, **not yet deployed**, and the `ANTHROPIC_API_KEY` secret is not set yet. Full details in `worker/README.md` ("End-of-survey AI feedback report").
 
 - **What:** when a Feedback Form closes, `abf-email-worker` asks Claude (`claude-sonnet-5-5`, `anthropic-version 2026-10-21`, effort medium) for a pastoral synthesis and emails it from `noreply@abfresources.com` via Brevo to the form's teachers, visible CC daly@lefc.net.

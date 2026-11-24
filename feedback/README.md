@@ -16,13 +16,15 @@ Live at: `abfresources.com` (Feedback tab) and `abfresources.com/<5-digit code>`
 
 | Template | Length | Use case | Airtable ID |
 |---|---|---|---|
-| **Class Feedback (Standard)** | 9 Qs · ~2 min | Default for a single class or short series. Walk-through-a-passage style. | `rechhUfDL9s313g5V` |
-| **Topical Class Feedback** | 10 Qs · ~2 min | Topical classes built on biblical principles rather than expositing a passage. Asks whether the principles came through clearly *and* whether they were grounded in Scripture vs. opinion. | `recUd0Oz8VjwZqOj8` |
-| **Series Feedback (End-of-Series)** | 16 Qs · ~5 min | Multi-week wrap-up. Includes attendance, growth-in-understanding rating (1–10), component dials, three takeaway slots, goal-achievement reflection, qualitative highlights. | `recsgDN8lDevXp557` |
+| **Class Feedback (Standard)** | 10 Qs · ~2 min | Default for a single class or short series. Walk-through-a-passage style. | `rechhUfDL9s313g5V` |
+| **Topical Class Feedback** | 11 Qs · ~2 min | Topical classes built on biblical principles rather than expositing a passage. Asks whether the principles came through clearly *and* whether they were grounded in Scripture vs. opinion. | `recUd0Oz8VjwZqOj8` |
+| **Series Feedback (End-of-Series)** | 17 Qs · ~5 min | Multi-week wrap-up. Includes attendance, growth-in-understanding rating (1–10), component dials, three takeaway slots, goal-achievement reflection, qualitative highlights. | `recsgDN8lDevXp557` |
 
 The legacy **"ABF Teaching Feedback"** template (8 generic Qs, predates this work) is **archived** (Active=false) but recoverable via the Airtable UI.
 
-Canonical question structures live in `templates_export.json` in this folder. To restore Airtable to that state any time: `python3 feedback/seed_templates.py` — idempotent (updates by name if exists, creates if not).
+All three end with the same optional open box, `q_anything_else` (long_text, not required): "Anything else you'd like your teacher to know?" Added 2026-11-24 after `q_overall`. Forms read questions from the live template, so open forms pick it up too; older responses simply lack the key. Write-ins like this reach the end-of-survey AI report with no worker change, since `buildReportData` passes every non-empty answer through to the model.
+
+Canonical question structures live in `templates_export.json` in this folder. To restore Airtable to that state any time: `python3 feedback/seed_templates.py` (idempotent). Run `--dry-run` first: it prints live vs export question ids and writes nothing. With no `AIRTABLE_TOKEN` in the environment it prompts for the admin PIN and PATCHes each template by `airtable_id` through the worker's `/api/proxy`, so no Airtable token is needed on the Mac.
 
 ---
 
@@ -78,7 +80,7 @@ Every template card and every open/my-survey card has a "Download printable PDF"
 - Paper-fillable rendering per question type (circles for ratings, boxes for choices, lined fields for text, plus/minus matrix table)
 - Survey-specific PDFs include the form's unique 5-digit code + QR pointing to the digital fill-out URL — groundwork for the future scan-and-link workflow
 - Template-only PDFs leave the code area blank for the teacher to write in
-- **Large print (2 pages)** — a second button next to each "Download printable PDF" (template cards, open/my-survey cards, and the template preview banner). Added Oct 2026 after Agape feedback that the compact sheet was hard to read. `openFbPrintView({ …, largePrint: true })` appends `fbLargePrintCss()` overrides: ~12.5pt body / 12pt labels, line-height ~1.45, 0.6" margins, bigger rating circles and checkboxes, taller write-in lines, never two-column. Class Standard (9 Q) and Topical (10 Q) land on 2 pages; Series (16 Q) runs to 3. The compact one-page sheet stays the default.
+- **Large print (2 pages)** — a second button next to each "Download printable PDF" (template cards, open/my-survey cards, and the template preview banner). Added Oct 2026 after Agape feedback that the compact sheet was hard to read. `openFbPrintView({ …, largePrint: true })` appends `fbLargePrintCss()` overrides: ~12.5pt body / 12pt labels, line-height ~1.45, 0.6" margins, bigger rating circles and checkboxes, taller write-in lines, never two-column. Class Standard (10 Q) and Topical (11 Q) land on 2 pages; Series (17 Q) runs to 3. Re-measured 2026-11-24 after adding `q_anything_else` (headless Chromium, Letter): the compact sheet is still 1 page for all three. The compact one-page sheet stays the default.
 
 ---
 
