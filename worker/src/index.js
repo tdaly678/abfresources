@@ -997,7 +997,10 @@ async function processUpcomingClassReminders(cfg, force, collect) {
 const REPORT_AUTO_SEND_CUTOFF = '2026-11-23T22:00:00.000Z'; // 5:00 PM ET, Nov 23 2026
 const REPORT_MODEL = 'claude-sonnet-5-5';
 const ANTHROPIC_VERSION = '2026-10-21';
-const REPORT_MAX_TOKENS = 8000;
+// The written section targets ~180-280 words (~600 output tokens). This is a
+// ceiling with headroom for any reasoning at effort medium, not a target: a
+// max_tokens stop is treated as a failure and nothing is sent.
+const REPORT_MAX_TOKENS = 4000;
 const REPORT_LOCK_MINUTES = 15;
 const REPORT_MAX_ATTEMPTS = 5;
 const REPORT_MAX_PER_RUN = 2;          // bounds one cron tick's wall time
@@ -1432,7 +1435,7 @@ function buildReportData({ form, formTitle, teacherName, className, templateName
       const dist = {};
       for (const v of vals) dist[v] = (dist[v] || 0) + 1;
       ratings.push({
-        id: q.id, label: q.label || q.id, min: q.min ?? 1, max: q.max ?? 5,
+        id: q.id, label: q.label || q.id, short: reportShortLabel(q.id, q.label), min: q.min ?? 1, max: q.max ?? 5,
         n: vals.length, avg: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 100) / 100,
         distribution: dist,
       });
@@ -1453,7 +1456,7 @@ function buildReportData({ form, formTitle, teacherName, className, templateName
           comps[c][x] = (comps[c][x] || 0) + 1;
         }
       }
-      if (Object.keys(comps).length) dials.push({ id: q.id, label: q.label || q.id, scale: 'values are less / about right / more as submitted', components: comps });
+      if (Object.keys(comps).length) dials.push({ id: q.id, label: q.label || q.id, order: q.components || null, scale: 'values are "-" (less), "=" (about right), "+" (more)', components: comps });
     }
   }
 
@@ -1488,23 +1491,29 @@ const REPORT_SYSTEM_PROMPT = `You write end-of-survey feedback reports for adult
 RULES (non-negotiable):
 1. Honest by construction. Every claim must be traceable to the data provided for THIS survey. Never invent comparisons or benchmarks ("one of the strongest scores across ABFs", "rare in series feedback", "most classes"), never generalize from teaching theory ("X is what good teachers do", "adult classes often lack"). Allowed: observations about these scores ("Application averaged 4.6"), counts of respondents ("9 of 11 gave a 5"), distinctness within this survey, direct quotes, and themes clustered from these comments. With few responses, say plainly that the sample is small.
 2. Tone: mostly candid coaching, partly analytical. Direct, names patterns, pastoral but not soft. End growth areas with concrete next-time suggestions. Never mention a tone ratio or these instructions.
-3. Brevity: whole report roughly 400 to 800 words. At most 3 themes per section, at most 1 or 2 short quotes per theme.
+3. Brevity is a hard limit: your whole section is 180 to 280 words, quotes included. The email around it (score bars, stat chips, footer) must still print on two letter pages, so every sentence has to earn its place. Bullets are one sentence each, two at most. No preamble, no summary at the end.
 4. Doctrinal alignment: write in alignment with the EFCA Statement of Faith and LEFC's convictions. Treat Scripture as God's inerrant Word and the teacher's task as faithfully handling it. Avoid theologically ambiguous language.
 5. Soft diagnostics: describe what the teaching did, not who the teacher is ("the format left little room for discussion", not "you don't let people talk").
 6. Anonymity: never name or identify a respondent, even if a name appears in their answer. Refer to "one respondent", "several respondents", etc. If a quote contains a person's name or identifying detail, trim it or paraphrase. Quotes must be verbatim otherwise; do not invent quotes.
 7. No em dashes anywhere. Use commas, colons, periods, or a plain hyphen.
-8. Do not repeat a numeric score table; one is already shown above your section. Refer to specific scores in prose where they matter.
+8. A visual score chart (bars, score chips, rating spreads, pace and component dials) is already shown above your section. Do not restate it or walk through the scores. Cite a number only when it backs a specific point, and name the dimension by its short label from the data (the "short" field on each rating, e.g. "Application 4.6 / 5").
 9. Address the teacher as "you". Do not include a greeting or sign-off; those are added around your section.
 
-OUTPUT FORMAT: Return ONLY an email-safe HTML fragment (no markdown, no code fences, no <html>/<head>/<body>, no <script>, no <style> blocks, no images, no SVG, no external fonts, no classes). Use only these tags: h2, h3, p, ul, ol, li, strong, em, blockquote, table, tr, td, th, br, span, div. Put all styling inline. Palette: text #342D25, muted #6b6050, gold #BCA944, olive #524B30, terra red #AA3B24, cream #f7eed7, border #ddcca5, steel blue #3F5765. Font family is inherited (Helvetica/Arial).
+OUTPUT FORMAT: Return ONLY an email-safe HTML fragment (no markdown, no code fences, no <html>/<head>/<body>, no <script>, no <style> blocks, no images, no SVG, no external fonts, no classes, no tables). Use only these tags: h2, p, ul, li, strong, em, blockquote, br, span. Put all styling inline, copied exactly from the templates below. Font family is inherited.
 
-Use this structure, in order, skipping any section the data cannot support:
-<h2 style="font-size:16px;color:#342D25;margin:24px 0 8px;">At a glance</h2>  two or three sentences naming the single clearest strength and the single clearest growth area, citing a score or quote for each.
-<h2 ...>What landed</h2>  strengths, up to 3 themes (each a short <h3 style="font-size:14px;margin:14px 0 4px;color:#524B30;"> plus a <p> and optionally one quote).
-<h2 ...>What stuck</h2>  the takeaways respondents named, clustered, if takeaway questions exist.
-<h2 ...>How to grow</h2>  up to 3 growth themes with concrete suggestions for next time (h3 color #AA3B24).
-<h2 ...>In their words</h2>  3 to 5 notable anonymous quotes, each as <blockquote style="margin:10px 0;padding:8px 14px;border-left:3px solid #BCA944;background:#faf7ef;color:#342D25;">.
-Where pace or component-dial (less / about right / more) data exists, weave it into the relevant section briefly.`;
+Use this structure, in order, skipping any section the data cannot support (for example, no "What stuck" without takeaway answers). Copy the style attributes exactly:
+<h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:#3F5765;margin:14px 0 5px;padding-bottom:3px;border-bottom:2px solid #BCA944;">At a glance</h2>
+<p style="margin:0 0 6px;">Two or three sentences: the single clearest strength and the single clearest growth area, each backed by a score or a short quote.</p>
+<h2 (same style)>What landed</h2>
+<ul style="margin:0 0 6px;padding-left:18px;"><li style="margin:0 0 3px;">2 or 3 strengths, one bullet each. Start each with a short <strong> phrase naming the theme.</li></ul>
+<h2 (same style)>What stuck</h2>
+<ul (same style)>2 or 3 bullets clustering the takeaways respondents named, with a count where several said the same thing.</ul>
+<h2 (same style)>How to grow</h2>
+<ul (same style)>2 or 3 bullets. Each names the pattern, then gives one concrete thing to try next time ("Next time, try ...").</ul>
+<h2 (same style)>In their words</h2>
+3 or 4 short anonymous quotes (one or two sentences each; trim long ones with "..."), each as:
+<blockquote style="margin:0 0 6px;padding:5px 12px;border-left:3px solid #BCA944;background:#F4EBD8;color:#342D25;font-style:italic;">quote</blockquote>
+Where pace or component-dial (less / about right / more) data says something clear, fold it into a "What landed" or "How to grow" bullet in a few words.`;
 
 async function callClaudeForReport(cfg, data) {
   const user = `Here is the survey data as JSON. Write the report section.\n\n${JSON.stringify(data)}`;
@@ -1557,27 +1566,246 @@ function sanitizeReportHtml(s) {
   return h.trim();
 }
 
-function reportScoreTableHtml(ratings) {
-  if (!ratings.length) return '';
-  const rows = ratings.map(r => `
-    <tr>
-      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:13px;vertical-align:top;">${escapeHtml(r.label)}</td>
-      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:15px;font-weight:800;text-align:right;white-space:nowrap;vertical-align:top;">${r.avg.toFixed(2)}<span style="font-size:11px;font-weight:400;color:#6b6050;"> / ${escapeHtml(String(r.max))}</span></td>
-      <td style="padding:7px 10px;border-top:1px solid #ddcca5;font-size:12px;color:#6b6050;text-align:right;white-space:nowrap;vertical-align:top;">n=${r.n}</td>
-    </tr>`).join('');
-  return `<h2 style="font-size:16px;color:#342D25;margin:24px 0 8px;">Scores</h2>
-  <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;background:#f7eed7;border-left:3px solid #524B30;">
-    <tr>
-      <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b6050;text-align:left;">Question</th>
-      <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b6050;text-align:right;">Average</th>
-      <th style="padding:7px 10px;"></th>
-    </tr>${rows}
-  </table>`;
+/* ─── Report visuals (2026-11-24) ───────────────────────────────────────────
+   Tom's ask after the 11403 dry run: visuals instead of raw numbers, and the
+   whole email no longer than two printed letter pages. Borrowed from his
+   handmade MOSAIC summary (dark stat chips, horizontal bars, colored score
+   chips, gold-rule headings, quote blocks), minus the cover page.
+
+   Email-safe by construction: tables, inline styles and HTML width
+   attributes only. No SVG (Gmail and Outlook strip or mangle it), no JS, and
+   every bar cell carries &nbsp; so Outlook gives it height. The <style>
+   block in reportShell is print polish only; nothing depends on it. */
+
+const RC = {
+  steel: '#3F5765', cream: '#F4EBD8', gold: '#BCA944', text: '#342D25',
+  muted: '#6b6050', olive: '#524B30', terra: '#AA3B24', border: '#ddcca5',
+};
+
+// Dimension names from feedback/REPORT_DESIGN.md, keyed by question id with
+// the q_ prefix dropped. Unknown ids fall back to a trimmed question label.
+const REPORT_SHORT_LABELS = {
+  text_anchor: 'Scripture Fidelity',
+  grounded_scripture: 'Scripture Fidelity',
+  main_idea: 'Main Idea',
+  principles_clear: 'Principles Clear',
+  pitched: 'Accessibility',
+  application: 'Application',
+  interaction: 'Interaction',
+  overall: 'Overall Nourishment',
+  understanding_deepened: 'Understanding Deepened',
+};
+
+function reportShortLabel(id, label) {
+  const key = String(id || '').replace(/^q_/, '');
+  if (REPORT_SHORT_LABELS[key]) return REPORT_SHORT_LABELS[key];
+  let s = String(label || id || '').replace(/\s*[—–]\s*.*$/, '').replace(/[?.:]+$/, '').trim();
+  s = s.replace(/^(how|to what extent|overall,?)\s+(well|clearly|much|understandable|helpful)?\s*(was|were|did|is)?\s*(the\s+)?/i, '');
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (s.length <= 28) return s || String(id || '');
+  const cut = s.slice(0, 28);
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), 16)).trim() + '...';
 }
 
-function reportScoreTablePlain(ratings) {
+// 'high' | 'mid' | 'low' for one rating. High is >= 90% of max (4.5 on a
+// 5-point scale), low is < 70% of max. The lowest score is also marked low
+// when it is under 80% and sits clearly (10 points of max) below the rest.
+function ratingTone(r, all) {
+  const ratio = r.avg / (r.max || 5);
+  if (ratio >= 0.9) return 'high';
+  if (ratio < 0.7) return 'low';
+  if (ratio < 0.8 && all && all.length >= 3) {
+    const ratios = all.map(x => x.avg / (x.max || 5)).sort((a, b) => a - b);
+    if (ratio === ratios[0] && ratios[1] - ratios[0] >= 0.1) return 'low';
+  }
+  return 'mid';
+}
+
+const TONE = {
+  high: { fill: RC.steel, chipBg: RC.steel, chipFg: RC.cream, chipBorder: RC.steel },
+  mid: { fill: RC.gold, chipBg: RC.cream, chipFg: RC.olive, chipBorder: RC.gold },
+  low: { fill: RC.terra, chipBg: RC.terra, chipFg: '#ffffff', chipBorder: RC.terra },
+};
+
+// Mix two #rrggbb colors; t=0 gives a, t=1 gives b. Used instead of opacity,
+// which Outlook ignores.
+function mixHex(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
+// One horizontal bar: cream track, filled cell at pct (0-100).
+function reportBar(pct, fill, height = 10) {
+  const w = Math.max(0, Math.min(100, Math.round(pct)));
+  const cell = (width, bg) => `<td width="${width}%" style="width:${width}%;background:${bg};height:${height}px;line-height:${height}px;font-size:1px;mso-line-height-rule:exactly;">&nbsp;</td>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:${RC.cream};"><tr>${w > 0 ? cell(w, fill) : ''}${w < 100 ? cell(100 - w, RC.cream) : ''}</tr></table>`;
+}
+
+// Segmented bar with counts printed in the segments.
+// segs: [{ count, bg, fg, title }]
+function reportStackBar(segs, height = 16) {
+  const total = segs.reduce((s, x) => s + x.count, 0);
+  if (!total) return '';
+  const shown = segs.filter(s => s.count > 0);
+  let used = 0;
+  const cells = shown.map((s, i) => {
+    const w = i === shown.length - 1 ? 100 - used : Math.max(1, Math.round(s.count / total * 100));
+    used += w;
+    return `<td width="${w}%" title="${escapeHtml(s.title || '')}" style="width:${w}%;background:${s.bg};color:${s.fg};height:${height}px;font-size:10px;font-weight:700;text-align:center;line-height:${height}px;mso-line-height-rule:exactly;white-space:nowrap;overflow:hidden;">${w >= 6 ? s.count : '&nbsp;'}</td>`;
+  }).join('');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed;"><tr>${cells}</tr></table>`;
+}
+
+// Tiny rating spread: one cell per scale point (min..max, low at left),
+// shaded by its share of responses, with the count inside.
+function reportDistCells(r) {
+  const min = Number(r.min ?? 1), max = Number(r.max ?? 5);
+  const pts = [];
+  for (let v = min; v <= max; v++) pts.push(v);
+  const top = Math.max(1, ...pts.map(v => r.distribution[v] || 0));
+  const cw = pts.length > 6 ? 11 : 17;
+  const cells = pts.map(v => {
+    const c = r.distribution[v] || 0;
+    const bg = c ? mixHex(RC.cream, RC.steel, 0.3 + 0.7 * (c / top)) : RC.cream;
+    const fg = c ? (c / top > 0.45 ? '#ffffff' : RC.text) : '#b9ad92';
+    return `<td width="${cw}" title="${c} chose ${v}" style="width:${cw}px;height:16px;background:${bg};color:${fg};font-size:9px;font-weight:700;text-align:center;line-height:16px;mso-line-height-rule:exactly;border-left:1px solid #ffffff;">${c || '&middot;'}</td>`;
+  }).join('');
+  return `<table role="presentation" cellpadding="0" cellspacing="0" align="right" style="border-collapse:collapse;"><tr>${cells}</tr></table>`;
+}
+
+function reportScoreChip(r, tone) {
+  const t = TONE[tone];
+  return `<span style="display:inline-block;background:${t.chipBg};color:${t.chipFg};border:1px solid ${t.chipBorder};border-radius:3px;padding:1px 6px;font-size:12px;font-weight:800;white-space:nowrap;">${r.avg.toFixed(2)}<span style="font-weight:400;font-size:10px;"> / ${escapeHtml(String(r.max))}</span></span>`;
+}
+
+function reportSectionHead(text) {
+  return `<h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:${RC.steel};margin:14px 0 5px;padding-bottom:3px;border-bottom:2px solid ${RC.gold};">${escapeHtml(text)}</h2>`;
+}
+
+function reportFindRating(ratings, key) {
+  return ratings.find(r => String(r.id).replace(/^q_/, '') === key) || null;
+}
+
+// The dark "at a glance" chip row.
+function reportStatChipsHtml(data) {
+  const R = data.ratings || [];
+  const chips = [{ big: String(data.n), small: data.n === 1 ? 'Response' : 'Responses', bg: RC.olive }];
+  const overall = reportFindRating(R, 'overall');
+  if (overall) chips.push({ big: overall.avg.toFixed(1), unit: ` / ${overall.max}`, small: 'Overall nourishment', bg: RC.steel });
+  const deep = reportFindRating(R, 'understanding_deepened');
+  if (deep) chips.push({ big: deep.avg.toFixed(1), unit: ` / ${deep.max}`, small: 'Understanding deepened', bg: RC.steel });
+  const pool = R.filter(r => r !== overall && r !== deep);
+  if (pool.length) {
+    const best = pool.slice().sort((a, b) => b.avg / b.max - a.avg / a.max)[0];
+    chips.push({ big: best.avg.toFixed(1), unit: ` / ${best.max}`, small: `Highest: ${best.short || best.label}`, bg: RC.steel });
+  }
+  const w = Math.floor(100 / chips.length);
+  const cells = chips.map((c, i) => `<td width="${w}%" style="width:${w}%;background:${c.bg};padding:8px 10px;vertical-align:top;${i ? 'border-left:4px solid #ffffff;' : ''}">
+      <div style="font-size:24px;line-height:26px;font-weight:800;color:${RC.gold};">${escapeHtml(c.big)}<span style="font-size:12px;font-weight:400;color:${RC.cream};">${escapeHtml(c.unit || '')}</span></div>
+      <div style="font-size:10px;line-height:13px;text-transform:uppercase;letter-spacing:.06em;color:${RC.cream};margin-top:2px;">${escapeHtml(c.small)}</div>
+    </td>`).join('');
+  return `<table role="presentation" class="avoid-break" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:8px 0 4px;"><tr>${cells}</tr></table>`;
+}
+
+function reportScoresHtml(ratings) {
   if (!ratings.length) return '';
-  return '\nScores\n' + ratings.map(r => `  ${r.label}: ${r.avg.toFixed(2)} / ${r.max} (n=${r.n})`).join('\n') + '\n';
+  const span = ratings.map(r => (r.max ?? 5) - (r.min ?? 1) + 1);
+  const scaleNote = new Set(span).size === 1 ? `1 to ${ratings[0].max}` : 'low to high';
+  const rows = ratings.map(r => {
+    const tone = ratingTone(r, ratings);
+    const pct = r.avg / (r.max || 5) * 100;
+    return `<tr class="avoid-break">
+      <td width="28%" title="${escapeHtml(String(r.label).replace(/\s*[\u2014\u2013]\s*/g, ', '))}" style="width:28%;padding:4px 8px 4px 0;font-size:12px;font-weight:700;color:${RC.text};vertical-align:middle;border-bottom:1px solid ${RC.cream};">${escapeHtml(r.short || r.label)}</td>
+      <td width="36%" style="width:36%;padding:4px 8px 4px 0;vertical-align:middle;border-bottom:1px solid ${RC.cream};">${reportBar(pct, TONE[tone].fill)}</td>
+      <td width="14%" style="width:14%;padding:4px 8px 4px 0;vertical-align:middle;text-align:left;border-bottom:1px solid ${RC.cream};">${reportScoreChip(r, tone)}</td>
+      <td width="22%" style="width:22%;padding:4px 0;vertical-align:middle;text-align:right;border-bottom:1px solid ${RC.cream};">${reportDistCells(r)}</td>
+    </tr>`;
+  }).join('');
+  return `${reportSectionHead('Scores')}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${rows}</table>
+  <p style="margin:3px 0 0;font-size:10px;line-height:13px;color:${RC.muted};">Bar and chip: average score. Small boxes: how many respondents chose each rating, ${scaleNote}, left to right. <span style="color:${RC.steel};font-weight:700;">Steel</span> is 90% of max or better, <span style="color:${RC.olive};font-weight:700;">gold</span> is mid range, <span style="color:${RC.terra};font-weight:700;">terra</span> marks the score to look at first.</p>`;
+}
+
+const CHOICE_COLORS = [RC.steel, RC.gold, RC.olive, RC.terra, RC.muted, '#8a9aa5', '#d6c98a'];
+
+function reportChoicesHtml(choices) {
+  if (!choices.length) return '';
+  const rows = choices.map(c => {
+    const order = (c.options && c.options.length ? c.options : Object.keys(c.counts))
+      .concat(Object.keys(c.counts).filter(k => !(c.options || []).includes(k)))
+      .filter((v, i, a) => a.indexOf(v) === i);
+    // A centered scale like pace (Too rushed ... Just right ... Too slow) is
+    // colored by distance from the middle: steel, then gold, then terra.
+    const mid = order.indexOf('Just right');
+    const colorAt = i => mid >= 0
+      ? [RC.steel, RC.gold, RC.terra][Math.min(2, Math.abs(i - mid))]
+      : CHOICE_COLORS[i % CHOICE_COLORS.length];
+    const segs = order.map((o, i) => ({
+      label: o, count: c.counts[o] || 0, bg: colorAt(i),
+      fg: [RC.gold, '#d6c98a'].includes(colorAt(i)) ? RC.text : '#ffffff', title: `${o}: ${c.counts[o] || 0}`,
+    }));
+    const legend = segs.filter(s => s.count).map(s =>
+      `<span style="white-space:nowrap;margin-right:8px;"><span style="display:inline-block;width:8px;height:8px;background:${s.bg};margin-right:3px;"></span>${escapeHtml(s.label)} ${s.count}</span>`).join(' ');
+    return `<tr class="avoid-break">
+      <td width="30%" style="width:30%;padding:4px 8px 4px 0;font-size:12px;font-weight:700;color:${RC.text};vertical-align:top;">${escapeHtml(choiceShortLabel(c))}</td>
+      <td width="70%" style="width:70%;padding:4px 0;vertical-align:top;">${reportStackBar(segs)}<div style="font-size:10px;line-height:14px;color:${RC.muted};margin-top:2px;">${legend}</div></td>
+    </tr>`;
+  }).join('');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:6px;">${rows}</table>`;
+}
+
+function choiceShortLabel(c) {
+  const key = String(c.id || '').replace(/^q_/, '');
+  if (key === 'pace') return 'Pace';
+  if (key === 'sessions_attended') return 'Sessions attended';
+  return reportShortLabel(c.id, c.label);
+}
+
+// Less / about right / more per component. Skipped when the page budget is
+// already spent, so the email stays inside two printed pages.
+const REPORT_ROW_BUDGET = 20;
+
+function reportDialsHtml(dials, rowsUsed) {
+  const out = [];
+  let used = rowsUsed;
+  for (const d of dials) {
+    const names = (d.order && d.order.length ? d.order : Object.keys(d.components)).filter(n => d.components[n]);
+    if (!names.length || used + names.length > REPORT_ROW_BUDGET) continue;
+    used += names.length;
+    const rows = names.map(n => {
+      const t = d.components[n];
+      return `<tr class="avoid-break">
+        <td width="30%" style="width:30%;padding:2px 8px 2px 0;font-size:11px;color:${RC.text};vertical-align:middle;">${escapeHtml(n)}</td>
+        <td width="70%" style="width:70%;padding:2px 0;vertical-align:middle;">${reportStackBar([
+          { count: t['-'] || 0, bg: RC.terra, fg: '#ffffff', title: `Less: ${t['-'] || 0}` },
+          { count: t['='] || 0, bg: RC.border, fg: RC.text, title: `About right: ${t['='] || 0}` },
+          { count: t['+'] || 0, bg: RC.steel, fg: '#ffffff', title: `More: ${t['+'] || 0}` },
+        ], 14)}</td>
+      </tr>`;
+    }).join('');
+    const key = (bg, label) => `<span style="white-space:nowrap;margin-right:8px;"><span style="display:inline-block;width:8px;height:8px;background:${bg};margin-right:3px;"></span>${label}</span>`;
+    out.push(`${reportSectionHead('Less, about right, or more?')}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${rows}</table>
+    <p style="margin:3px 0 0;font-size:10px;line-height:13px;color:${RC.muted};">${key(RC.terra, 'Less')}${key(RC.border, 'About right')}${key(RC.steel, 'More')}</p>`);
+  }
+  return out.join('');
+}
+
+function reportScoresPlain(data) {
+  const lines = [];
+  if (data.ratings.length) {
+    lines.push('Scores');
+    for (const r of data.ratings) {
+      const pts = [];
+      for (let v = r.min ?? 1; v <= (r.max ?? 5); v++) pts.push(`${v}:${r.distribution[v] || 0}`);
+      lines.push(`  ${r.short || r.label}: ${r.avg.toFixed(2)} / ${r.max}  (${pts.join(' ')})`);
+    }
+  }
+  for (const c of data.choices) {
+    lines.push(`  ${choiceShortLabel(c)}: ${Object.entries(c.counts).map(([k, v]) => `${k} ${v}`).join(', ')}`);
+  }
+  return lines.length ? '\n' + lines.join('\n') + '\n' : '';
 }
 
 // Rough HTML to text for the plain-text part of the email.
@@ -1593,42 +1821,75 @@ function htmlToPlain(h) {
     .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function reportClosedDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' });
+  } catch { return ''; }
+}
+
 function buildFeedbackReportEmail({ subject, recipients, formTitle, data, aiHtml, portalUrl }) {
   const greet = reportGreeting(recipients);
-  const rows = [
-    { label: 'Survey', value: formTitle },
-    data.className ? { label: 'ABF', value: data.className } : null,
-    data.closesReadable ? { label: 'Closed', value: data.closesReadable } : null,
-    { label: 'Responses', value: String(data.n) },
-  ].filter(Boolean);
-  const lead = `The survey "${formTitle}" has closed. Here is a summary of the ${data.n} ${data.n === 1 ? 'response' : 'responses'} it received. Respondents are kept anonymous.`;
+  const closed = reportClosedDate(data.closesAt);
+  const meta = [data.className, closed ? `Closed ${closed}` : '', `${data.n} ${data.n === 1 ? 'response' : 'responses'}, anonymous`].filter(Boolean).join(' \u00b7 ');
 
   const plain = `Hi ${greet},
 
-${lead}
-
-${detailsPlain(rows)}
-${reportScoreTablePlain(data.ratings)}
+Your feedback survey "${formTitle}" has closed. Here is the short version.
+${meta}
+${reportScoresPlain(data)}
 ${htmlToPlain(aiHtml)}
 
-(The written summary above is AI-generated from your survey responses.)
+(The written summary is AI-generated from your survey responses. Scores are computed directly from the data.)
 
 See every individual response in the portal:
 ${portalUrl}
 
 ABF Feedback`;
 
-  const html = brandShell(`
-  <p>Hi <strong>${escapeHtml(greet)}</strong>,</p>
-  <p>${escapeHtml(lead)}</p>
-  ${detailsHtml(rows, '#524B30')}
-  ${reportScoreTableHtml(data.ratings)}
-  <p style="margin:26px 0 0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#AA3B24;"><span style="font-size:14px;">&#9679;</span> AI-generated summary</p>
-  ${aiHtml}
-  <p style="margin-top:22px;font-size:13px;color:#6b6050;">This summary was written by AI from your survey responses. Scores and counts above are computed directly from the data.</p>
-  <p style="margin-top:18px;">${ctaButton('See every response in the portal', portalUrl)}</p>`);
+  const ratingRows = data.ratings.length + data.choices.length;
+  const html = reportShell(formTitle, meta, `
+  <p style="margin:0 0 4px;">Hi <strong>${escapeHtml(greet)}</strong>, your survey has closed. Here is the short version.</p>
+  ${reportStatChipsHtml(data)}
+  ${reportScoresHtml(data.ratings)}
+  ${reportChoicesHtml(data.choices)}
+  ${reportDialsHtml(data.dials, ratingRows)}
+  <div style="margin-top:6px;">${aiHtml}</div>
+  <table role="presentation" class="avoid-break" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;border-top:1px solid ${RC.border};"><tr>
+    <td style="padding:8px 8px 0 0;font-size:10px;line-height:14px;color:${RC.muted};vertical-align:middle;">The written summary is AI-generated from your survey responses. Scores and counts are computed directly from the data.</td>
+    <td style="padding:8px 0 0;text-align:right;vertical-align:middle;white-space:nowrap;"><a href="${portalUrl}" style="display:inline-block;background:${RC.terra};color:#ffffff;padding:6px 14px;text-decoration:none;border-radius:3px;font-size:12px;font-weight:700;">See every response</a></td>
+  </tr></table>`);
 
   return { subject, plain, html };
+}
+
+/* Compact shell for the report only (brandShell stays as-is for the other
+   emails). Steel banner with LEFC|U, the survey title, and one meta line.
+   The <style> block is for printing to PDF: letter, half-inch margins, and
+   no page break inside a chip row, bar row, or quote. */
+function reportShell(title, meta, innerHtml) {
+  const lefcU = `LEFC<span style="color:${RC.gold};font-weight:400;padding:0 1px;">|</span>U`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  @page { size: letter; margin: 0.5in; }
+  @media print {
+    body { padding: 0 !important; max-width: none !important; }
+    .avoid-break, tr, blockquote, li { page-break-inside: avoid; break-inside: avoid; }
+    h2 { page-break-after: avoid; break-after: avoid; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style></head>
+<body style="font-family:Helvetica,Arial,sans-serif;color:${RC.text};font-size:13px;line-height:1.45;max-width:620px;margin:0 auto;padding:14px;background:#ffffff;">
+  <table role="presentation" class="avoid-break" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:${RC.steel};border-bottom:3px solid ${RC.gold};margin-bottom:10px;"><tr>
+    <td style="padding:10px 14px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:${RC.cream};">${lefcU} &middot; ABF Feedback Report</div>
+      <div style="font-size:18px;line-height:22px;font-weight:800;color:#ffffff;margin-top:2px;">${escapeHtml(title)}</div>
+      <div style="font-size:11px;color:${RC.cream};margin-top:2px;">${escapeHtml(meta)}</div>
+    </td>
+  </tr></table>
+  ${innerHtml}
+  <p style="margin:12px 0 0;color:${RC.muted};font-size:10px;">Lancaster Evangelical Free Church &middot; ${lefcU} &middot; ABF Resources</p>
+</body></html>`;
 }
 
 // ─── Airtable client ────────────────────────────────────────────────────────
