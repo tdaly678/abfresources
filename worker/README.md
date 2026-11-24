@@ -185,7 +185,10 @@ then push. To test: `curl -X POST -H 'Content-Type: application/json' \
 
 ## End-of-survey AI feedback report (flow G, added 2026-11-23)
 
-When a feedback survey closes, the worker asks Claude for a pastoral synthesis of the responses and emails it to the survey's teacher (BCC `BCC_EMAIL`), from `noreply@abfresources.com` via Brevo. Code: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail` in `src/index.js`. Design rules: `feedback/REPORT_DESIGN.md`.
+When a feedback survey closes, the worker asks Claude for a pastoral synthesis of the responses and emails it to the survey's teachers and the class's ABF leaders (BCC `BCC_EMAIL`), from `noreply@abfresources.com` via Brevo. Code: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `resolveReportRecipients`, `reportGreeting`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail` in `src/index.js`. Design rules: `feedback/REPORT_DESIGN.md`.
+
+- **Recipients (2026-11-24):** every Teacher linked on the Feedback Form (all of them, not just the first), then every active ABF Leader of the form's ABF Class (`getClassLeaders`). Deduped by email, case-insensitive, first occurrence wins, so a leader who is also the form teacher appears once. People with no email are left off and listed in the dry run as `skippedNoEmail`. One email, everyone on To so they can see each other (`sendgridSendMulti`), with `BCC_EMAIL` passed explicitly as a BCC (dropped if the admin is already on To). A real send with zero addressable recipients fails like any other error. A co-teacher gets the report by being linked as a second Teacher on the form or by being an active leader of the class. The `Teachers` back-link on ABF Classes is **not** used: it comes from `Teachers.Home Class`, so it lists teachers who attend that class, not the survey's teachers.
+- **Greeting:** "Hi Josh and Dan," / "Hi Josh, Dan, and Kurt,". Each recipient is named by their `MINISTRY_DISPLAY` greeting if they have one, otherwise by first name; duplicates collapse. The lead line reads "The survey ... has closed" since leaders get it too.
 
 - **Secret:** `ANTHROPIC_API_KEY` (`npx wrangler secret put ANTHROPIC_API_KEY -c wrangler.toml`). If it is missing, flow G logs an error and skips; the other flows are unaffected.
 - **Model:** `claude-sonnet-5-5`, `anthropic-version: 2026-10-21`, `max_tokens` 8000, `output_config.effort: "medium"`. No temperature or thinking params (Sonnet 5.5 rejects them). Token usage is logged as `G usage: {...}`.
@@ -199,8 +202,9 @@ When a feedback survey closes, the worker asks Claude for a pastoral synthesis o
 **Manual trigger** (same `MANUAL_TRIGGER_AUTH` as `/run`):
 
 ```bash
-# Preview: calls Claude, returns JSON with html, plain, usage, to, subject, wouldSend.
-# Sends nothing and writes nothing to Airtable or KV.
+# Preview: calls Claude, returns JSON (shape below). Sends nothing and writes
+# no record data (no lock, no Sent At, no aiReportHtml, no KV). It does a fresh
+# schema check and may CREATE missing report columns if the PAT allows it.
 curl -s -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" \
   "https://abf-email-worker.tdaly678.workers.dev/run/report?slug=11403&dry=1"
 
@@ -210,7 +214,26 @@ curl -s -X POST -H "x-trigger-auth: <MANUAL_TRIGGER_AUTH>" \
   "https://abf-email-worker.tdaly678.workers.dev/run/report?slug=11403"
 ```
 
-To read just the HTML from a preview: `... | python3 -c 'import json,sys; print(json.load(sys.stdin)["html"])' > report.html`.
+Dry-run response shape:
+
+```json
+{
+  "slug": "11403", "formId": "rec...", "formTitle": "...",
+  "recipients": [{ "name": "...", "email": "...", "role": "teacher" }, { "name": "...", "email": "...", "role": "leader" }],
+  "to": ["...", "..."],
+  "skippedNoEmail": [{ "name": "...", "role": "teacher" }],
+  "bcc": "<BCC_EMAIL>",
+  "subject": "[LEFC|U] Your feedback report for ...",
+  "responses": 12, "model": "claude-sonnet-5-5", "usage": { "input_tokens": 0, "output_tokens": 0 },
+  "dryRun": true, "wouldSend": true, "sent": false,
+  "html": "...", "plain": "...",
+  "reportFields": { "present": ["Report Sent At", "..."], "missing": [], "created": [], "error": "" }
+}
+```
+
+`wouldSend` is true when at least one recipient has an email. `reportFields` covers the five tracking columns; if the Metadata API can't be read, all five are listed as missing and `error` says presence is unknown (state then lives in KV). Real sends return the same `reportFields` (from the cached check).
+
+To list just the recipients: `... | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["recipients"], d["bcc"], d["reportFields"])'`. To read just the HTML: `... | python3 -c 'import json,sys; print(json.load(sys.stdin)["html"])' > report.html`.
 
 ---
 

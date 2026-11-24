@@ -4,7 +4,7 @@
 > Companion to `templates_export.json`, `README.md`, and the `mockup_*.html` files in this folder.
 > This doc is the blueprint for going from mockup → live AI-generated reports surfaced to teachers and emailed when surveys close. Every implementation decision belongs here.
 
-> **Update 2026-11-23: email-on-close is built.** It lives in the existing email worker (`abf-email-worker`, flow G in `worker/src/index.js`), not in a separate Pages Function or second worker, and not in an Airtable Automation. Model `claude-sonnet-5-5`; sender `noreply@abfresources.com` via Brevo, BCC admin. The cron checks hourly for closed surveys; surveys that closed before 2026-11-23 5 PM ET never auto-send. The email is a simplified, email-safe version of this design: a worker-computed score table plus an AI narrative (at a glance, what landed, what stuck, how to grow, anonymous quotes). No radial chart or SVG in email. Respondents are anonymous in the report, which overrides the "specific names" example under Rule 6. Operational details: `worker/README.md`. Still not built: the mid-survey "Generate preliminary report" button, the public `/r/<id>` URL, and the Report Generations log table (token usage goes to worker logs instead).
+> **Update 2026-11-23: email-on-close is built.** It lives in the existing email worker (`abf-email-worker`, flow G in `worker/src/index.js`), not in a separate Pages Function or second worker, and not in an Airtable Automation. Model `claude-sonnet-5-5`; sender `noreply@abfresources.com` via Brevo, to the form's teachers plus the class's ABF leaders (deduped, added 2026-11-24), BCC admin. The cron checks hourly for closed surveys; surveys that closed before 2026-11-23 5 PM ET never auto-send. The email is a simplified, email-safe version of this design: a worker-computed score table plus an AI narrative (at a glance, what landed, what stuck, how to grow, anonymous quotes). No radial chart or SVG in email. Respondents are anonymous in the report, which overrides the "specific names" example under Rule 6. Operational details: `worker/README.md`. Still not built: the mid-survey "Generate preliminary report" button, the public `/r/<id>` URL, and the Report Generations log table (token usage goes to worker logs instead).
 
 ---
 
@@ -331,7 +331,7 @@ A complete HTML document matching the mockup template structure. The Function va
 
 - Triggered only on auto-close path
 - **Sender**: `daly@lefc.net` or a no-reply LEFC|U address (TBD)
-- **Recipient**: teacher email from Airtable Teachers table
+- **Recipient**: teacher email from Airtable Teachers table. *(Built version, 2026-11-24: every Teacher linked on the form plus every active ABF Leader of the form's class, deduped by email, all on To, admin BCC. See `worker/README.md`.)*
 - **Subject**: `[LEFC|U] Your feedback report for [Form Title]`
 - **Body**: HTML report inline + link to the public URL for browser viewing
 - **Service**: Cloudflare Email Routing or SendGrid (TBD — pick whichever is cheapest with reasonable deliverability)

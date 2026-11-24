@@ -1028,11 +1028,21 @@ let _reportFieldsCache;
 let _reportFieldsCheckedAt = 0;
 const REPORT_FIELDS_RECHECK_MS = 6 * 3600 * 1000;
 
-async function ensureReportFields(cfg) {
-  if (_reportFieldsCache !== undefined && Date.now() - _reportFieldsCheckedAt < REPORT_FIELDS_RECHECK_MS) {
+// Outcome of the last ensureReportFields check, for the dry-run JSON:
+// { present: [...], missing: [...], created: [...], error: '' }.
+let _reportFieldsStatus = null;
+
+/* Schema only: reads the Feedback Forms columns and creates any missing
+   report column if the PAT has schema.bases:write. Never writes record data.
+   `force` skips the 6 h cache (the manual dry run uses it so the status it
+   returns is current). */
+async function ensureReportFields(cfg, { force = false } = {}) {
+  if (!force && _reportFieldsCache !== undefined && Date.now() - _reportFieldsCheckedAt < REPORT_FIELDS_RECHECK_MS) {
     return _reportFieldsCache;
   }
   _reportFieldsCheckedAt = Date.now();
+  const created = [];
+  const errors = [];
   try {
     const res = await fetch(`https://api.airtable.com/v0/meta/bases/${cfg.airtableBase}/tables`, {
       headers: { Authorization: `Bearer ${cfg.airtableToken}` },
@@ -1051,15 +1061,30 @@ async function ensureReportFields(cfg) {
       });
       if (cr.ok) {
         have.add(spec.name);
+        created.push(spec.name);
         console.log(`G: created Feedback Forms field "${spec.name}"`);
       } else {
-        console.error(`G: could not create field "${spec.name}": ${cr.status} ${(await cr.text()).slice(0, 300)}`);
+        const detail = (await cr.text()).slice(0, 300);
+        errors.push(`create "${spec.name}": ${cr.status} ${detail}`);
+        console.error(`G: could not create field "${spec.name}": ${cr.status} ${detail}`);
       }
     }
     _reportFieldsCache = have;
+    _reportFieldsStatus = {
+      present: REPORT_FIELD_SPECS.map(s => s.name).filter(n => have.has(n)),
+      missing: REPORT_FIELD_SPECS.map(s => s.name).filter(n => !have.has(n)),
+      created,
+      error: errors.join('; '),
+    };
   } catch (e) {
     console.error(`G: Airtable Metadata API unavailable (${e.message}); report state falls back to KV. Add the Report columns by hand: ${REPORT_FIELD_SPECS.map(s => s.name).join(', ')}`);
     _reportFieldsCache = null;
+    _reportFieldsStatus = {
+      present: [],
+      missing: REPORT_FIELD_SPECS.map(s => s.name),
+      created,
+      error: `Metadata API unavailable (${e.message}); column presence unknown, state falls back to KV`,
+    };
   }
   return _reportFieldsCache;
 }
@@ -1206,7 +1231,11 @@ async function runManualReport(cfg, { slug, dry, resend }) {
   if (isQuestionBoxForm(form, responses)) return { error: 'question-box forms do not get AI reports', status: 400 };
   if (!responses.length) return { error: 'no real responses on this form', status: 400 };
 
-  const fields = dry ? _reportFieldsCache ?? null : await ensureReportFields(cfg);
+  // Dry runs check the schema too (fresh, not cached) so the response says
+  // which report columns exist. This may create missing columns; it never
+  // writes send state.
+  const fields = await ensureReportFields(cfg, { force: !!dry });
+  const reportFields = _reportFieldsStatus;
   const state = await getReportState(cfg, form);
 
   if (!dry) {
@@ -1225,12 +1254,14 @@ async function runManualReport(cfg, { slug, dry, resend }) {
     }
   }
 
-  return await generateFeedbackReport(cfg, form, { responses, state, fields, dry });
+  const out = await generateFeedbackReport(cfg, form, { responses, state, fields, dry });
+  return { ...out, reportFields };
 }
 
 /* Build, generate and (unless dry) send one report. Returns
-   { slug, formTitle, to, subject, dryRun, wouldSend, sent, usage, html, error }.
-   A dry run writes nothing anywhere. */
+   { slug, formTitle, recipients: [{name, email, role}], to: [emails],
+     skippedNoEmail, bcc, subject, dryRun, wouldSend, sent, usage, html, error }.
+   A dry run writes no record data anywhere (no lock, no Sent At, no HTML). */
 async function generateFeedbackReport(cfg, form, { responses, state, fields, dry }) {
   const f = form.fields || {};
   const slug = f.Slug || '';
@@ -1245,25 +1276,25 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
     }, fields);
   }
 
-  let to = '', toName = '';
+  let recipients = [];
   try {
-    const teacherId = (f.Teacher || [])[0];
     const templateId = (f.Template || [])[0];
     const classId = (f['ABF Class'] || [])[0];
-    const [teacher, template, cls] = await Promise.all([
-      teacherId ? airtableGet(cfg, 'Teachers', teacherId) : null,
+    const [resolved, template, cls] = await Promise.all([
+      resolveReportRecipients(cfg, form),
       templateId ? airtableGet(cfg, FEEDBACK_TEMPLATES_TABLE_ID, templateId) : null,
       classId ? airtableGet(cfg, 'ABF Classes', classId) : null,
     ]);
-    to = String(teacher?.fields?.Email || '').trim();
-    toName = teacher?.fields?.Name || '';
-    if (!to && !dry) throw new Error('survey teacher has no email on record');
+    recipients = resolved.recipients;
+    if (!recipients.length && !dry) {
+      throw new Error('no recipient with an email on record (form teachers and class leaders)');
+    }
 
     let questions = [];
     try { questions = JSON.parse(template?.fields?.Questions || '[]'); } catch { questions = []; }
 
     const data = buildReportData({
-      form, formTitle, teacherName: toName, className: cls?.fields?.Name || '',
+      form, formTitle, teacherName: resolved.teacherNames.join(' and '), className: cls?.fields?.Name || '',
       templateName: template?.fields?.Name || '', questions, responses,
     });
 
@@ -1271,20 +1302,30 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
     console.log('G usage:', JSON.stringify({ form: slug || form.id, model: REPORT_MODEL, input_tokens: ai.usage.input_tokens, output_tokens: ai.usage.output_tokens, dry }));
 
     const email = buildFeedbackReportEmail({
-      subject, teacherName: toName, formTitle, data, aiHtml: ai.html,
+      subject, recipients, formTitle, data, aiHtml: ai.html,
       portalUrl: cfg.portalUrl + '/?tab=feedback',
     });
 
     const base = {
-      slug, formId: form.id, formTitle, to, toName, bcc: cfg.bccEmail || null, subject,
+      slug, formId: form.id, formTitle,
+      recipients: recipients.map(r => ({ name: r.name, email: r.email, role: r.role })),
+      to: recipients.map(r => r.email),
+      skippedNoEmail: resolved.skipped,
+      bcc: cfg.bccEmail || null, subject,
       responses: data.n, model: REPORT_MODEL, usage: ai.usage,
     };
 
     if (dry) {
-      return { ...base, dryRun: true, wouldSend: !!to, sent: false, html: email.html, plain: email.plain };
+      return { ...base, dryRun: true, wouldSend: recipients.length > 0, sent: false, html: email.html, plain: email.plain };
     }
 
-    await sendgridSend(cfg, { to, toName, subject, plain: email.plain, html: email.html });
+    // All recipients on To so they can see who else got it. sendgridSendMulti
+    // does not add the admin BCC on its own, so pass it; it is dropped there
+    // if the admin is already on To.
+    await sendgridSendMulti(cfg, {
+      to: recipients.map(r => r.email), subject, plain: email.plain, html: email.html,
+      extraBccs: cfg.bccEmail ? [cfg.bccEmail] : [],
+    });
 
     // Sent. From here on, a failed stamp must NOT be reported as a failed
     // attempt, or the next run would send it again.
@@ -1308,8 +1349,63 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
         await writeReportState(cfg, form, st, { lastError: `${new Date().toISOString()} ${msg}` }, fields);
       } catch (e2) { console.error(`G: could not record error for ${slug}: ${e2.message}`); }
     }
-    return { slug, formId: form.id, formTitle, to, subject, dryRun: !!dry, sent: false, error: msg, status: 502 };
+    return {
+      slug, formId: form.id, formTitle,
+      recipients: recipients.map(r => ({ name: r.name, email: r.email, role: r.role })),
+      to: recipients.map(r => r.email),
+      subject, dryRun: !!dry, sent: false, error: msg, status: 502,
+    };
   }
+}
+
+/* Who gets the report (2026-11-24, Tom's request so co-teachers see it too):
+     1. every Teacher linked on the Feedback Form, in link order, then
+     2. every active ABF Leader of the form's ABF Class (getClassLeaders).
+   Deduped by email (sameEmail), first occurrence wins, so a leader who is
+   also the form teacher appears once, as teacher. People with no email are
+   returned in `skipped` and left off.
+   Deliberately NOT included: the reciprocal "Teachers" link on ABF Classes.
+   It is the back-link of Teachers.Home Class, i.e. teachers who attend that
+   class, not people who taught this survey's series. */
+async function resolveReportRecipients(cfg, form) {
+  const f = form.fields || {};
+  const teacherIds = [...new Set(f.Teacher || [])];
+  const classId = (f['ABF Class'] || [])[0];
+  const [teachers, leaders] = await Promise.all([
+    Promise.all(teacherIds.map(id => airtableGet(cfg, 'Teachers', id))),
+    classId ? getClassLeaders(cfg, classId) : [],
+  ]);
+
+  const recipients = [], skipped = [], teacherNames = [];
+  const add = (name, email, role) => {
+    const addr = String(email || '').trim();
+    if (!addr) { skipped.push({ name: name || '(no name)', role }); return; }
+    if (recipients.some(r => sameEmail(r.email, addr))) return;
+    recipients.push({ name: name || '', email: addr, role });
+  };
+  for (const t of teachers) {
+    if (!t) continue;
+    const name = t.fields?.Name || '';
+    if (name) teacherNames.push(name);
+    add(name, t.fields?.Email, 'teacher');
+  }
+  // getClassLeaders already drops leaders with no email.
+  for (const l of leaders) add(l.name === 'there' ? '' : l.name, l.email, 'leader');
+  return { recipients, skipped, teacherNames };
+}
+
+/* "Josh", "Josh and Dan", "Josh, Dan, and Kurt". Ministry accounts use their
+   MINISTRY_DISPLAY greeting; people use their first name. */
+function reportGreeting(recipients) {
+  const names = [];
+  for (const r of recipients || []) {
+    const n = ministryDisplay(r.name)?.greeting || String(r.name || '').trim().split(/\s+/)[0] || '';
+    if (n && !names.includes(n)) names.push(n);
+  }
+  if (!names.length) return 'there';
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
 /* Everything the model sees. Respondent names and emails are deliberately
@@ -1497,15 +1593,15 @@ function htmlToPlain(h) {
     .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function buildFeedbackReportEmail({ subject, teacherName, formTitle, data, aiHtml, portalUrl }) {
-  const greet = ministryDisplay(teacherName)?.greeting || teacherName || 'there';
+function buildFeedbackReportEmail({ subject, recipients, formTitle, data, aiHtml, portalUrl }) {
+  const greet = reportGreeting(recipients);
   const rows = [
     { label: 'Survey', value: formTitle },
     data.className ? { label: 'ABF', value: data.className } : null,
     data.closesReadable ? { label: 'Closed', value: data.closesReadable } : null,
     { label: 'Responses', value: String(data.n) },
   ].filter(Boolean);
-  const lead = `Your survey "${formTitle}" has closed. Here is a summary of the ${data.n} ${data.n === 1 ? 'response' : 'responses'} it received. Respondents are kept anonymous.`;
+  const lead = `The survey "${formTitle}" has closed. Here is a summary of the ${data.n} ${data.n === 1 ? 'response' : 'responses'} it received. Respondents are kept anonymous.`;
 
   const plain = `Hi ${greet},
 
