@@ -970,7 +970,8 @@ async function processUpcomingClassReminders(cfg, force, collect) {
 // ─── Process: G — End-of-survey AI report ───────────────────────────────────
 //
 // When a feedback survey closes, Claude writes a pastoral synthesis of the
-// responses and it is emailed to the survey's teacher (BCC admin). Design
+// responses and it is emailed to every Teacher linked on the form, with the
+// admin (cfg.bccEmail) as a visible CC, not a BCC. Design
 // rules live in feedback/REPORT_DESIGN.md. (added 2026-11-23)
 //
 // Auto path (cron, first tick of each UTC hour) only picks up forms that:
@@ -1263,7 +1264,7 @@ async function runManualReport(cfg, { slug, dry, resend }) {
 
 /* Build, generate and (unless dry) send one report. Returns
    { slug, formTitle, recipients: [{name, email, role}], to: [emails],
-     skippedNoEmail, bcc, subject, dryRun, wouldSend, sent, usage, html, error }.
+     skippedNoEmail, cc: [emails], subject, dryRun, wouldSend, sent, usage, html, error }.
    A dry run writes no record data anywhere (no lock, no Sent At, no HTML). */
 async function generateFeedbackReport(cfg, form, { responses, state, fields, dry }) {
   const f = form.fields || {};
@@ -1290,7 +1291,7 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
     ]);
     recipients = resolved.recipients;
     if (!recipients.length && !dry) {
-      throw new Error('no recipient with an email on record (form teachers and class leaders)');
+      throw new Error('no teacher linked on the form has an email on record');
     }
 
     let questions = [];
@@ -1309,12 +1310,15 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
       portalUrl: cfg.portalUrl + '/?tab=feedback',
     });
 
+    const to = recipients.map(r => r.email);
+    const cc = reportCcs(cfg, to);
     const base = {
       slug, formId: form.id, formTitle,
       recipients: recipients.map(r => ({ name: r.name, email: r.email, role: r.role })),
-      to: recipients.map(r => r.email),
+      to,
+      cc,
       skippedNoEmail: resolved.skipped,
-      bcc: cfg.bccEmail || null, subject,
+      subject,
       responses: data.n, model: REPORT_MODEL, usage: ai.usage,
     };
 
@@ -1322,12 +1326,12 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
       return { ...base, dryRun: true, wouldSend: recipients.length > 0, sent: false, html: email.html, plain: email.plain };
     }
 
-    // All recipients on To so they can see who else got it. sendgridSendMulti
-    // does not add the admin BCC on its own, so pass it; it is dropped there
-    // if the admin is already on To.
+    // All teachers on To so they can see who else got it. The admin rides as
+    // a visible CC (Tom's request, 2026-11-24), not a BCC, and is left off CC
+    // if already on To. No BCC on this flow.
     await sendgridSendMulti(cfg, {
-      to: recipients.map(r => r.email), subject, plain: email.plain, html: email.html,
-      extraBccs: cfg.bccEmail ? [cfg.bccEmail] : [],
+      to, subject, plain: email.plain, html: email.html,
+      extraCcs: cc,
     });
 
     // Sent. From here on, a failed stamp must NOT be reported as a failed
@@ -1356,28 +1360,31 @@ async function generateFeedbackReport(cfg, form, { responses, state, fields, dry
       slug, formId: form.id, formTitle,
       recipients: recipients.map(r => ({ name: r.name, email: r.email, role: r.role })),
       to: recipients.map(r => r.email),
+      cc: reportCcs(cfg, recipients.map(r => r.email)),
       subject, dryRun: !!dry, sent: false, error: msg, status: 502,
     };
   }
 }
 
-/* Who gets the report (2026-11-24, Tom's request so co-teachers see it too):
-     1. every Teacher linked on the Feedback Form, in link order, then
-     2. every active ABF Leader of the form's ABF Class (getClassLeaders).
-   Deduped by email (sameEmail), first occurrence wins, so a leader who is
-   also the form teacher appears once, as teacher. People with no email are
-   returned in `skipped` and left off.
+/* The visible CC on a report: the admin (cfg.bccEmail, daly@lefc.net),
+   unless that address is already on To. */
+function reportCcs(cfg, to) {
+  const admin = String(cfg.bccEmail || '').trim();
+  if (!admin || (to || []).some(e => sameEmail(e, admin))) return [];
+  return [admin];
+}
+
+/* Who gets the report (2026-11-24, Tom's call): only the Teachers linked on
+   the Feedback Form's Teacher field, in link order. Class ABF Leaders are no
+   longer included. Deduped by email (sameEmail), first occurrence wins.
+   Teachers with no email are returned in `skipped` and left off.
    Deliberately NOT included: the reciprocal "Teachers" link on ABF Classes.
    It is the back-link of Teachers.Home Class, i.e. teachers who attend that
    class, not people who taught this survey's series. */
 async function resolveReportRecipients(cfg, form) {
   const f = form.fields || {};
   const teacherIds = [...new Set(f.Teacher || [])];
-  const classId = (f['ABF Class'] || [])[0];
-  const [teachers, leaders] = await Promise.all([
-    Promise.all(teacherIds.map(id => airtableGet(cfg, 'Teachers', id))),
-    classId ? getClassLeaders(cfg, classId) : [],
-  ]);
+  const teachers = await Promise.all(teacherIds.map(id => airtableGet(cfg, 'Teachers', id)));
 
   const recipients = [], skipped = [], teacherNames = [];
   const add = (name, email, role) => {
@@ -1392,8 +1399,6 @@ async function resolveReportRecipients(cfg, form) {
     if (name) teacherNames.push(name);
     add(name, t.fields?.Email, 'teacher');
   }
-  // getClassLeaders already drops leaders with no email.
-  for (const l of leaders) add(l.name === 'there' ? '' : l.name, l.email, 'leader');
   return { recipients, skipped, teacherNames };
 }
 
@@ -2054,14 +2059,22 @@ async function sendgridSend(cfg, { to, toName, subject, plain, html, extraBccs =
 // Send one email to several recipients (all on the To line, so they can see
 // each other). Used by the Rock board and by the one-month teaching heads-up.
 // `extraBccs` is opt-in — callers that don't pass it get no BCC at all, which
-// is how the Rock board has always behaved.
-async function sendgridSendMulti(cfg, { to, subject, plain, html, extraBccs = [] }) {
+// is how the Rock board has always behaved. `extraCcs` (feedback reports only)
+// adds visible CCs; an address already on To is never repeated as CC or BCC,
+// and an address on CC is not also BCC'd.
+async function sendgridSendMulti(cfg, { to, subject, plain, html, extraBccs = [], extraCcs = [] }) {
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean).map(email => ({ email }));
   const onTo = recipients.map(r => r.email.toLowerCase());
+  const ccs = [];
+  for (const e of extraCcs) {
+    const lower = (e || '').toLowerCase();
+    if (lower && !onTo.includes(lower) && !ccs.some(c => c.toLowerCase() === lower)) ccs.push(e);
+  }
   const bccs = [];
   for (const e of extraBccs) {
     const lower = (e || '').toLowerCase();
-    if (lower && !onTo.includes(lower) && !bccs.some(b => b.toLowerCase() === lower)) bccs.push(e);
+    if (lower && !onTo.includes(lower) && !ccs.some(c => c.toLowerCase() === lower)
+        && !bccs.some(b => b.toLowerCase() === lower)) bccs.push(e);
   }
   const payload = {
     sender: { email: cfg.fromEmail, name: cfg.fromName },
@@ -2071,6 +2084,7 @@ async function sendgridSendMulti(cfg, { to, subject, plain, html, extraBccs = []
     textContent: plain,
     htmlContent: html,
   };
+  if (ccs.length) payload.cc = ccs.map(email => ({ email }));
   if (bccs.length) payload.bcc = bccs.map(email => ({ email }));
   await brevoRequest(cfg, payload);
 }

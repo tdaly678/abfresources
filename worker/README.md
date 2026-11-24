@@ -185,10 +185,10 @@ then push. To test: `curl -X POST -H 'Content-Type: application/json' \
 
 ## End-of-survey AI feedback report (flow G, added 2026-11-23)
 
-When a feedback survey closes, the worker asks Claude for a pastoral synthesis of the responses and emails it to the survey's teachers and the class's ABF leaders (BCC `BCC_EMAIL`), from `noreply@abfresources.com` via Brevo. Code: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `resolveReportRecipients`, `reportGreeting`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail` in `src/index.js`. Design rules: `feedback/REPORT_DESIGN.md`.
+When a feedback survey closes, the worker asks Claude for a pastoral synthesis of the responses and emails it to the Teachers linked on the form, with `BCC_EMAIL` (daly@lefc.net) as a visible CC, from `noreply@abfresources.com` via Brevo. Code: `processClosedFeedbackReports`, `runManualReport`, `generateFeedbackReport`, `resolveReportRecipients`, `reportGreeting`, `buildReportData`, `callClaudeForReport`, `buildFeedbackReportEmail` in `src/index.js`. Design rules: `feedback/REPORT_DESIGN.md`.
 
-- **Recipients (2026-11-24):** every Teacher linked on the Feedback Form (all of them, not just the first), then every active ABF Leader of the form's ABF Class (`getClassLeaders`). Deduped by email, case-insensitive, first occurrence wins, so a leader who is also the form teacher appears once. People with no email are left off and listed in the dry run as `skippedNoEmail`. One email, everyone on To so they can see each other (`sendgridSendMulti`), with `BCC_EMAIL` passed explicitly as a BCC (dropped if the admin is already on To). A real send with zero addressable recipients fails like any other error. A co-teacher gets the report by being linked as a second Teacher on the form or by being an active leader of the class. The `Teachers` back-link on ABF Classes is **not** used: it comes from `Teachers.Home Class`, so it lists teachers who attend that class, not the survey's teachers.
-- **Greeting:** "Hi Josh and Dan," / "Hi Josh, Dan, and Kurt,". Each recipient is named by their `MINISTRY_DISPLAY` greeting if they have one, otherwise by first name; duplicates collapse. One short line: "your survey has closed. Here is the short version."
+- **Recipients (revised 2026-11-24, Tom's call):** only the Teachers linked on the Feedback Form's `Teacher` field (all of them, in link order). Class ABF Leaders are **not** included any more. Deduped by email, case-insensitive (`sameEmail`). Teachers with no email are left off and listed in the dry run as `skippedNoEmail`. One email, all teachers on To so they can see each other (`sendgridSendMulti`). The admin (`BCC_EMAIL`, daly@lefc.net) is a **visible CC** via the new `extraCcs` option (Brevo `cc` array), not a BCC, and is left off CC if already on To (`reportCcs`). This flow sends no BCC. Other flows keep their BCC behavior; `extraCcs` is opt-in and only flow G passes it. A real send with zero To recipients fails like any other error. A co-teacher gets the report only by being linked as a second Teacher on the form. The `Teachers` back-link on ABF Classes is **not** used: it comes from `Teachers.Home Class`, so it lists teachers who attend that class, not the survey's teachers. For 11403 the recipients are Josh and Dan Bailey.
+- **Greeting:** "Hi Joshua and Dan," / "Hi Josh, Dan, and Kurt,". Each recipient is named by their `MINISTRY_DISPLAY` greeting if they have one, otherwise by first name; duplicates collapse. One short line: "your survey has closed. Here is the short version."
 - **Compact visual layout (2026-11-24, after Tom saw the 11403 dry run).** Goal: visuals instead of raw numbers, and the whole email prints on **two letter pages or fewer** (no cover page; design borrowed from Tom's handmade MOSAIC summary). Rendered by the worker, top to bottom: steel banner (`reportShell`: LEFC|U, survey title, one meta line with class, closed date, response count); dark stat chips (`reportStatChipsHtml`: responses, overall nourishment, understanding deepened if present, highest other score); one row per rating (`reportScoresHtml`: short dimension label, average-vs-max bar, colored score chip, tiny 1..max spread of counts); stacked bars for choice questions like pace and sessions attended (`reportChoicesHtml`; pace colored by distance from "Just right"); less/about right/more bars per component (`reportDialsHtml`, skipped if ratings + choices + components would pass `REPORT_ROW_BUDGET = 20` rows); then the model's section, then a one-line AI note and a small portal button. Short labels come from `REPORT_SHORT_LABELS` (REPORT_DESIGN.md dimension names, keyed by question id) with a trimmed-label fallback. Chip tones (`ratingTone`): steel at 90% of max or better, gold/olive mid, terra under 70% or a lowest score under 80% that sits 10 points below the rest. Email-safe only: tables, inline styles, `width` attributes, `&nbsp;` in bar cells, no SVG or JS. The `<style>` block in the head is print-only polish (`@page` letter 0.5in, no breaks inside rows/chips/quotes); nothing depends on it. `brandShell` is unchanged for every other email. Sample render of the full Series template (7 ratings, attendance, 8 components, 340 model words) printed to exactly 2 pages in Chrome.
 
 - **Secret:** `ANTHROPIC_API_KEY` (`npx wrangler secret put ANTHROPIC_API_KEY -c wrangler.toml`). If it is missing, flow G logs an error and skips; the other flows are unaffected.
@@ -199,6 +199,30 @@ When a feedback survey closes, the worker asks Claude for a pastoral synthesis o
 - **Airtable columns** (Feedback Forms): `Report Sent At` (date+time), `Report Started At` (date+time, the lock), `Report Attempt Count` (number), `Report Last Error` (long text), `aiReportHtml` (long text). The job creates missing ones through the Metadata API on first need (cached per isolate for 6 h). If the token lacks `schema.bases:write` it logs which columns to add by hand and keeps working off KV.
 - **Lock and retries:** before calling Claude the job stamps `Report Started At` and bumps `Report Attempt Count`. A lock under 15 minutes old is skipped; an older one is treated as stale and retried. A failure writes `Report Last Error`, leaves `Report Sent At` blank, and the next hourly run retries, up to 5 attempts total. `Report Sent At` and `aiReportHtml` are written only after Brevo accepts the email. All state is mirrored to KV key `report:<formRecordId>` (RATE namespace) so a missing column can't cause a double send; with neither KV nor a `Report Sent At` column the job refuses to send. To retry a capped form, lower `Report Attempt Count` in Airtable and delete the KV key, or use the manual trigger.
 - **DRY_RUN=true** makes the cron log `DRY_RUN G:` candidates without calling Claude.
+
+### Process: how a survey gets its report automatically
+
+Nothing needs to be done per survey. The cron is still `*/5`, but flow G only runs on the first tick of each UTC hour. On that tick it picks up every Feedback Form where:
+
+1. `Closes At` (full UTC timestamp) has passed;
+2. `Closes At` is strictly after `REPORT_AUTO_SEND_CUTOFF` (`2026-11-23T22:00:00.000Z`);
+3. the form is not a question-box form;
+4. there is at least one real response;
+5. `Report Sent At` is blank (and the KV mirror agrees), the attempt count is under 5, and no lock under 15 minutes old is held.
+
+It then emails the report to every Teacher linked on the form, CC daly@lefc.net. At most 2 surveys per tick; failures retry hourly.
+
+**For a new survey to auto-send it needs:** an end date (`Closes At`) after the cutoff, at least one linked Teacher with an email on record, and at least one real response. Question-box forms never auto-send. A survey with no `Closes At` never auto-sends.
+
+**Next automatic one:** Andrew (Drew) Huber, Mosaic 2026 Ecclesiastes, slug `77467`, closes Dec 12, 2026 at 6:21 PM America/New_York. The report should go out on the first hourly tick after that (about 7:00 PM ET), as long as the worker is deployed with `ANTHROPIC_API_KEY` set. Preview it any time with a dry run.
+
+**Manual preview / send** (header `x-trigger-auth: <MANUAL_TRIGGER_AUTH>`):
+
+- `POST /run/report?slug=SLUG&dry=1` previews: calls Claude, returns the JSON below, sends nothing, stamps nothing. Works even while the survey is still open.
+- `POST /run/report?slug=SLUG` sends for real and stamps `Report Sent At` (and KV). Closed surveys only. Bypasses the cutoff and the attempt cap.
+- Add `resend=1` to send again after a report already went out.
+
+**Tracking columns may still be missing.** If the Metadata API returns 403 (PAT without schema scope), the five report columns can't be created automatically. KV (`report:<formRecordId>`) still prevents a double send until the columns are added by hand.
 
 **Manual trigger** (same `MANUAL_TRIGGER_AUTH` as `/run`):
 
@@ -220,10 +244,10 @@ Dry-run response shape:
 ```json
 {
   "slug": "11403", "formId": "rec...", "formTitle": "...",
-  "recipients": [{ "name": "...", "email": "...", "role": "teacher" }, { "name": "...", "email": "...", "role": "leader" }],
+  "recipients": [{ "name": "...", "email": "...", "role": "teacher" }, { "name": "...", "email": "...", "role": "teacher" }],
   "to": ["...", "..."],
+  "cc": ["daly@lefc.net"],
   "skippedNoEmail": [{ "name": "...", "role": "teacher" }],
-  "bcc": "<BCC_EMAIL>",
   "subject": "[LEFC|U] Your feedback report for ...",
   "responses": 12, "model": "claude-sonnet-5-5", "usage": { "input_tokens": 0, "output_tokens": 0 },
   "dryRun": true, "wouldSend": true, "sent": false,
@@ -232,9 +256,9 @@ Dry-run response shape:
 }
 ```
 
-`wouldSend` is true when at least one recipient has an email. `reportFields` covers the five tracking columns; if the Metadata API can't be read, all five are listed as missing and `error` says presence is unknown (state then lives in KV). Real sends return the same `reportFields` (from the cached check).
+`recipients` and `to` are the form's teachers only. `cc` is `[BCC_EMAIL]`, or `[]` if that address is already on To or unset. There is no `bcc` key for this flow. `wouldSend` is true iff `to` has at least one address. `reportFields` covers the five tracking columns; if the Metadata API can't be read, all five are listed as missing and `error` says presence is unknown (state then lives in KV). Real sends return the same `reportFields` (from the cached check).
 
-To list just the recipients: `... | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["recipients"], d["bcc"], d["reportFields"])'`. To read just the HTML: `... | python3 -c 'import json,sys; print(json.load(sys.stdin)["html"])' > report.html`.
+To list just the recipients: `... | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["to"], d["cc"], d["reportFields"])'`. To read just the HTML: `... | python3 -c 'import json,sys; print(json.load(sys.stdin)["html"])' > report.html`.
 
 ---
 
